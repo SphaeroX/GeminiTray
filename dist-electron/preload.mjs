@@ -1,1 +1,29 @@
-"use strict";const o=require("electron");o.contextBridge.exposeInMainWorld("ipcRenderer",{on(...e){const[r,n]=e;return o.ipcRenderer.on(r,(t,...c)=>n(t,...c))},off(...e){const[r,...n]=e;return o.ipcRenderer.off(r,...n)},send(...e){const[r,...n]=e;return o.ipcRenderer.send(r,...n)},invoke(...e){const[r,...n]=e;return o.ipcRenderer.invoke(r,...n)},onScreenshotTaken(e){o.ipcRenderer.on("screenshot-taken",(r,n)=>e(n))},onUpdateAvailable(e){o.ipcRenderer.on("update-available",(r,n)=>e(n))},onUpdateDownloaded(e){o.ipcRenderer.on("update-downloaded",(r,n)=>e(n))}});
+"use strict";
+const electron = require("electron");
+electron.contextBridge.exposeInMainWorld("ipcRenderer", {
+  on(...args) {
+    const [channel, listener] = args;
+    return electron.ipcRenderer.on(channel, (event, ...args2) => listener(event, ...args2));
+  },
+  off(...args) {
+    const [channel, ...omit] = args;
+    return electron.ipcRenderer.off(channel, ...omit);
+  },
+  send(...args) {
+    const [channel, ...omit] = args;
+    return electron.ipcRenderer.send(channel, ...omit);
+  },
+  invoke(...args) {
+    const [channel, ...omit] = args;
+    return electron.ipcRenderer.invoke(channel, ...omit);
+  },
+  onScreenshotTaken(callback) {
+    electron.ipcRenderer.on("screenshot-taken", (_event, path) => callback(path));
+  },
+  onUpdateAvailable(callback) {
+    electron.ipcRenderer.on("update-available", (_event, info) => callback(info));
+  },
+  onUpdateDownloaded(callback) {
+    electron.ipcRenderer.on("update-downloaded", (_event, info) => callback(info));
+  }
+});

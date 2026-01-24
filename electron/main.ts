@@ -114,6 +114,7 @@ interface StoreSchema {
   openAsHidden: boolean;
   alwaysOnTop: boolean;
   newChatShortcut: string;
+  prompts: Array<{ id: string; name: string; content: string }>;
 }
 
 const store = new Store<StoreSchema>({
@@ -124,7 +125,8 @@ const store = new Store<StoreSchema>({
     openAtLogin: false,
     openAsHidden: true,
     alwaysOnTop: true,
-    newChatShortcut: 'Alt+N'
+    newChatShortcut: 'Alt+N',
+    prompts: []
   }
 });
 
@@ -290,7 +292,8 @@ function createWindow() {
       openAtLogin: store.get('openAtLogin'),
       openAsHidden: store.get('openAsHidden'),
       alwaysOnTop: store.get('alwaysOnTop'),
-      newChatShortcut: store.get('newChatShortcut')
+      newChatShortcut: store.get('newChatShortcut'),
+      prompts: store.get('prompts') || []
     }
   })
 
@@ -303,6 +306,10 @@ function createWindow() {
       openAsHidden: settings.openAsHidden, // macOS
       args: settings.openAsHidden ? ['--hidden'] : [] // Windows
     })
+  })
+
+  ipcMain.on('save-prompts', (_event: IpcMainEvent, prompts: Array<{ id: string; name: string; content: string }>) => {
+    store.set('prompts', prompts)
   })
 
   ipcMain.on('set-opacity', (_event: IpcMainEvent, opacity: number) => {

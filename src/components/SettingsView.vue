@@ -10,6 +10,13 @@ interface AppSettings {
   openAsHidden: boolean;
   alwaysOnTop: boolean;
   newChatShortcut: string;
+  prompts: Prompt[];
+}
+
+interface Prompt {
+  id: string;
+  name: string;
+  content: string;
 }
 
 const { t } = useI18n();
@@ -29,6 +36,11 @@ const isRecordingGlobal = ref(false);
 const isRecordingScreenshot = ref(false);
 const isRecordingNewChat = ref(false);
 const newChatShortcut = ref('');
+const prompts = ref<Prompt[]>([]);
+const newPromptName = ref('');
+const newPromptContent = ref('');
+const isEditing = ref(false);
+const editingId = ref<string | null>(null);
 
 
 onMounted(async () => {
@@ -41,6 +53,7 @@ onMounted(async () => {
     openAsHidden.value = settings.openAsHidden ?? true;
     alwaysOnTop.value = settings.alwaysOnTop ?? false;
     newChatShortcut.value = settings.newChatShortcut ?? '';
+    prompts.value = settings.prompts ?? [];
   }
   
   // Listen for Alt+Space from main process (when blocked by globalShortcut)
@@ -239,6 +252,60 @@ const filteredCategories = computed(() => {
 const toggleCategory = (id: string) => {
   activeCategory.value = activeCategory.value === id ? null : id;
 };
+
+const savePrompts = () => {
+  window.ipcRenderer.send('save-prompts', JSON.parse(JSON.stringify(prompts.value)));
+};
+
+const addPrompt = () => {
+  if (!newPromptName.value.trim() || !newPromptContent.value.trim()) return;
+  
+  prompts.value.push({
+    id: Date.now().toString(),
+    name: newPromptName.value.trim(),
+    content: newPromptContent.value.trim()
+  });
+  
+  newPromptName.value = '';
+  newPromptContent.value = '';
+  savePrompts();
+};
+
+const deletePrompt = (id: string) => {
+  prompts.value = prompts.value.filter(p => p.id !== id);
+  savePrompts();
+};
+
+const startEditing = (prompt: Prompt) => {
+  newPromptName.value = prompt.name;
+  newPromptContent.value = prompt.content;
+  isEditing.value = true;
+  editingId.value = prompt.id;
+  // Switch to input view if not already there, effectively we reuse the 'add' section for editing
+};
+
+const updatePrompt = () => {
+  if (!editingId.value || !newPromptName.value.trim() || !newPromptContent.value.trim()) return;
+
+  const index = prompts.value.findIndex(p => p.id === editingId.value);
+  if (index !== -1) {
+    prompts.value[index] = {
+      ...prompts.value[index],
+      name: newPromptName.value.trim(),
+      content: newPromptContent.value.trim()
+    };
+    savePrompts();
+  }
+  cancelEdit();
+};
+
+const cancelEdit = () => {
+  isEditing.value = false;
+  editingId.value = null;
+  newPromptName.value = '';
+  newPromptContent.value = '';
+};
+
 </script>
 
 <template>
@@ -392,6 +459,53 @@ const toggleCategory = (id: string) => {
                   readonly
                 >
               </div>
+            </div>
+            
+            <div v-else-if="category.id === 'prompts'" class="setting-group">
+                <div v-if="prompts.length > 0" class="prompts-list">
+                <div v-for="prompt in prompts" :key="prompt.id" class="prompt-item">
+                    <div class="prompt-header">
+                    <span class="prompt-name">{{ prompt.name }}</span>
+                    <div class="prompt-actions">
+                        <button @click="startEditing(prompt)" class="icon-btn edit-btn" :title="t('app.edit') || 'Edit'">
+                        ✏️
+                        </button>
+                        <button @click="deletePrompt(prompt.id)" class="icon-btn delete-btn" :title="t('app.delete') || 'Delete'">
+                        🗑️
+                        </button>
+                    </div>
+                    </div>
+                    <div class="prompt-preview">{{ prompt.content }}</div>
+                </div>
+                </div>
+                <p v-else class="placeholder-text">{{ t('app.no_prompts_yet') || 'No prompts saved yet.' }}</p>
+
+                <div class="add-prompt-form">
+                <h3 class="form-title">{{ isEditing ? (t('app.edit_prompt') || 'Edit Prompt') : (t('app.add_new_prompt') || 'Add New Prompt') }}</h3>
+                <input 
+                    v-model="newPromptName" 
+                    class="text-input" 
+                    :placeholder="t('app.prompt_name_placeholder') || 'Prompt Name'"
+                >
+                <textarea 
+                    v-model="newPromptContent" 
+                    class="text-area" 
+                    :placeholder="t('app.prompt_content_placeholder') || 'Prompt Content'"
+                    rows="3"
+                ></textarea>
+                <div class="form-actions">
+                    <button v-if="isEditing" @click="cancelEdit" class="secondary-btn">
+                    {{ t('app.cancel') || 'Cancel' }}
+                    </button>
+                    <button 
+                    @click="isEditing ? updatePrompt() : addPrompt()" 
+                    class="primary-btn"
+                    :disabled="!newPromptName.trim() || !newPromptContent.trim()"
+                    >
+                    {{ isEditing ? (t('app.save') || 'Save') : (t('app.add') || 'Add') }}
+                    </button>
+                </div>
+                </div>
             </div>
             
             <p v-else class="placeholder-text">{{ t('app.no_settings_yet') }}</p>
@@ -734,5 +848,160 @@ const toggleCategory = (id: string) => {
   color: rgba(255, 255, 255, 0.5);
   margin: 4px 0 8px 0;
   line-height: 1.4;
+}
+
+/* Prompts Styles */
+.prompts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.prompt-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.2s;
+}
+
+.prompt-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.prompt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.prompt-name {
+  font-weight: 600;
+  color: #fff;
+  font-size: 14px;
+}
+
+.prompt-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  opacity: 0.7;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.icon-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.delete-btn:hover {
+  background: rgba(255, 80, 80, 0.2);
+}
+
+.prompt-preview {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.add-prompt-form {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.form-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: #fff;
+}
+
+.text-input, .text-area {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+  font-family: inherit;
+  margin-bottom: 12px;
+}
+
+.text-input:focus, .text-area:focus {
+  border-color: rgba(138, 180, 248, 0.6);
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.2);
+}
+
+.text-area {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.primary-btn, .secondary-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  outline: none;
+}
+
+.primary-btn {
+  background: #fff;
+  color: #000;
+}
+
+.primary-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+  transform: translateY(-1px);
+}
+
+.primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.secondary-btn {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.add-prompt-form {
+  margin-top: 16px;
 }
 </style>
