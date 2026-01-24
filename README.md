@@ -16,6 +16,11 @@ Unlike ChatGPT, Google currently does not offer a standalone desktop application
 *   Integrating directly with `gemini.google.com` (no API keys required, supports Advanced accounts).
 *   **Essential Feature**: Providing a dedicated "Screenshot & Ask" workflow to quickly analyze screen content.
 
+## Vibe Coded
+This project is 100% vibe coded.
+Built with Google Antigravity and Gemini 3.
+
+
 ##  Key Features
 
 - ** Instant Access**: Open the chat anytime with a global shortcut (Default: `Alt+Space` or similar, configurable).
