@@ -1,7 +1,7 @@
 {
   "name": "gemini-tray",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A desktop app that integrates Google Gemini into your workflow via system tray",
   "author": "SphaeroX",
   "license": "MIT",
@@ -15,6 +15,7 @@
     "build": "vue-tsc && vite build && electron-builder",
     "build:win": "vue-tsc && vite build && electron-builder --win",
     "build:linux": "vue-tsc && vite build && electron-builder --linux",
+    "build:ci": "vue-tsc && vite build && electron-builder -p never",
     "preview": "vite preview"
   },
   "dependencies": {
