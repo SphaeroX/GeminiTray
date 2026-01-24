@@ -1,0 +1,45 @@
+{
+    "app": {
+        "title": "Gemini Tray",
+        "settings": "Settings",
+        "close": "Close",
+        "search_placeholder": "Search settings...",
+        "opacity": "Opacity",
+        "transparency": "Transparency",
+        "toggle_visibility": "Toggle Visibility",
+        "shortcut_placeholder": "Click to set shortcut",
+        "autostart": "Start at login",
+        "start_minimized": "Start minimized",
+        "always_on_top": "Always on top",
+        "always_on_top_desc": "Keep window above all other windows",
+        "screenshot_shortcut": "Screenshot & Ask",
+        "screenshot_shortcut_desc": "Take a screenshot and ask Gemini about it",
+        "screenshot_copied": "Screenshot copied to clipboard! Paste it in Gemini to ask.",
+        "new_chat_shortcut": "New Chat",
+        "new_chat_shortcut_desc": "Open app and start a new conversation",
+        "notification_sound": "Notification sound",
+        "notification_sound_desc": "Play sound on new responses",
+        "no_settings_yet": "No settings available yet.",
+        "categories": {
+            "general": "General",
+            "shortcuts": "Shortcuts",
+            "sound": "Sound",
+            "feedback": "Feedback",
+            "prompts": "Prompts",
+            "screenshots": "Screenshots"
+        },
+        "tray": {
+            "show_hide": "Show/Hide",
+            "quit": "Quit"
+        },
+        "updates": {
+            "check": "Check for updates",
+            "checking": "Checking for updates...",
+            "available": "Update available",
+            "not_available": "You have the latest version",
+            "downloading": "Downloading update...",
+            "ready": "Update ready to install",
+            "install": "Install and restart"
+        }
+    }
+}
