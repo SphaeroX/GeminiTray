@@ -66,7 +66,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            release/**/*.exe
+            release/**/*-Setup.exe
             release/**/*.AppImage
             release/**/latest.yml
             release/**/latest-linux.yml
