@@ -68,7 +68,8 @@ jobs:
           files: |
             release/**/*.exe
             release/**/*.AppImage
-            release/**/*.yml
+            release/**/latest.yml
+            release/**/latest-linux.yml
           draft: false
           prerelease: false
           generate_release_notes: true
