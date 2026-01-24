@@ -13,7 +13,7 @@
   ],
   "publish": {
     "provider": "github",
-    "owner": "OWNER",
+    "owner": "SphaeroX",
     "repo": "GeminiTray"
   },
   "mac": {
