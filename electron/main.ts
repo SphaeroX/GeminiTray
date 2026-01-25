@@ -6,6 +6,16 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import Store from 'electron-store'
 
+// Fix for Google Login "This browser or app may not be secure"
+app.commandLine.appendSwitch('disable-features', 'AutomationControlled');
+app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
+app.commandLine.appendSwitch('disable-site-isolation-trials');
+// Allow third-party/partitioned cookies used by Google Sign-In (from GeminiDesk)
+app.commandLine.appendSwitch('enable-features', 'ThirdPartyStoragePartitioning');
+
+// Disable hardware acceleration to match GeminiDesk (stealth/stability)
+app.disableHardwareAcceleration();
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // Debug mode - only active in development
@@ -176,15 +186,27 @@ function createWindow() {
   })
 
   // Create BrowserView for Gemini
+  // mimicking GeminiDesk: use the exact Chrome version of the Electron runtime
+  const userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36`;
+
   view = new BrowserView({
     webPreferences: {
       partition: 'persist:gemini', // Share session/cookies
       devTools: IS_DEV, // Enable DevTools only in dev mode
+      // @ts-ignore
+      userAgent: userAgent // Set UA at creation time for stealth
     }
   })
 
-  // Set a realistic Chrome User Agent to avoid detection/blocking
-  view.webContents.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+  // Inject script to remove "navigator.webdriver" property
+  // This is crucial for bypassing Google's anti-automation checks
+  view.webContents.on('did-start-loading', () => {
+    view?.webContents.executeJavaScript(`
+      const newProto = navigator.__proto__;
+      delete newProto.webdriver;
+      navigator.__proto__ = newProto;
+    `).catch(() => { });
+  });
 
   // Debug: Log console messages from Gemini view
   if (IS_DEV) {
@@ -201,11 +223,13 @@ function createWindow() {
   }
   win.setBrowserView(view)
 
-  // Open DevTools for Gemini view in dev mode
+  // Open DevTools for Gemini view in dev mode - DISABLED for stealth
+  /*
   if (IS_DEV) {
     view.webContents.openDevTools({ mode: 'detach' })
     console.log('[DEBUG] DevTools opened for Gemini BrowserView')
   }
+  */
 
   // Initial bounds - will be updated by resize event
   const updateViewBounds = () => {
@@ -536,6 +560,24 @@ function createWindow() {
       console.error('Update check failed:', error);
       return null;
     }
+  })
+
+  ipcMain.handle('reset-session', async () => {
+    if (view) {
+      try {
+        await view.webContents.session.clearStorageData();
+        console.log('[GeminiTray] Session storage cleared');
+
+        // Reload the view to reflect changes (user will be logged out)
+        view.webContents.reload();
+
+        return true;
+      } catch (error) {
+        console.error('Failed to reset session:', error);
+        return false;
+      }
+    }
+    return false;
   })
 
   // Debug IPC handlers (only active in dev mode)

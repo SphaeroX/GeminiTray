@@ -238,7 +238,8 @@ const categories = [
   { id: 'sound', icon: '🔊' },
   { id: 'feedback', icon: '💬' },
   { id: 'prompts', icon: '📝' },
-  { id: 'screenshots', icon: '📸' }
+  { id: 'screenshots', icon: '📸' },
+  { id: 'troubleshooting', icon: '🔧' }
 ];
 
 const filteredCategories = computed(() => {
@@ -304,6 +305,12 @@ const cancelEdit = () => {
   editingId.value = null;
   newPromptName.value = '';
   newPromptContent.value = '';
+};
+
+const resetSession = async () => {
+    if (confirm('Are you sure you want to reset the session? This will clear all cookies and restart the app interface.')) {
+        await window.ipcRenderer.invoke('reset-session');
+    }
 };
 
 </script>
@@ -506,6 +513,18 @@ const cancelEdit = () => {
                     </button>
                 </div>
                 </div>
+            </div>
+            
+            <div v-else-if="category.id === 'troubleshooting'" class="setting-group">
+               <div class="setting-item">
+                 <div class="setting-label">
+                   <span>{{ t('app.troubleshooting.reset_session') }}</span>
+                 </div>
+                 <p class="setting-description">{{ t('app.troubleshooting.reset_session_desc') }}</p>
+                 <button @click="resetSession" class="danger-btn">
+                   {{ t('app.troubleshooting.reset_btn') }}
+                 </button>
+               </div>
             </div>
             
             <p v-else class="placeholder-text">{{ t('app.no_settings_yet') }}</p>
@@ -796,6 +815,24 @@ const cancelEdit = () => {
   content: "";
   position: absolute;
   display: none;
+}
+
+.danger-btn {
+  background: rgba(255, 59, 48, 0.2);
+  color: #ff453a;
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.danger-btn:hover {
+  background: rgba(255, 59, 48, 0.3);
+  border-color: rgba(255, 59, 48, 0.5);
 }
 
 .checkbox-container input:checked ~ .checkmark:after {

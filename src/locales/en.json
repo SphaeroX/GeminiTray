@@ -36,7 +36,13 @@
             "sound": "Sound",
             "feedback": "Feedback",
             "prompts": "Prompts",
-            "screenshots": "Screenshots"
+            "screenshots": "Screenshots",
+            "troubleshooting": "Troubleshooting"
+        },
+        "troubleshooting": {
+            "reset_session": "Reset Session",
+            "reset_session_desc": "Clears all cookies and local data. Useful if you are stuck in a login loop or experiencing other issues.",
+            "reset_btn": "Reset & Restart"
         },
         "tray": {
             "show_hide": "Show/Hide",
