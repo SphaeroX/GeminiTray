@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import Store from 'electron-store'
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const PROMPT_INJECTION_SCRIPT = fs.readFileSync(path.join(__dirname, '../electron/prompt-injection.js'), 'utf-8');
+
 // Fix for Google Login "This browser or app may not be secure"
 app.commandLine.appendSwitch('disable-features', 'AutomationControlled');
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
@@ -16,7 +19,6 @@ app.commandLine.appendSwitch('enable-features', 'ThirdPartyStoragePartitioning')
 // Disable hardware acceleration to match GeminiDesk (stealth/stability)
 app.disableHardwareAcceleration();
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // Debug mode - only active in development
 const IS_DEV = !!process.env['VITE_DEV_SERVER_URL']
@@ -124,6 +126,7 @@ interface StoreSchema {
   openAsHidden: boolean;
   alwaysOnTop: boolean;
   newChatShortcut: string;
+  promptMenuShortcut: string;
   prompts: Array<{ id: string; name: string; content: string }>;
 }
 
@@ -136,6 +139,7 @@ const store = new Store<StoreSchema>({
     openAsHidden: true,
     alwaysOnTop: true,
     newChatShortcut: 'Alt+N',
+    promptMenuShortcut: 'Alt+J',
     prompts: []
   }
 });
@@ -208,6 +212,11 @@ function createWindow() {
     `).catch(() => { });
   });
 
+  // Inject prompt handling script when page finishes loading
+  view.webContents.on('did-finish-load', () => {
+    view?.webContents.executeJavaScript(PROMPT_INJECTION_SCRIPT).catch(err => console.error('Failed to inject prompt script:', err));
+  });
+
   // Debug: Log console messages from Gemini view
   if (IS_DEV) {
     view.webContents.on('console-message', (_event, level, message, line, sourceId) => {
@@ -222,14 +231,6 @@ function createWindow() {
     });
   }
   win.setBrowserView(view)
-
-  // Open DevTools for Gemini view in dev mode - DISABLED for stealth
-  /*
-  if (IS_DEV) {
-    view.webContents.openDevTools({ mode: 'detach' })
-    console.log('[DEBUG] DevTools opened for Gemini BrowserView')
-  }
-  */
 
   // Initial bounds - will be updated by resize event
   const updateViewBounds = () => {
@@ -278,15 +279,7 @@ function createWindow() {
     updateViewBounds()
 
     // Check if we should start hidden
-    // On Windows, we might check process.argv for a flag if setLoginItemSettings was used with args
-    // but typically we can rely on our store preference if we just want to enforce it always on start
     const wasOpenedAsHidden = process.argv.includes('--hidden') || (app.getLoginItemSettings().wasOpenedAsHidden && process.platform === 'darwin');
-
-    // If configured to open hidden AND (actually opened as hidden OR generalized "start minimized" preference checks)
-    // For simplicity, if openAsHidden is true in store, and we are opening, we check if we want to enforce it strictly on every launch or only on autostart.
-    // Usually 'openAsHidden' implies only when autostarted. 
-    // However, user might just manually run the app and expect it to pop up.
-    // So we rely on the flag passed by autostart mechanism.
     if (wasOpenedAsHidden) {
       win?.hide()
     } else {
@@ -317,6 +310,7 @@ function createWindow() {
       openAsHidden: store.get('openAsHidden'),
       alwaysOnTop: store.get('alwaysOnTop'),
       newChatShortcut: store.get('newChatShortcut'),
+      promptMenuShortcut: store.get('promptMenuShortcut'),
       prompts: store.get('prompts') || []
     }
   })
@@ -334,6 +328,21 @@ function createWindow() {
 
   ipcMain.on('save-prompts', (_event: IpcMainEvent, prompts: Array<{ id: string; name: string; content: string }>) => {
     store.set('prompts', prompts)
+  })
+
+  ipcMain.on('set-active-prompt', (_event: IpcMainEvent, prompt: { id: string; name: string; content: string } | null) => {
+    console.log('[DEBUG] Main received set-active-prompt:', prompt);
+    if (view) {
+      view.webContents.executeJavaScript(`
+        if (window.__GEMINI_TRAY_SET_PROMPT) {
+          window.__GEMINI_TRAY_SET_PROMPT(${JSON.stringify(prompt)});
+        } else {
+             console.error('window.__GEMINI_TRAY_SET_PROMPT not found');
+        }
+      `).catch(err => console.error('Failed to set active prompt:', err));
+    } else {
+      console.error('[DEBUG] View is null');
+    }
   })
 
   ipcMain.on('set-opacity', (_event: IpcMainEvent, opacity: number) => {
@@ -475,14 +484,48 @@ function createWindow() {
     }
   })
 
-  ipcMain.on('set-always-on-top', (_event: IpcMainEvent, alwaysOnTop: boolean) => {
-    if (win) {
-      if (alwaysOnTop) {
-        win.setAlwaysOnTop(true, 'screen-saver');
-      } else {
-        win.setAlwaysOnTop(false);
+  ipcMain.handle('set-prompt-menu-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
+    const oldShortcut = store.get('promptMenuShortcut');
+    if (oldShortcut) {
+      globalShortcut.unregister(oldShortcut);
+    }
+
+    try {
+      const ret = globalShortcut.register(shortcut, () => {
+        if (win) {
+          if (!win.isVisible()) {
+            win.show();
+            win.focus();
+          }
+          win.webContents.send('toggle-prompt-menu');
+        }
+      });
+
+      if (!ret) {
+        if (oldShortcut) {
+          globalShortcut.register(oldShortcut, () => {
+            if (win) {
+              if (!win.isVisible()) win.show();
+              win.webContents.send('toggle-prompt-menu');
+            }
+          });
+        }
+        return false;
       }
-      store.set('alwaysOnTop', alwaysOnTop);
+
+      store.set('promptMenuShortcut', shortcut);
+      return true;
+    } catch (error) {
+      console.error('Failed to register prompt menu shortcut:', error);
+      if (oldShortcut) {
+        globalShortcut.register(oldShortcut, () => {
+          if (win) {
+            if (!win.isVisible()) win.show();
+            win.webContents.send('toggle-prompt-menu');
+          }
+        });
+      }
+      return false;
     }
   })
 
@@ -510,6 +553,10 @@ function createWindow() {
     if (currentNewChat && currentNewChat !== 'Alt+Space') {
       globalShortcut.unregister(currentNewChat);
     }
+    const currentPromptMenu = store.get('promptMenuShortcut');
+    if (currentPromptMenu && currentPromptMenu !== 'Alt+Space') {
+      globalShortcut.unregister(currentPromptMenu);
+    }
 
     // Ensure Alt+Space is registered (for recording and to block system menu)
     ensureAltSpaceRegistered();
@@ -523,6 +570,7 @@ function createWindow() {
     const currentGlobal = store.get('globalShortcut');
     const currentScreenshot = store.get('screenshotShortcut');
     const currentNewChat = store.get('newChatShortcut');
+    const currentPromptMenu = store.get('promptMenuShortcut');
 
     // Handle Alt+Space specially - keep it registered if it's the global shortcut
     if (currentGlobal === 'Alt+Space') {
@@ -549,6 +597,15 @@ function createWindow() {
     // Handle new chat shortcut
     if (currentNewChat && currentNewChat !== 'Alt+Space') {
       globalShortcut.register(currentNewChat, () => handleNewChat());
+    }
+
+    if (currentPromptMenu && currentPromptMenu !== 'Alt+Space') {
+      globalShortcut.register(currentPromptMenu, () => {
+        if (win) {
+          if (!win.isVisible()) win.show();
+          win.webContents.send('toggle-prompt-menu');
+        }
+      });
     }
   })
 
@@ -591,28 +648,28 @@ function createWindow() {
       if (!view) return null;
       try {
         return await view.webContents.executeJavaScript(`
-          (function() {
-            const inputField = document.querySelector('.text-input-field, [class*="text-input"]');
-            const editor = document.querySelector('.ql-editor[contenteditable="true"]');
-            
-            // Get all elements that might contain uploaded images
-            const allElements = document.body.innerHTML;
-            const blobUrls = allElements.match(/blob:[^"'\\s]+/g) || [];
-            const dataUrls = (allElements.match(/data:image[^"'\\s]+/g) || []).map(u => u.substring(0, 100));
-            
-            return {
-              timestamp: new Date().toISOString(),
-              inputFieldHTML: inputField?.outerHTML?.substring(0, 10000) || null,
-              editorHTML: editor?.innerHTML || null,
-              blobUrlCount: blobUrls.length,
-              blobUrls: blobUrls.slice(0, 5),
-              dataUrlCount: dataUrls.length,
-              documentReadyState: document.readyState,
-              activeElement: document.activeElement?.tagName,
-              activeElementClasses: document.activeElement?.className
-            };
-          })()
-        `);
+    (function () {
+      const inputField = document.querySelector('.text-input-field, [class*="text-input"]');
+      const editor = document.querySelector('.ql-editor[contenteditable="true"]');
+
+      // Get all elements that might contain uploaded images
+      const allElements = document.body.innerHTML;
+      const blobUrls = allElements.match(/blob:[^"'\\s]+/g) || [];
+      const dataUrls = (allElements.match(/data:image[^"'\\s]+/g) || []).map(u => u.substring(0, 100));
+
+      return {
+        timestamp: new Date().toISOString(),
+        inputFieldHTML: inputField?.outerHTML?.substring(0, 10000) || null,
+        editorHTML: editor?.innerHTML || null,
+        blobUrlCount: blobUrls.length,
+        blobUrls: blobUrls.slice(0, 5),
+        dataUrlCount: dataUrls.length,
+        documentReadyState: document.readyState,
+        activeElement: document.activeElement?.tagName,
+        activeElementClasses: document.activeElement?.className
+      };
+    })()
+    `);
       } catch (error) {
         console.error('[DEBUG] Failed to get Gemini state:', error);
         return null;
@@ -634,7 +691,7 @@ function createWindow() {
     console.log('[DEBUG] Debug IPC handlers registered');
   }
 
-  // Register initial shortcuts (inside createWindow so handleAltSpace is available)
+  // Register initial shortcuts
   const initialShortcut = store.get('globalShortcut');
   if (initialShortcut === 'Alt+Space') {
     ensureAltSpaceRegistered();
@@ -650,6 +707,16 @@ function createWindow() {
   const initialNewChatShortcut = store.get('newChatShortcut');
   if (initialNewChatShortcut) {
     globalShortcut.register(initialNewChatShortcut, () => handleNewChat());
+  }
+
+  const initialPromptMenuShortcut = store.get('promptMenuShortcut');
+  if (initialPromptMenuShortcut) {
+    globalShortcut.register(initialPromptMenuShortcut, () => {
+      if (win) {
+        if (!win.isVisible()) win.show();
+        win.webContents.send('toggle-prompt-menu');
+      }
+    });
   }
 }
 
@@ -996,4 +1063,3 @@ app.whenReady().then(() => {
   createTray()
   setupAutoUpdater()
 })
-

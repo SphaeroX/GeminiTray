@@ -10,6 +10,7 @@ interface AppSettings {
   openAsHidden: boolean;
   alwaysOnTop: boolean;
   newChatShortcut: string;
+  promptMenuShortcut: string;
   prompts: Prompt[];
 }
 
@@ -53,6 +54,7 @@ onMounted(async () => {
     openAsHidden.value = settings.openAsHidden ?? true;
     alwaysOnTop.value = settings.alwaysOnTop ?? false;
     newChatShortcut.value = settings.newChatShortcut ?? '';
+    promptMenuShortcut.value = settings.promptMenuShortcut ?? '';
     prompts.value = settings.prompts ?? [];
   }
   
@@ -68,6 +70,9 @@ onMounted(async () => {
     } else if (isRecordingNewChat.value) {
       newChatShortcut.value = shortcut;
       saveNewChatShortcut();
+    } else if (isRecordingPromptMenu.value) {
+      promptMenuShortcut.value = shortcut;
+      savePromptMenuShortcut();
     }
   });
 });
@@ -86,6 +91,7 @@ const stopRecording = () => {
   isRecordingGlobal.value = false;
   isRecordingScreenshot.value = false;
   isRecordingNewChat.value = false;
+  isRecordingPromptMenu.value = false;
 };
 
 watch([openAtLogin, openAsHidden], ([newOpenAtLogin, newOpenAsHidden]) => {
@@ -168,12 +174,13 @@ const handleGlobalShortcutFocus = () => {
   isRecordingGlobal.value = true;
   isRecordingScreenshot.value = false;
   isRecordingNewChat.value = false;
+  isRecordingPromptMenu.value = false;
   startRecording();
 };
 
 const handleGlobalShortcutBlur = () => {
   isRecordingGlobal.value = false;
-  if (!isRecordingScreenshot.value && !isRecordingNewChat.value) {
+  if (!isRecordingScreenshot.value && !isRecordingNewChat.value && !isRecordingPromptMenu.value) {
     stopRecording();
   }
 };
@@ -195,12 +202,13 @@ const handleScreenshotShortcutFocus = () => {
   isRecordingScreenshot.value = true;
   isRecordingGlobal.value = false;
   isRecordingNewChat.value = false;
+  isRecordingPromptMenu.value = false;
   startRecording();
 };
 
 const handleScreenshotShortcutBlur = () => {
   isRecordingScreenshot.value = false;
-  if (!isRecordingGlobal.value && !isRecordingNewChat.value) {
+  if (!isRecordingGlobal.value && !isRecordingNewChat.value && !isRecordingPromptMenu.value) {
     stopRecording();
   }
 };
@@ -227,7 +235,47 @@ const handleNewChatShortcutFocus = () => {
 
 const handleNewChatShortcutBlur = () => {
   isRecordingNewChat.value = false;
-  if (!isRecordingGlobal.value && !isRecordingScreenshot.value) {
+  if (!isRecordingGlobal.value && !isRecordingScreenshot.value && !isRecordingPromptMenu.value) {
+    stopRecording();
+  }
+};
+
+const isRecordingPromptMenu = ref(false);
+const promptMenuShortcut = ref('');
+
+const savePromptMenuShortcut = async () => {
+  if (promptMenuShortcut.value) {
+    const success = await window.ipcRenderer.invoke('set-prompt-menu-shortcut', promptMenuShortcut.value);
+    if (!success) {
+      console.error('Failed to set prompt menu shortcut');
+    }
+  }
+};
+
+const handlePromptMenuShortcutKeydown = (e: KeyboardEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+  
+  const shortcut = buildShortcutString(e);
+  if (shortcut) {
+    promptMenuShortcut.value = shortcut;
+    savePromptMenuShortcut();
+  }
+  return false;
+};
+
+const handlePromptMenuShortcutFocus = () => {
+  isRecordingPromptMenu.value = true;
+  isRecordingGlobal.value = false;
+  isRecordingScreenshot.value = false;
+  isRecordingNewChat.value = false;
+  startRecording();
+};
+
+const handlePromptMenuShortcutBlur = () => {
+  isRecordingPromptMenu.value = false;
+  if (!isRecordingGlobal.value && !isRecordingScreenshot.value && !isRecordingNewChat.value) {
     stopRecording();
   }
 };
@@ -442,6 +490,22 @@ const resetSession = async () => {
                   @keydown.prevent="handleNewChatShortcutKeydown"
                   @focus="handleNewChatShortcutFocus"
                   @blur="handleNewChatShortcutBlur"
+                  :placeholder="t('app.shortcut_placeholder')"
+                  class="shortcut-input"
+                  readonly
+                >
+              </div>
+              <div class="setting-item">
+                <div class="setting-label">
+                  <span>{{ t('app.prompts_menu_shortcut') || 'Prompt Menu Shortcut' }}</span>
+                </div>
+                <p class="setting-description">{{ t('app.prompts_menu_shortcut_desc') || 'Shortcut to open the prompts menu' }}</p>
+                <input 
+                  type="text" 
+                  :value="promptMenuShortcut"
+                  @keydown.prevent="handlePromptMenuShortcutKeydown"
+                  @focus="handlePromptMenuShortcutFocus"
+                  @blur="handlePromptMenuShortcutBlur"
                   :placeholder="t('app.shortcut_placeholder')"
                   class="shortcut-input"
                   readonly

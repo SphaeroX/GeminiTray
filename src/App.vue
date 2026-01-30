@@ -1,17 +1,42 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import TitleBar from './components/TitleBar.vue'
 import SettingsView from './components/SettingsView.vue'
+import PromptsMenu from './components/PromptsMenu.vue'
 import ToastNotification from './components/ToastNotification.vue'
 
 const isSettingsOpen = ref(false)
+const isPromptsMenuOpen = ref(false)
 
 const toggleSettings = () => {
   isSettingsOpen.value = !isSettingsOpen.value
+  if (isSettingsOpen.value) isPromptsMenuOpen.value = false
 }
 
-watch(isSettingsOpen, (isOpen) => {
+const togglePromptsMenu = () => {
+  isPromptsMenuOpen.value = !isPromptsMenuOpen.value
+  if (isPromptsMenuOpen.value) isSettingsOpen.value = false
+}
+
+const handlePromptSelect = (prompt: any) => {
+  console.log('[App] handlePromptSelect called with:', prompt);
+  // alert('Debug: App received prompt');
+  // Ensure we send a plain object to IPC
+  window.ipcRenderer.send('set-active-prompt', JSON.parse(JSON.stringify(prompt)))
+  togglePromptsMenu()
+}
+
+// Check if any overlay is open
+const isOverlayOpen = computed(() => isSettingsOpen.value || isPromptsMenuOpen.value)
+
+watch(isOverlayOpen, (isOpen) => {
   window.ipcRenderer.send('toggle-settings', isOpen)
+})
+
+onMounted(() => {
+  window.ipcRenderer.on('toggle-prompt-menu', () => {
+    togglePromptsMenu()
+  })
 })
 </script>
 
@@ -20,6 +45,12 @@ watch(isSettingsOpen, (isOpen) => {
     <TitleBar @toggle-settings="toggleSettings" />
     <div class="content-overlay">
       <SettingsView v-if="isSettingsOpen" style="pointer-events: auto;" @close="toggleSettings" />
+      <PromptsMenu 
+        v-if="isPromptsMenuOpen" 
+        style="pointer-events: auto;" 
+        @close="togglePromptsMenu" 
+        @select="handlePromptSelect" 
+      />
     </div>
     <ToastNotification />
   </div>
