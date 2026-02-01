@@ -65,6 +65,11 @@ const selectPrompt = (prompt: any) => {
   }
 };
 
+const truncateText = (text: string, maxLength: number = 60) => {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+};
+
 </script>
 
 <template>
@@ -72,7 +77,7 @@ const selectPrompt = (prompt: any) => {
     <div class="prompts-menu">
       <div class="menu-header">
         <div class="header-row">
-          <h3 class="menu-title">{{ t('app.prompts_menu_title') }}</h3>
+          <h3 class="menu-title"></h3>
           <button class="close-btn" @click="emit('close')">✕</button>
         </div>
         <input 
@@ -96,7 +101,7 @@ const selectPrompt = (prompt: any) => {
           <div class="prompt-icon">📝</div>
           <div class="prompt-info">
             <div class="prompt-name">{{ prompt.name }}</div>
-            <div class="prompt-preview">{{ prompt.content }}</div>
+            <div class="prompt-preview" :title="prompt.content">{{ truncateText(prompt.content) }}</div>
           </div>
           <div class="prompt-shortcut" v-if="index < 9">Alt+{{ index + 1 }}</div>
         </div>
@@ -124,6 +129,18 @@ const selectPrompt = (prompt: any) => {
   align-items: flex-start;
   padding-top: 60px;
   z-index: 1000;
+}
+
+.prompts-menu {
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  background: #1a1a1a;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .header-row {
@@ -214,6 +231,8 @@ const selectPrompt = (prompt: any) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.3;
 }
 
 .prompt-shortcut {

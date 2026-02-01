@@ -7,7 +7,20 @@ import path from 'node:path'
 import Store from 'electron-store'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const PROMPT_INJECTION_SCRIPT = fs.readFileSync(path.join(__dirname, '../electron/prompt-injection.js'), 'utf-8');
+const IS_DEV = !!process.env['VITE_DEV_SERVER_URL']
+
+// In production, resources are in resources/electron/prompt-injection.js
+// In dev, they are in electron/prompt-injection.js relative to project root
+const PROMPT_INJECTION_PATH = IS_DEV
+  ? path.join(__dirname, '../electron/prompt-injection.js')
+  : path.join(process.resourcesPath, 'electron/prompt-injection.js');
+
+let PROMPT_INJECTION_SCRIPT = '';
+try {
+  PROMPT_INJECTION_SCRIPT = fs.readFileSync(PROMPT_INJECTION_PATH, 'utf-8');
+} catch (e) {
+  console.error('Failed to load prompt injection script:', e);
+}
 
 // Fix for Google Login "This browser or app may not be secure"
 app.commandLine.appendSwitch('disable-features', 'AutomationControlled');
@@ -21,7 +34,7 @@ app.disableHardwareAcceleration();
 
 
 // Debug mode - only active in development
-const IS_DEV = !!process.env['VITE_DEV_SERVER_URL']
+// const IS_DEV = !!process.env['VITE_DEV_SERVER_URL'] // Moved to top
 const DEBUG_DIR = path.join(os.tmpdir(), 'gemini-tray-debug')
 
 // Ensure debug directory exists in dev mode

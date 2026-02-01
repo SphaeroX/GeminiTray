@@ -11,6 +11,12 @@
     "dist",
     "dist-electron"
   ],
+  "extraResources": [
+    {
+      "from": "electron/prompt-injection.js",
+      "to": "electron/prompt-injection.js"
+    }
+  ],
   "publish": {
     "provider": "github",
     "owner": "SphaeroX",
