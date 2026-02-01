@@ -74,8 +74,10 @@ body {
 }
 
 .content-overlay {
-  flex-grow: 1;
+  flex: 1 1 auto;
   pointer-events: none; /* Let clicks pass through to BrowserView below where there is no UI */
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* If we had a settings panel, we would re-enable pointer-events on it */

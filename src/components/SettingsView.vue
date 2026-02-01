@@ -607,12 +607,14 @@ const resetSession = async () => {
 .settings-view {
   width: 100%;
   height: 100%;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
   background: rgba(30, 30, 30, 0.95); /* High opacity dark background */
   backdrop-filter: blur(20px);
   color: #fff;
   border-left: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
 }
 
 .settings-header {
@@ -686,9 +688,11 @@ const resetSession = async () => {
 }
 
 .settings-content {
-  flex-grow: 1;
+  flex: 1 1 auto;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 10px;
+  min-height: 0;
 }
 
 .accordion-item {
