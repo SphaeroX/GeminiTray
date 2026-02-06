@@ -21,15 +21,6 @@ This project is 100% vibe coded.
 Built with Google Antigravity and Gemini 3.
 
 
-##  Key Features
-
-- ** Instant Access**: Open the chat anytime with a global shortcut (Default: `Alt+Space` or similar, configurable).
-- ** Screenshot & Ask**: The "Killer Feature". Trigger a snipping tool, capture any part of your screen (or full screen), and it's practically instantly attached to a fresh Gemini prompt. Perfect for questions like *"What does this error mean?"* or *"Explain this code snippet."*
-- ** Full Web Experience**: Uses the official web interface, so you get all features (image generation, extensions, history) without API cost or limitations.
-- ** Configurable**: Settings to customize shortcuts, "Always on Top" behavior, opacity, and more.
-
-![Gemini Tray Settings](images/screenshot_2.png)
-
 ## 🎬 Demo
 
 ![Gemini Tray Demo](demo.gif)
@@ -52,6 +43,15 @@ Here's how to use GeminiTray most effectively:
    - `Esc` → Minimize window (keeps running in tray)
 
 **Pro Tip**: Use the "Always on Top" feature for continuous assistance while working.
+
+##  Key Features
+
+- **Instant Access**: Open the chat anytime with a global shortcut (Default: `Alt+Space` or similar, configurable).
+- **Screenshot & Ask**: The "Killer Feature". Trigger a snipping tool, capture any part of your screen (or full screen), and it's practically instantly attached to a fresh Gemini prompt. Perfect for questions like *"What does this error mean?"* or *"Explain this code snippet."*
+- **Full Web Experience**: Uses the official web interface, so you get all features (image generation, extensions, history) without API cost or limitations.
+- **Configurable**: Settings to customize shortcuts, "Always on Top" behavior, opacity, and more.
+
+![Gemini Tray Settings](images/screenshot_2.png)
 
 ##  Installation & Updates
 
