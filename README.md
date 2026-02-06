@@ -34,24 +34,24 @@ Built with Google Antigravity and Gemini 3.
 
 ![Gemini Tray Demo](demo.gif)
 
-### Schnellstart mit Shortcuts & Prompts
+### Quick Start with Shortcuts & Prompts
 
-So nutzt du GeminiTray am effektivsten:
+Here's how to use GeminiTray most effectively:
 
-1. **App öffnen**: Drücke `Alt+Space` (oder deinen eigenen Shortcut) – die App erscheint sofort über allen Fenstern.
+1. **Open the app**: Press `Alt+Space` (or your custom shortcut) – the app instantly appears on top of all windows.
 
-2. **Screenshot-Analyse** (die Killer-Funktion): 
-   - Drücke `Alt+Shift+S` → Bildschirmbereich auswählen → Bild wird direkt in ein neues Gemini-Prompt eingefügt.
-   - Beispiele:
-     - **Fehlermeldungen**: Screenshot machen + Prompt: *"Was bedeutet dieser Fehler?"*
-     - **Code-Analyse**: Code-Screenshot + Prompt: *"Erkläre mir diesen Code"*
-     - **UI-Design**: Design-Screenshot + Prompt: *"Wie baue ich diese Komponente in React?"*
+2. **Screenshot Analysis** (the killer feature): 
+   - Press `Alt+Shift+S` → Select screen area → Image is instantly attached to a new Gemini prompt.
+   - Examples:
+     - **Error messages**: Take screenshot + prompt: *"What does this error mean?"*
+     - **Code analysis**: Code screenshot + prompt: *"Explain this code to me"*
+     - **UI Design**: Design screenshot + prompt: *"How do I build this component in React?"*
 
-3. **Schnelle Prompts**:
-   - `Strg+N` → Neues Gespräch starten
-   - `Esc` → Fenster minimieren (läuft weiter im Tray)
+3. **Quick Prompts**:
+   - `Ctrl+N` → Start new chat
+   - `Esc` → Minimize window (keeps running in tray)
 
-**Pro-Tipp**: Nutze die "Always on Top"-Funktion für durchgehende Assisstenz beim Arbeiten.
+**Pro Tip**: Use the "Always on Top" feature for continuous assistance while working.
 
 ##  Installation & Updates
 
