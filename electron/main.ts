@@ -821,21 +821,26 @@ async function handleNewChat() {
 
   if (view) {
     try {
-      await view.webContents.executeJavaScript(`
-        (function() {
-          // Selector based on user provided structure: <new-chat-button ...><button ...>
-          const newChatBtn = document.querySelector('new-chat-button button');
-          if (newChatBtn) {
-            newChatBtn.click();
-            console.log('[GeminiTray] Clicked new chat button');
-          } else {
-            console.warn('[GeminiTray] New chat button not found');
-            // Fallback: try aria-label
-            const ariaBtn = document.querySelector('button[aria-label*="Chat"]');
-            if (ariaBtn) ariaBtn.click();
-          }
-        })();
-      `);
+      // Focus the Gemini view first
+      view.webContents.focus();
+      
+      // Wait a bit for focus to settle
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Send Ctrl+Shift+O keyboard shortcut to open new chat
+      // Using modifiers array instead of separate key events
+      view.webContents.sendInputEvent({ 
+        type: 'keyDown', 
+        keyCode: 'O',
+        modifiers: ['control', 'shift']
+      });
+      view.webContents.sendInputEvent({ 
+        type: 'keyUp', 
+        keyCode: 'O',
+        modifiers: ['control', 'shift']
+      });
+      
+      console.log('[GeminiTray] Sent Ctrl+Shift+O shortcut for new chat');
     } catch (e) {
       console.error('Failed to trigger new chat:', e);
     }
