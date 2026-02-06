@@ -30,6 +30,29 @@ Built with Google Antigravity and Gemini 3.
 
 ![Gemini Tray Settings](images/screenshot_2.png)
 
+## 🎬 Demo
+
+![Gemini Tray Demo](demo.gif)
+
+### Schnellstart mit Shortcuts & Prompts
+
+So nutzt du GeminiTray am effektivsten:
+
+1. **App öffnen**: Drücke `Alt+Space` (oder deinen eigenen Shortcut) – die App erscheint sofort über allen Fenstern.
+
+2. **Screenshot-Analyse** (die Killer-Funktion): 
+   - Drücke `Alt+Shift+S` → Bildschirmbereich auswählen → Bild wird direkt in ein neues Gemini-Prompt eingefügt.
+   - Beispiele:
+     - **Fehlermeldungen**: Screenshot machen + Prompt: *"Was bedeutet dieser Fehler?"*
+     - **Code-Analyse**: Code-Screenshot + Prompt: *"Erkläre mir diesen Code"*
+     - **UI-Design**: Design-Screenshot + Prompt: *"Wie baue ich diese Komponente in React?"*
+
+3. **Schnelle Prompts**:
+   - `Strg+N` → Neues Gespräch starten
+   - `Esc` → Fenster minimieren (läuft weiter im Tray)
+
+**Pro-Tipp**: Nutze die "Always on Top"-Funktion für durchgehende Assisstenz beim Arbeiten.
+
 ##  Installation & Updates
 
 ### Download
