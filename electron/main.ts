@@ -1,4 +1,4 @@
-import { app, BrowserWindow, BrowserView, ipcMain, IpcMainEvent, globalShortcut, IpcMainInvokeEvent, Tray, Menu, nativeImage, screen, desktopCapturer, clipboard } from 'electron'
+import { app, BrowserWindow, BrowserView, ipcMain, IpcMainEvent, globalShortcut, IpcMainInvokeEvent, Tray, Menu, nativeImage, screen, desktopCapturer, clipboard, shell } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import * as fs from 'node:fs'
 import * as os from 'node:os'
@@ -257,6 +257,22 @@ function createWindow() {
   win.on('resize', updateViewBounds)
   win.on('maximize', updateViewBounds)
   win.on('unmaximize', updateViewBounds)
+
+  // Handle external links - open in default browser instead of Electron
+  view.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url)
+    return { action: 'deny' }
+  })
+
+  view.webContents.on('will-navigate', (event, url) => {
+    // Allow navigation within Gemini domain
+    if (url.startsWith('https://gemini.google.com') || url.startsWith('https://accounts.google.com')) {
+      return
+    }
+    // Block external navigation and open in default browser
+    event.preventDefault()
+    shell.openExternal(url)
+  })
 
   view.webContents.loadURL('https://gemini.google.com/app')
 
