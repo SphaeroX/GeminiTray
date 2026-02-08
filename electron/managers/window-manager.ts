@@ -2,7 +2,7 @@ import { BrowserWindow, BrowserView, shell, screen, desktopCapturer } from 'elec
 import * as path from 'node:path'
 import * as fs from 'node:fs'
 import { store } from '../utils/store'
-import { IS_DEV, PROMPT_INJECTION_PATH, VITE_DEV_SERVER_URL, RENDERER_DIST, VITE_PUBLIC, DEBUG_DIR } from '../utils/constants'
+import { IS_DEV, OPEN_DEVTOOLS, PROMPT_INJECTION_PATH, VITE_DEV_SERVER_URL, RENDERER_DIST, VITE_PUBLIC, DEBUG_DIR } from '../utils/constants'
 
 // Load prompt injection script once
 let PROMPT_INJECTION_SCRIPT = '';
@@ -155,6 +155,21 @@ export class WindowManager {
         }
 
         this.win.setBrowserView(this.view)
+
+        // Open DevTools automatically when OPEN_DEVTOOLS is set
+        if (OPEN_DEVTOOLS) {
+            this.view.webContents.openDevTools({ mode: 'detach' })
+            // Bring DevTools to front after a short delay
+            setTimeout(() => {
+                const devTools = BrowserWindow.getAllWindows().find(w => 
+                    w.webContents.getURL().includes('devtools')
+                )
+                if (devTools) {
+                    devTools.show()
+                    devTools.focus()
+                }
+            }, 1000)
+        }
     }
 
     updateViewBounds() {

@@ -5,6 +5,7 @@ import * as os from 'node:os'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export const IS_DEV = !!process.env['VITE_DEV_SERVER_URL']
+export const OPEN_DEVTOOLS = process.env['OPEN_DEVTOOLS'] === 'true'
 
 // The built directory structure
 //
