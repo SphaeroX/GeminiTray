@@ -144,6 +144,7 @@ interface StoreSchema {
 }
 
 const store = new Store<StoreSchema>({
+  name: IS_DEV ? 'config-dev' : 'config',
   defaults: {
     opacity: 0.95,
     globalShortcut: 'Alt+Space',
@@ -839,23 +840,23 @@ async function handleNewChat() {
     try {
       // Focus the Gemini view first
       view.webContents.focus();
-      
+
       // Wait a bit for focus to settle
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       // Send Ctrl+Shift+O keyboard shortcut to open new chat
       // Using modifiers array instead of separate key events
-      view.webContents.sendInputEvent({ 
-        type: 'keyDown', 
+      view.webContents.sendInputEvent({
+        type: 'keyDown',
         keyCode: 'O',
         modifiers: ['control', 'shift']
       });
-      view.webContents.sendInputEvent({ 
-        type: 'keyUp', 
+      view.webContents.sendInputEvent({
+        type: 'keyUp',
         keyCode: 'O',
         modifiers: ['control', 'shift']
       });
-      
+
       console.log('[GeminiTray] Sent Ctrl+Shift+O shortcut for new chat');
     } catch (e) {
       console.error('Failed to trigger new chat:', e);
