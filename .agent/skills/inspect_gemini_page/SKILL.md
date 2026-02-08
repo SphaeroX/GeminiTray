@@ -24,6 +24,14 @@ The Gemini Tray app masquerades as a standard Chrome browser to avoid "unsecure 
 `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36`
 *(Note: The app uses `process.versions.chrome`, so using a recent Chrome version like 120+ is a good approximation).*
 
+## Windows Compatibility Note
+
+The `browser_subagent` tool may require the `HOME` environment variable to be set on Windows (which is not set by default). If the tool fails with "$HOME environment variable is not set", please run the following command in the terminal once:
+```powershell
+$env:HOME = $env:USERPROFILE
+```
+Or permanently set it via `setx HOME "%USERPROFILE%"`.
+
 ## Instructions
 
 ### 1. Launch Browser Subagent
