@@ -107,7 +107,3 @@ Diese können über die Electron-Konsole oder im Preload-Script verwendet werden
 3. Bei Problemen (z.B. Screenshot-Upload) werden automatisch Snapshots erstellt
 4. Agent kann die HTML/JSON-Dateien in `%TEMP%/gemini-tray-debug/` analysieren
 5. DevTools ermöglichen Live-Inspektion der Gemini-Webseite
-
-
-## Sonstiges
-Wenn du etwas neues macht erhöhe schrittweise die Version bei Elekctron (nicht vergessen)
