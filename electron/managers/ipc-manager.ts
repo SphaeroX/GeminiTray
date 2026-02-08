@@ -81,7 +81,7 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
             windowManager.view.webContents.executeJavaScript(`
                 window.__GEMINI_TRAY_DEFAULT_MODEL = '${model}';
                 console.log('[GeminiTray] Default model updated to: ${model}');
-            `).catch(() => {});
+            `).catch(() => { });
         }
     })
 
@@ -92,7 +92,7 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
             windowManager.view.webContents.executeJavaScript(`
                 window.__GEMINI_TRAY_AUTO_SELECT = ${enabled};
                 console.log('[GeminiTray] Auto-select model updated to: ${enabled}');
-            `).catch(() => {});
+            `).catch(() => { });
         }
     })
 
