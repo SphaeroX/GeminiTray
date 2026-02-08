@@ -31,7 +31,9 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
             alwaysOnTop: store.get('alwaysOnTop'),
             newChatShortcut: store.get('newChatShortcut'),
             promptMenuShortcut: store.get('promptMenuShortcut'),
-            prompts: store.get('prompts') || []
+            prompts: store.get('prompts') || [],
+            defaultModel: store.get('defaultModel') || 'fast',
+            autoSelectModel: store.get('autoSelectModel') ?? false
         }
     })
 
@@ -69,6 +71,28 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
         if (windowManager.win) {
             windowManager.win.setOpacity(opacity)
             store.set('opacity', opacity)
+        }
+    })
+
+    ipcMain.on('set-default-model', (_event: IpcMainEvent, model: 'fast' | 'thinking' | 'pro') => {
+        store.set('defaultModel', model)
+        // Update the model in the running BrowserView
+        if (windowManager.view) {
+            windowManager.view.webContents.executeJavaScript(`
+                window.__GEMINI_TRAY_DEFAULT_MODEL = '${model}';
+                console.log('[GeminiTray] Default model updated to: ${model}');
+            `).catch(() => {});
+        }
+    })
+
+    ipcMain.on('set-auto-select-model', (_event: IpcMainEvent, enabled: boolean) => {
+        store.set('autoSelectModel', enabled)
+        // Update the auto-select setting in the running BrowserView
+        if (windowManager.view) {
+            windowManager.view.webContents.executeJavaScript(`
+                window.__GEMINI_TRAY_AUTO_SELECT = ${enabled};
+                console.log('[GeminiTray] Auto-select model updated to: ${enabled}');
+            `).catch(() => {});
         }
     })
 

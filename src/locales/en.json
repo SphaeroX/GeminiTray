@@ -19,6 +19,15 @@
         "new_chat_shortcut_desc": "Open app and start a new conversation",
         "prompts_menu_shortcut": "Prompts Menu",
         "prompts_menu_shortcut_desc": "Open the prompts selection menu",
+        "default_model": "Default Model",
+        "default_model_desc": "Select the default model for new chats",
+        "auto_select_model": "Auto-select model",
+        "auto_select_model_desc": "Automatically select the default model when opening a new chat",
+        "models": {
+            "fast": "Fast",
+            "thinking": "Thinking",
+            "pro": "Pro"
+        },
         "notification_sound": "Notification sound",
         "notification_sound_desc": "Play sound on new responses",
         "no_settings_yet": "No settings available yet.",

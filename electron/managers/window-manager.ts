@@ -12,6 +12,171 @@ try {
     console.error('Failed to load prompt injection script:', e);
 }
 
+// Script to auto-select default model when new chat is created
+const MODEL_SELECTOR_SCRIPT = `
+(function initModelSelector() {
+    console.log('[GeminiTray] Model selector script initialized');
+    
+    // Map internal model names to display texts (multilingual)
+    const modelTextMap = {
+        'fast': {
+            texts: ['Fast', 'Flash', '1.5 Flash', '2.0 Flash', 'Gemini 2.0 Flash']
+        },
+        'thinking': {
+            texts: ['Thinking', 'Thinking-Modus', 'Flash Thinking', '2.0 Flash Thinking', 'Gemini 2.0 Flash Thinking']
+        },
+        'pro': {
+            texts: ['Pro', '1.5 Pro', '2.0 Pro', 'Pro Experimental', 'Gemini 2.0 Pro']
+        }
+    };
+    
+    let lastUrl = location.href;
+    let isProcessing = false;
+    
+    function getDefaultModel() {
+        // Try to get from window object (set by main process) or default to fast
+        return window.__GEMINI_TRAY_DEFAULT_MODEL || 'fast';
+    }
+    
+    function selectModel() {
+        if (isProcessing) return;
+        
+        // Check if auto-select is enabled
+        if (window.__GEMINI_TRAY_AUTO_SELECT === false) {
+            console.log('[GeminiTray] Auto-select is disabled');
+            return;
+        }
+        
+        isProcessing = true;
+        
+        const modelName = getDefaultModel();
+        console.log('[GeminiTray] Auto-selecting model:', modelName);
+        
+        const modelConfig = modelTextMap[modelName];
+        if (!modelConfig) {
+            isProcessing = false;
+            return;
+        }
+        
+        // Check if model is already selected
+        const buttons = document.querySelectorAll('button');
+        for (const btn of buttons) {
+            const text = btn.textContent || '';
+            for (const searchText of modelConfig.texts.slice(0, 2)) {
+                if (text.includes(searchText)) {
+                    console.log('[GeminiTray] Model already selected:', text);
+                    isProcessing = false;
+                    return;
+                }
+            }
+        }
+        
+        // Find model selector button
+        const modelSelectors = [
+            '[data-test-id="bard-mode-menu-button"]',
+            '[data-test-id="model-selector"]',
+            '[aria-label*="Modus" i]',
+            '[aria-label*="Mode" i]',
+            'button[aria-haspopup="listbox"]',
+            '.model-picker-container button',
+            'bard-mode-switcher button'
+        ];
+        
+        let modelButton = null;
+        for (const selector of modelSelectors) {
+            try {
+                const el = document.querySelector(selector);
+                if (el) {
+                    modelButton = el;
+                    break;
+                }
+            } catch (e) {}
+        }
+        
+        if (!modelButton) {
+            // Fallback: search by text content
+            const allButtons = document.querySelectorAll('button');
+            for (const btn of allButtons) {
+                const text = btn.textContent || '';
+                const ariaLabel = btn.getAttribute('aria-label') || '';
+                if (text.includes('Fast') || text.includes('Flash') || text.includes('Pro') || 
+                    text.includes('Thinking') || text.includes('Modus') || text.includes('Mode') ||
+                    ariaLabel.includes('Modus') || ariaLabel.includes('Mode')) {
+                    modelButton = btn;
+                    break;
+                }
+            }
+        }
+        
+        if (modelButton) {
+            modelButton.click();
+            console.log('[GeminiTray] Clicked model selector');
+            
+            setTimeout(() => {
+                const targetTexts = modelConfig.texts;
+                let found = false;
+                
+                const optionSelectors = [
+                    '[role="option"]',
+                    '[role="menuitem"]',
+                    'mat-option',
+                    'li',
+                    'button',
+                    '.model-option',
+                    '[class*="mode-"]'
+                ];
+                
+                for (const selector of optionSelectors) {
+                    const options = document.querySelectorAll(selector);
+                    for (const option of options) {
+                        const text = option.textContent || '';
+                        const ariaLabel = option.getAttribute('aria-label') || '';
+                        
+                        for (const targetText of targetTexts) {
+                            if (text.includes(targetText) || ariaLabel.includes(targetText)) {
+                                console.log('[GeminiTray] Clicking model option:', text);
+                                option.click();
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found) break;
+                    }
+                    if (found) break;
+                }
+                
+                if (!found) {
+                    console.log('[GeminiTray] Could not find model option');
+                }
+                isProcessing = false;
+            }, 400);
+        } else {
+            console.log('[GeminiTray] Could not find model selector button');
+            isProcessing = false;
+        }
+    }
+    
+    // Listen for URL changes (indicates new chat)
+    const observer = new MutationObserver(() => {
+        if (location.href !== lastUrl) {
+            lastUrl = location.href;
+            console.log('[GeminiTray] URL changed, checking model selection');
+            setTimeout(selectModel, 500);
+        }
+    });
+    
+    observer.observe(document, { subtree: true, childList: true });
+    
+    // Also check on initial load
+    setTimeout(selectModel, 1000);
+    
+    // Listen for custom event from main process
+    window.addEventListener('gemini-tray-select-model', () => {
+        setTimeout(selectModel, 100);
+    });
+})();
+`;
+
 export class WindowManager {
     public win: BrowserWindow | null = null
     public view: BrowserView | null = null
@@ -141,7 +306,22 @@ export class WindowManager {
         });
 
         this.view.webContents.on('did-finish-load', () => {
+            // Inject prompt handling script
             this.view?.webContents.executeJavaScript(PROMPT_INJECTION_SCRIPT).catch(err => console.error('Failed to inject prompt script:', err));
+            
+            // Inject model selector script with current settings
+            const defaultModel = store.get('defaultModel') || 'fast';
+            const autoSelectModel = store.get('autoSelectModel') ?? false;
+            
+            if (autoSelectModel) {
+                const modelScriptWithConfig = MODEL_SELECTOR_SCRIPT
+                    .replace("window.__GEMINI_TRAY_DEFAULT_MODEL || 'fast'", `'${defaultModel}'`)
+                    .replace("window.__GEMINI_TRAY_AUTO_SELECT !== false", 'true');
+                this.view?.webContents.executeJavaScript(modelScriptWithConfig).catch(err => console.error('Failed to inject model selector script:', err));
+                
+                // Also trigger model selection from main process side
+                setTimeout(() => this.selectDefaultModel(), 1500);
+            }
         });
 
         if (IS_DEV) {
@@ -220,9 +400,159 @@ export class WindowManager {
                     modifiers: ['control', 'shift']
                 });
                 console.log('[GeminiTray] Sent Ctrl+Shift+O shortcut for new chat');
+
+                // Wait for the new chat to load, then select the default model
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await this.selectDefaultModel();
             } catch (e) {
                 console.error('Failed to trigger new chat:', e);
             }
+        }
+    }
+
+    async selectDefaultModel() {
+        if (!this.view) return;
+
+        // Check if auto-select is enabled
+        const autoSelectModel = store.get('autoSelectModel') ?? false;
+        if (!autoSelectModel) {
+            console.log('[GeminiTray] Auto-select model is disabled');
+            return;
+        }
+
+        const defaultModel = store.get('defaultModel') || 'fast';
+        console.log(`[GeminiTray] Selecting default model: ${defaultModel}`);
+
+        try {
+            await this.view.webContents.executeJavaScript(`
+                (function selectModel() {
+                    const modelName = '${defaultModel}';
+                    console.log('[GeminiTray] Attempting to select model:', modelName);
+                    
+                    // Map internal model names to data-test-id attributes (most reliable!)
+                    const modelConfig = {
+                        'fast': {
+                            testId: 'bard-mode-option-fast',
+                            titleText: 'Fast'
+                        },
+                        'thinking': {
+                            testId: 'bard-mode-option-thinking-modus',
+                            titleText: 'Thinking-Modus'
+                        },
+                        'pro': {
+                            testId: 'bard-mode-option-pro',
+                            titleText: 'Pro'
+                        }
+                    };
+                    
+                    const targetModel = modelConfig[modelName];
+                    if (!targetModel) {
+                        console.log('[GeminiTray] Unknown model name:', modelName);
+                        return;
+                    }
+                    
+                    // First, check if the desired model is already selected
+                    // Look for the checkmark icon in the target model's option
+                    const alreadySelectedButton = document.querySelector('[data-test-id="' + targetModel.testId + '"]');
+                    if (alreadySelectedButton) {
+                        const checkmark = alreadySelectedButton.querySelector('.mode-check, mat-icon[data-mat-icon-name="check_circle"]');
+                        if (checkmark) {
+                            console.log('[GeminiTray] Model already selected:', targetModel.titleText);
+                            return; // Model is already selected, nothing to do
+                        }
+                    }
+                    
+                    // Find the model selector button using specific selectors
+                    const modelSelectors = [
+                        '[data-test-id="bard-mode-menu-button"]',
+                        '[data-test-id="model-selector"]',
+                        '[aria-label*="Modus" i]',
+                        '[aria-label*="Mode" i]',
+                        'button[aria-haspopup="listbox"]',
+                        '.model-picker-container button',
+                        '[class*="model-picker"] button',
+                        'bard-mode-switcher button'
+                    ];
+                    
+                    let modelButton = null;
+                    for (const selector of modelSelectors) {
+                        try {
+                            const el = document.querySelector(selector);
+                            if (el) {
+                                modelButton = el;
+                                console.log('[GeminiTray] Found model selector:', selector);
+                                break;
+                            }
+                        } catch (e) {}
+                    }
+                    
+                    // If no specific selector found, try to find by text content
+                    if (!modelButton) {
+                        const allButtons = document.querySelectorAll('button');
+                        for (const btn of allButtons) {
+                            const text = btn.textContent || '';
+                            const ariaLabel = btn.getAttribute('aria-label') || '';
+                            // Look for any model-related text or dropdown indicator
+                            if (text.includes('Fast') || text.includes('Flash') || text.includes('Pro') || 
+                                text.includes('Thinking') || text.includes('Modus') || text.includes('Mode') ||
+                                ariaLabel.includes('Modus') || ariaLabel.includes('Mode') ||
+                                btn.querySelector('mat-icon[data-mat-icon-name="keyboard_arrow_down"]')) {
+                                modelButton = btn;
+                                console.log('[GeminiTray] Found model button by text/content:', text, ariaLabel);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (modelButton) {
+                        // Click to open the dropdown
+                        modelButton.click();
+                        console.log('[GeminiTray] Clicked model selector button');
+                        
+                        // Wait a bit for the dropdown to open
+                        setTimeout(() => {
+                            // Use the specific data-test-id to find the model option
+                            const testId = targetModel.testId;
+                            console.log('[GeminiTray] Looking for model option with test-id:', testId);
+                            
+                            // Try to find by data-test-id first (most reliable)
+                            const targetButton = document.querySelector('[data-test-id="' + testId + '"]');
+                            
+                            if (targetButton) {
+                                console.log('[GeminiTray] Found model option by test-id, clicking:', testId);
+                                targetButton.click();
+                                return;
+                            }
+                            
+                            // Fallback: search by title text
+                            console.log('[GeminiTray] Could not find by test-id, searching by title:', targetModel.titleText);
+                            const buttons = document.querySelectorAll('button[role="menuitem"]');
+                            
+                            for (const btn of buttons) {
+                                const titleEl = btn.querySelector('.gds-title-m');
+                                if (titleEl && titleEl.textContent.trim().includes(targetModel.titleText)) {
+                                    console.log('[GeminiTray] Found model option by title, clicking:', titleEl.textContent);
+                                    btn.click();
+                                    return;
+                                }
+                            }
+                            
+                            console.log('[GeminiTray] Could not find model option for:', modelName);
+                            // Log all available options for debugging
+                            const allOptions = document.querySelectorAll('button[role="menuitem"]');
+                            console.log('[GeminiTray] Available options:');
+                            allOptions.forEach((opt, i) => {
+                                const title = opt.querySelector('.gds-title-m');
+                                if (i < 10) console.log('  -', title?.textContent || opt.textContent?.substring(0, 100));
+                            });
+                        }, 400);
+                    } else {
+                        console.log('[GeminiTray] Could not find model selector button');
+                    }
+                })();
+            `);
+        } catch (error) {
+            console.error('[GeminiTray] Failed to select default model:', error);
         }
     }
 

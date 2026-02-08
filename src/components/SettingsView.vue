@@ -12,6 +12,8 @@ interface AppSettings {
   newChatShortcut: string;
   promptMenuShortcut: string;
   prompts: Prompt[];
+  defaultModel: 'fast' | 'thinking' | 'pro';
+  autoSelectModel: boolean;
 }
 
 interface Prompt {
@@ -56,6 +58,8 @@ onMounted(async () => {
     newChatShortcut.value = settings.newChatShortcut ?? '';
     promptMenuShortcut.value = settings.promptMenuShortcut ?? '';
     prompts.value = settings.prompts ?? [];
+    defaultModel.value = settings.defaultModel ?? 'fast';
+    autoSelectModel.value = settings.autoSelectModel ?? false;
   }
   
   // Listen for Alt+Space from main process (when blocked by globalShortcut)
@@ -242,6 +246,8 @@ const handleNewChatShortcutBlur = () => {
 
 const isRecordingPromptMenu = ref(false);
 const promptMenuShortcut = ref('');
+const defaultModel = ref<'fast' | 'thinking' | 'pro'>('fast');
+const autoSelectModel = ref(false);
 
 const savePromptMenuShortcut = async () => {
   if (promptMenuShortcut.value) {
@@ -355,6 +361,14 @@ const cancelEdit = () => {
   newPromptContent.value = '';
 };
 
+const updateDefaultModel = () => {
+  window.ipcRenderer.send('set-default-model', defaultModel.value);
+};
+
+const updateAutoSelectModel = () => {
+  window.ipcRenderer.send('set-auto-select-model', autoSelectModel.value);
+};
+
 const resetSession = async () => {
     if (confirm('Are you sure you want to reset the session? This will clear all cookies and restart the app interface.')) {
         await window.ipcRenderer.invoke('reset-session');
@@ -437,15 +451,36 @@ const resetSession = async () => {
                  </label>
               </div>
 
-              <div class="setting-item">
-                 <label class="checkbox-container">
-                    <input type="checkbox" v-model="alwaysOnTop">
-                    <span class="checkmark"></span>
-                    <span class="checkbox-label">{{ t('app.always_on_top') }}</span>
-                 </label>
-                 <p class="setting-description">{{ t('app.always_on_top_desc') }}</p>
-              </div>
-            </div>
+               <div class="setting-item">
+                  <label class="checkbox-container">
+                     <input type="checkbox" v-model="alwaysOnTop">
+                     <span class="checkmark"></span>
+                     <span class="checkbox-label">{{ t('app.always_on_top') }}</span>
+                  </label>
+                  <p class="setting-description">{{ t('app.always_on_top_desc') }}</p>
+               </div>
+
+               <div class="setting-item">
+                  <label class="checkbox-container">
+                     <input type="checkbox" v-model="autoSelectModel" @change="updateAutoSelectModel">
+                     <span class="checkmark"></span>
+                     <span class="checkbox-label">{{ t('app.auto_select_model') }}</span>
+                  </label>
+                  <p class="setting-description">{{ t('app.auto_select_model_desc') }}</p>
+               </div>
+
+               <div class="setting-item" :class="{ 'disabled': !autoSelectModel }">
+                 <div class="setting-label">
+                   <span>{{ t('app.default_model') }}</span>
+                 </div>
+                 <p class="setting-description">{{ t('app.default_model_desc') }}</p>
+                 <select v-model="defaultModel" @change="updateDefaultModel" class="model-select" :disabled="!autoSelectModel">
+                   <option value="fast">{{ t('app.models.fast') }}</option>
+                   <option value="thinking">{{ t('app.models.thinking') }}</option>
+                   <option value="pro">{{ t('app.models.pro') }}</option>
+                 </select>
+               </div>
+             </div>
 
             <div v-else-if="category.id === 'shortcuts'" class="setting-group">
               <div class="setting-item">
@@ -1108,5 +1143,43 @@ const resetSession = async () => {
 
 .add-prompt-form {
   margin-top: 16px;
+}
+
+/* Model Select Styles */
+.model-select {
+  width: 100%;
+  max-width: 200px;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.model-select:focus {
+  border-color: rgba(138, 180, 248, 0.6);
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.2);
+}
+
+.model-select option {
+  background: #2a2a2a;
+  color: #fff;
+  padding: 8px;
+}
+
+.model-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.setting-item.disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 </style>
