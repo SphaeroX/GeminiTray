@@ -7,7 +7,7 @@ tools:
   edit: true
   bash: true
 permission:
-  edit: ask
+  edit: allow
   bash:
     "npm *": allow
     "vite *": allow

@@ -12,6 +12,7 @@ interface AppSettings {
   newChatShortcut: string;
   promptMenuShortcut: string;
   prompts: Prompt[];
+  defaultModel: 'fast' | 'thinking' | 'pro';
 }
 
 interface Prompt {
@@ -56,6 +57,7 @@ onMounted(async () => {
     newChatShortcut.value = settings.newChatShortcut ?? '';
     promptMenuShortcut.value = settings.promptMenuShortcut ?? '';
     prompts.value = settings.prompts ?? [];
+    defaultModel.value = settings.defaultModel ?? 'fast';
   }
   
   // Listen for Alt+Space from main process (when blocked by globalShortcut)
@@ -242,6 +244,7 @@ const handleNewChatShortcutBlur = () => {
 
 const isRecordingPromptMenu = ref(false);
 const promptMenuShortcut = ref('');
+const defaultModel = ref<'fast' | 'thinking' | 'pro'>('fast');
 
 const savePromptMenuShortcut = async () => {
   if (promptMenuShortcut.value) {
@@ -437,15 +440,27 @@ const resetSession = async () => {
                  </label>
               </div>
 
-              <div class="setting-item">
-                 <label class="checkbox-container">
-                    <input type="checkbox" v-model="alwaysOnTop">
-                    <span class="checkmark"></span>
-                    <span class="checkbox-label">{{ t('app.always_on_top') }}</span>
-                 </label>
-                 <p class="setting-description">{{ t('app.always_on_top_desc') }}</p>
-              </div>
-            </div>
+               <div class="setting-item">
+                  <label class="checkbox-container">
+                     <input type="checkbox" v-model="alwaysOnTop">
+                     <span class="checkmark"></span>
+                     <span class="checkbox-label">{{ t('app.always_on_top') }}</span>
+                  </label>
+                  <p class="setting-description">{{ t('app.always_on_top_desc') }}</p>
+               </div>
+
+               <div class="setting-item">
+                 <div class="setting-label">
+                   <span>{{ t('app.default_model') }}</span>
+                 </div>
+                 <p class="setting-description">{{ t('app.default_model_desc') }}</p>
+                 <select v-model="defaultModel" @change="updateDefaultModel" class="model-select">
+                   <option value="fast">{{ t('app.models.fast') }}</option>
+                   <option value="thinking">{{ t('app.models.thinking') }}</option>
+                   <option value="pro">{{ t('app.models.pro') }}</option>
+                 </select>
+               </div>
+             </div>
 
             <div v-else-if="category.id === 'shortcuts'" class="setting-group">
               <div class="setting-item">

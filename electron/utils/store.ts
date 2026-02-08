@@ -12,6 +12,7 @@ export interface StoreSchema {
     newChatShortcut: string;
     promptMenuShortcut: string;
     prompts: Array<{ id: string; name: string; content: string }>;
+    defaultModel: 'fast' | 'thinking' | 'pro';
 }
 
 export const store = new Store<StoreSchema>({
@@ -25,6 +26,7 @@ export const store = new Store<StoreSchema>({
         alwaysOnTop: true,
         newChatShortcut: 'Alt+N',
         promptMenuShortcut: 'Alt+J',
-        prompts: []
+        prompts: [],
+        defaultModel: 'fast'
     }
 });

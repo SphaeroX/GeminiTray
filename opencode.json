@@ -25,7 +25,7 @@
         "bash": true
       },
       "permission": {
-        "edit": "ask",
+        "edit": "allow",
         "bash": {
           "npm *": "allow",
           "vite *": "allow",
@@ -44,7 +44,7 @@
         "bash": true
       },
       "permission": {
-        "edit": "ask",
+        "edit": "allow",
         "bash": {
           "npm run dev": "allow",
           "npm run build": "allow"
@@ -64,7 +64,7 @@
         "grep": true
       },
       "permission": {
-        "edit": "ask",
+        "edit": "allow",
         "bash": {
           "npm run dev": "allow",
           "npm run dev:console": "allow"
@@ -80,7 +80,7 @@
       "i18n-management": "allow",
       "ipc-communication": "allow"
     },
-    "edit": "ask",
+    "edit": "allow",
     "bash": {
       "*": "ask",
       "npm run dev": "allow",

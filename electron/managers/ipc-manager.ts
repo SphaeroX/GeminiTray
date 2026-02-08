@@ -31,7 +31,8 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
             alwaysOnTop: store.get('alwaysOnTop'),
             newChatShortcut: store.get('newChatShortcut'),
             promptMenuShortcut: store.get('promptMenuShortcut'),
-            prompts: store.get('prompts') || []
+            prompts: store.get('prompts') || [],
+            defaultModel: store.get('defaultModel') || 'fast'
         }
     })
 
@@ -70,6 +71,10 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
             windowManager.win.setOpacity(opacity)
             store.set('opacity', opacity)
         }
+    })
+
+    ipcMain.on('set-default-model', (_event: IpcMainEvent, model: 'fast' | 'thinking' | 'pro') => {
+        store.set('defaultModel', model)
     })
 
     ipcMain.handle('set-global-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
