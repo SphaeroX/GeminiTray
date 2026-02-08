@@ -9,7 +9,7 @@ tools:
   read: true
   grep: true
 permission:
-  edit: ask
+  edit: allow
   bash:
     "npm run dev": allow
     "npm run dev:console": allow
