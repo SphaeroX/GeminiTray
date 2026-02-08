@@ -1,0 +1,103 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "build": {
+      "mode": "primary",
+      "prompt": "{file:./.opencode/agents/electron-expert.md}",
+      "temperature": 0.3
+    },
+    "plan": {
+      "mode": "primary",
+      "temperature": 0.1,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false
+      }
+    },
+    "electron-expert": {
+      "description": "Electron-Experte für Gemini Tray - Spezialisiert auf Electron-Entwicklung, Window Management und native Desktop-Features",
+      "mode": "subagent",
+      "temperature": 0.3,
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": true
+      },
+      "permission": {
+        "edit": "ask",
+        "bash": {
+          "npm *": "allow",
+          "vite *": "allow",
+          "git *": "ask"
+        }
+      },
+      "color": "#9D4EDD"
+    },
+    "vue-ui-expert": {
+      "description": "Vue.js UI Experte für Gemini Tray Frontend - Komponenten, Reaktivität, i18n und Desktop-UI Patterns",
+      "mode": "subagent",
+      "temperature": 0.4,
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": true
+      },
+      "permission": {
+        "edit": "ask",
+        "bash": {
+          "npm run dev": "allow",
+          "npm run build": "allow"
+        }
+      },
+      "color": "#42B883"
+    },
+    "gemini-tray-debugger": {
+      "description": "Debug-Experte für Gemini Tray - Analysiert Logs, Snapshots und Gemini-Web-Integration Probleme",
+      "mode": "subagent",
+      "temperature": 0.2,
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": true,
+        "read": true,
+        "grep": true
+      },
+      "permission": {
+        "edit": "ask",
+        "bash": {
+          "npm run dev": "allow",
+          "npm run dev:console": "allow"
+        }
+      },
+      "color": "#FF6B6B"
+    }
+  },
+  "permission": {
+    "skill": {
+      "*": "allow",
+      "electron-*": "allow",
+      "i18n-management": "allow",
+      "ipc-communication": "allow"
+    },
+    "edit": "ask",
+    "bash": {
+      "*": "ask",
+      "npm run dev": "allow",
+      "npm run dev:console": "allow",
+      "npm run build": "allow",
+      "git status": "allow",
+      "git log": "allow",
+      "git diff": "allow"
+    }
+  },
+  "tools": {
+    "skill": true,
+    "write": true,
+    "edit": true,
+    "bash": true,
+    "read": true,
+    "grep": true,
+    "glob": true
+  }
+}
