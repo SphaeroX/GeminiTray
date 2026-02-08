@@ -42,6 +42,29 @@ Die aktuelle Nutzung von Gemini beschränkt sich oft auf den Browser oder mobile
     - Windows (Primär)
     - Linux (Sekundär)
 
+## Architektur & Struktur
+
+Die Electron-Anwendung (`electron/`) wurde modular aufgebaut, um Wartbarkeit und Erweiterbarkeit zu gewährleisten. Anstatt einer monolithischen `main.ts` wird der Code in spezialisierte Manager und Services aufgeteilt.
+
+### Ordnerstruktur (`electron/`)
+
+- **`main.ts`**: Der Einstiegspunkt der Anwendung. Initialisiert die Manager und verwaltet den Lebenszyklus der App.
+- **`managers/`**: Enthält Klassen für die Verwaltung der Kernkomponenten.
+    - **`window-manager.ts`**: Verwaltet das Hauptfenster (`BrowserWindow`) und die `BrowserView` (Gemini Web). Kümmert sich um Sichtbarkeit, Resizing und Screenshots.
+    - **`tray-manager.ts`**: Verwaltet das System Tray Icon und das Kontextmenü.
+    - **`shortcut-manager.ts`**: Registriert und verwaltet globale Tastenkürzel.
+    - **`ipc-manager.ts`**: Zentraler Ort für alle IPC (Inter-Process Communication) Handler. Verbindet Renderer-Events mit Manager-Methoden.
+- **`services/`**: Enthält eigenständige Dienste.
+    - **`debug-service.ts`**: Funktionen zum Erstellen von Snapshots und Debugging-Logs.
+- **`utils/`**: Hilfsfunktionen und Konstanten.
+    - **`constants.ts`**: Globale Konstanten wie Pfade, Dev-Modus Flags, etc.
+    - **`store.ts`**: Konfiguration und Instanz des `electron-store` zur Datenspeicherung.
+
+### Datenfluss
+1.  **Main Process**: `main.ts` startet und instanziiert die Manager (`WindowManager`, `TrayManager`, `ShortcutManager`).
+2.  **IPC**: Der Renderer (Vue.js) kommuniziert über definierte Kanäle (in `ipc-manager.ts`) mit dem Main Process, um Aktionen wie "Fenster verbergen" oder "Einstellungen speichern" auszulösen.
+3.  **Events**: Manager können Events untereinander austauschen oder direkt Methoden aufrufen (z.B. ruft `TrayManager` Methoden des `WindowManager` auf, um das Fenster zu zeigen).
+
 
 ## Design-Philosophie
 - **Modern & Premium**: Glassmorphismus, Dark Mode, flüssige Animationen.
