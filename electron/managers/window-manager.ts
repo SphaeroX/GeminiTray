@@ -12,6 +12,336 @@ try {
     console.error('Failed to load prompt injection script:', e);
 }
 
+// Script to auto-scroll chat to bottom on input and new messages
+const AUTO_SCROLL_SCRIPT = `
+(function initAutoScroll() {
+    console.log('[GeminiTray] Auto-scroll script initialized');
+    
+    let scrollTimeout = null;
+    let isUserScrolling = false;
+    let lastScrollTop = 0;
+    let findInProgress = false;
+    
+    // Find the main scrollable container
+    function findScrollContainer() {
+        // Try to find Gemini's main chat scroll container
+        const selectors = [
+            'main[role="main"]',
+            'main',
+            '[data-test-id="chat-container"]',
+            '[data-test-id="chat-messages"]',
+            'body > div',
+            'body'
+        ];
+        
+        for (const selector of selectors) {
+            const el = document.querySelector(selector);
+            if (el) {
+                const style = window.getComputedStyle(el);
+                if (style.overflow === 'auto' || style.overflow === 'scroll' || 
+                    style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                    console.log('[GeminiTray] Found scroll container:', selector);
+                    return el;
+                }
+            }
+        }
+        
+        // Fallback: return document.documentElement for window scrolling
+        return document.documentElement;
+    }
+    
+    // Find the last message element
+    function findLastMessage() {
+        const selectors = [
+            '[data-test-id="chat-message"]:last-of-type',
+            '[data-test-id="chat-turn"]:last-of-type',
+            'message-content:last-of-type',
+            '.response-container:last-of-type',
+            'main > div > div:last-of-type',
+            'main > div:last-of-type'
+        ];
+        
+        for (const selector of selectors) {
+            const el = document.querySelector(selector);
+            if (el) return el;
+        }
+        
+        return null;
+    }
+    
+    function scrollToBottom() {
+        if (isUserScrolling && !findInProgress) return;
+        
+        const scrollContainer = findScrollContainer();
+        const lastMessage = findLastMessage();
+        
+        console.log('[GeminiTray] Scrolling to bottom, container:', scrollContainer.tagName, 'findInProgress:', findInProgress);
+        
+        if (lastMessage) {
+            // Scroll the last message into view
+            lastMessage.scrollIntoView({ 
+                behavior: findInProgress ? 'auto' : 'smooth', 
+                block: 'end' 
+            });
+            console.log('[GeminiTray] Scrolled to last message');
+        } else {
+            // Fallback to scrollHeight
+            if (scrollContainer === document.documentElement) {
+                window.scrollTo({
+                    top: document.body.scrollHeight,
+                    behavior: findInProgress ? 'auto' : 'smooth'
+                });
+            } else {
+                scrollContainer.scrollTo({
+                    top: scrollContainer.scrollHeight,
+                    behavior: findInProgress ? 'auto' : 'smooth'
+                });
+            }
+            console.log('[GeminiTray] Scrolled to scrollHeight');
+        }
+        
+        // Also try to scroll any nested containers
+        const nestedContainers = document.querySelectorAll('[style*="overflow"]');
+        nestedContainers.forEach(container => {
+            container.scrollTop = container.scrollHeight;
+        });
+    }
+    
+    // Detect if user is manually scrolling up
+    function handleScroll() {
+        const scrollContainer = findScrollContainer();
+        const currentScrollTop = scrollContainer === document.documentElement 
+            ? (window.scrollY || document.documentElement.scrollTop)
+            : scrollContainer.scrollTop;
+        const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+        
+        // If user scrolls up significantly, mark as manual scrolling
+        if (currentScrollTop < lastScrollTop && currentScrollTop < maxScroll - 100) {
+            if (!findInProgress) {
+                isUserScrolling = true;
+                // Reset after 3 seconds of no scrolling
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    isUserScrolling = false;
+                }, 3000);
+            }
+        }
+        
+        // If user scrolls back to bottom, resume auto-scroll
+        if (currentScrollTop >= maxScroll - 50) {
+            isUserScrolling = false;
+        }
+        
+        lastScrollTop = currentScrollTop;
+    }
+    
+    // Listen for scroll events
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Handle find (Ctrl+F) - scroll to bottom after search
+    function handleFind() {
+        // Set flag that find is in progress
+        findInProgress = true;
+        console.log('[GeminiTray] Find triggered, will scroll to bottom');
+        
+        // Multiple attempts to ensure we scroll after content is highlighted
+        const attempts = [100, 300, 500, 800, 1200];
+        attempts.forEach((delay, index) => {
+            setTimeout(() => {
+                scrollToBottom();
+                // Reset find flag after last attempt
+                if (index === attempts.length - 1) {
+                    setTimeout(() => {
+                        findInProgress = false;
+                    }, 500);
+                }
+            }, delay);
+        });
+    }
+    
+    // Listen for Ctrl+F
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            handleFind();
+        }
+    });
+    
+    // Watch for chat input
+    function watchInput() {
+        const inputSelectors = [
+            'textarea[placeholder*="Ask"]',
+            'textarea[placeholder*="Fragen"]',
+            'textarea[aria-label*="chat"]',
+            'textarea[data-test-id="chat-input"]',
+            'textarea',
+            'div[contenteditable="true"]',
+            'div[role="textbox"]'
+        ];
+        
+        let inputElement = null;
+        for (const selector of inputSelectors) {
+            inputElement = document.querySelector(selector);
+            if (inputElement) break;
+        }
+        
+        if (inputElement) {
+            console.log('[GeminiTray] Found chat input element');
+            
+            // Scroll on Enter key (send message)
+            inputElement.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    // Message is being sent - scroll after a short delay
+                    setTimeout(() => {
+                        isUserScrolling = false; // Force scroll
+                        scrollToBottom();
+                    }, 100);
+                    setTimeout(scrollToBottom, 300);
+                    setTimeout(scrollToBottom, 600);
+                }
+            });
+            
+            // Also scroll on input but less aggressively
+            let inputTimeout;
+            inputElement.addEventListener('input', () => {
+                if (!isUserScrolling) {
+                    clearTimeout(inputTimeout);
+                    inputTimeout = setTimeout(scrollToBottom, 200);
+                }
+            });
+        }
+    }
+    
+    // Watch for new messages (content changes)
+    function watchMessages() {
+        const chatContainerSelectors = [
+            '[data-test-id="chat-container"]',
+            '[data-test-id="chat-messages"]',
+            'main',
+            'body'
+        ];
+        
+        let chatContainer = null;
+        for (const selector of chatContainerSelectors) {
+            chatContainer = document.querySelector(selector);
+            if (chatContainer) break;
+        }
+        
+        if (chatContainer) {
+            console.log('[GeminiTray] Found chat container, watching for new messages');
+            
+            let lastContentHeight = chatContainer.scrollHeight;
+            
+            const observer = new MutationObserver((mutations) => {
+                let shouldScroll = false;
+                let contentAdded = false;
+                
+                for (const mutation of mutations) {
+                    // Check if new nodes were added
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        for (const node of mutation.addedNodes) {
+                            if (node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE) {
+                                contentAdded = true;
+                                break;
+                            }
+                        }
+                    }
+                    // Check if text content changed
+                    if (mutation.type === 'characterData') {
+                        contentAdded = true;
+                    }
+                }
+                
+                // Check if height changed significantly
+                if (contentAdded && chatContainer.scrollHeight > lastContentHeight + 20) {
+                    shouldScroll = true;
+                    lastContentHeight = chatContainer.scrollHeight;
+                }
+                
+                if (shouldScroll && (!isUserScrolling || findInProgress)) {
+                    // Multiple scroll attempts with increasing delays
+                    scrollToBottom();
+                    setTimeout(scrollToBottom, 100);
+                    setTimeout(scrollToBottom, 300);
+                    setTimeout(scrollToBottom, 600);
+                    setTimeout(scrollToBottom, 1000);
+                }
+            });
+            
+            observer.observe(chatContainer, {
+                childList: true,
+                subtree: true,
+                characterData: true
+            });
+        }
+    }
+    
+    // Watch for submit/send button clicks
+    function watchSendButton() {
+        const sendButtonSelectors = [
+            '[data-test-id="send-button"]',
+            'button[aria-label*="send" i]',
+            'button[aria-label*="Send" i]',
+            'button svg[data-test-id="send-icon"]',
+            'button:has(svg[data-test-id="send-icon"])'
+        ];
+        
+        document.addEventListener('click', (e) => {
+            const target = e.target;
+            
+            // Check if clicked element or its parent is a send button
+            let el = target;
+            for (let i = 0; i < 3; i++) { // Check up to 3 levels up
+                if (el && el.tagName === 'BUTTON') {
+                    const ariaLabel = el.getAttribute('aria-label') || '';
+                    if (ariaLabel.toLowerCase().includes('send')) {
+                        console.log('[GeminiTray] Send button clicked');
+                        setTimeout(() => {
+                            isUserScrolling = false;
+                            scrollToBottom();
+                        }, 100);
+                        setTimeout(scrollToBottom, 300);
+                        setTimeout(scrollToBottom, 600);
+                        return;
+                    }
+                }
+                el = el?.parentElement;
+            }
+        });
+    }
+    
+    // Initialize when DOM is ready
+    function init() {
+        watchInput();
+        watchMessages();
+        watchSendButton();
+        setTimeout(scrollToBottom, 500);
+    }
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+    
+    // Re-initialize on URL changes (SPA navigation)
+    let lastUrl = location.href;
+    const urlObserver = new MutationObserver(() => {
+        if (location.href !== lastUrl) {
+            lastUrl = location.href;
+            console.log('[GeminiTray] URL changed, re-initializing auto-scroll');
+            setTimeout(() => {
+                watchInput();
+                watchMessages();
+                watchSendButton();
+                setTimeout(scrollToBottom, 500);
+            }, 1000);
+        }
+    });
+    
+    urlObserver.observe(document, { subtree: true, childList: true });
+})();
+`;
+
 // Script to auto-select default model when new chat is created
 const MODEL_SELECTOR_SCRIPT = `
 (function initModelSelector() {
@@ -308,17 +638,20 @@ export class WindowManager {
         this.view.webContents.on('did-finish-load', () => {
             // Inject prompt handling script
             this.view?.webContents.executeJavaScript(PROMPT_INJECTION_SCRIPT).catch(err => console.error('Failed to inject prompt script:', err));
-            
+
+            // Inject auto-scroll script
+            this.view?.webContents.executeJavaScript(AUTO_SCROLL_SCRIPT).catch(err => console.error('Failed to inject auto-scroll script:', err));
+
             // Inject model selector script with current settings
             const defaultModel = store.get('defaultModel') || 'fast';
             const autoSelectModel = store.get('autoSelectModel') ?? false;
-            
+
             if (autoSelectModel) {
                 const modelScriptWithConfig = MODEL_SELECTOR_SCRIPT
                     .replace("window.__GEMINI_TRAY_DEFAULT_MODEL || 'fast'", `'${defaultModel}'`)
                     .replace("window.__GEMINI_TRAY_AUTO_SELECT !== false", 'true');
                 this.view?.webContents.executeJavaScript(modelScriptWithConfig).catch(err => console.error('Failed to inject model selector script:', err));
-                
+
                 // Also trigger model selection from main process side
                 setTimeout(() => this.selectDefaultModel(), 1500);
             }
