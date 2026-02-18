@@ -54,6 +54,17 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
 
     ipcMain.on('set-active-prompt', (_event: IpcMainEvent, prompt: { id: string; name: string; content: string } | null) => {
         console.log('[DEBUG] Main received set-active-prompt:', prompt);
+
+        // Show and focus the window when a prompt is selected
+        if (prompt && windowManager.win) {
+            if (!windowManager.win.isVisible()) {
+                windowManager.win.show();
+            }
+            if (!windowManager.win.isFocused()) {
+                windowManager.win.focus();
+            }
+        }
+
         if (windowManager.view) {
             windowManager.view.webContents.executeJavaScript(`
         if (window.__GEMINI_TRAY_SET_PROMPT) {

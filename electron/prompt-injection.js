@@ -196,10 +196,56 @@
         }
     }, true);
 
+    function focusInputField() {
+        // Try multiple selectors to find the input field
+        const selectors = [
+            '.ql-editor[contenteditable="true"]',
+            'div[contenteditable="true"][role="textbox"]',
+            'rich-textarea .ql-editor',
+            '[aria-label*="Prompt"][contenteditable="true"]',
+            '[data-placeholder*="Gemini"][contenteditable="true"]'
+        ];
+
+        let inputField = null;
+        for (const selector of selectors) {
+            inputField = document.querySelector(selector);
+            if (inputField) break;
+        }
+
+        if (inputField) {
+            // Focus the input field
+            inputField.focus();
+
+            // Set cursor at the end of content if there's any
+            const range = document.createRange();
+            const selection = window.getSelection();
+
+            if (inputField.lastChild) {
+                range.setStartAfter(inputField.lastChild);
+            } else {
+                range.setStart(inputField, 0);
+            }
+            range.collapse(true);
+
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            console.log('[GeminiTray] Input field focused');
+        } else {
+            console.log('[GeminiTray] Could not find input field to focus');
+        }
+    }
+
     // Expose API for Electron Main process
     window.__GEMINI_TRAY_SET_PROMPT = function (prompt) {
         activePrompt = prompt;
         updateIndicator();
+
+        // Focus input field after setting the prompt
+        if (prompt) {
+            // Small delay to ensure UI is ready
+            setTimeout(focusInputField, 100);
+        }
     };
 
     console.log('[GeminiTray] Prompt Injection Ready');
