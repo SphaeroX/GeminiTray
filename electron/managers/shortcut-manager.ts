@@ -29,6 +29,18 @@ export class ShortcutManager {
         }
     }
 
+    // Handle prompt shortcuts (Alt+1 to Alt+9)
+    private handlePromptShortcut = (index: number) => {
+        if (this.windowManager.win) {
+            if (!this.windowManager.win.isVisible()) {
+                this.windowManager.win.show();
+                this.windowManager.win.focus();
+            }
+            // Send event to renderer to select prompt by index
+            this.windowManager.win.webContents.send('select-prompt-by-index', index);
+        }
+    };
+
     registerGlobalShortcuts() {
         // Register initial shortcuts
         const initialShortcut = store.get('globalShortcut');
@@ -56,6 +68,16 @@ export class ShortcutManager {
                     this.windowManager.win.webContents.send('toggle-prompt-menu');
                 }
             });
+        }
+
+        // Register prompt shortcuts (Alt+1 to Alt+9)
+        for (let i = 1; i <= 9; i++) {
+            const shortcut = `Alt+${i}`;
+            try {
+                globalShortcut.register(shortcut, () => this.handlePromptShortcut(i));
+            } catch (e) {
+                console.error(`Failed to register ${shortcut}:`, e);
+            }
         }
     }
 
@@ -279,5 +301,10 @@ export class ShortcutManager {
 
     unregisterAll() {
         globalShortcut.unregisterAll();
+    }
+
+    // Get prompts from store for shortcut handling
+    getPrompts(): Array<{ id: string; name: string; content: string }> {
+        return store.get('prompts') || [];
     }
 }

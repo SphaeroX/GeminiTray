@@ -108,19 +108,35 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
     })
 
     ipcMain.handle('set-global-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
-        return shortcutManager.setGlobalShortcut(shortcut)
+        const success = shortcutManager.setGlobalShortcut(shortcut)
+        if (success) {
+            windowManager.win?.webContents.send('show-toast', `Shortcut set to ${shortcut}`, 'success')
+        }
+        return success
     })
 
     ipcMain.handle('set-screenshot-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
-        return shortcutManager.setScreenshotShortcut(shortcut)
+        const success = shortcutManager.setScreenshotShortcut(shortcut)
+        if (success) {
+            windowManager.win?.webContents.send('show-toast', `Screenshot shortcut set to ${shortcut}`, 'success')
+        }
+        return success
     })
 
     ipcMain.handle('set-new-chat-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
-        return shortcutManager.setNewChatShortcut(shortcut)
+        const success = shortcutManager.setNewChatShortcut(shortcut)
+        if (success) {
+            windowManager.win?.webContents.send('show-toast', `New chat shortcut set to ${shortcut}`, 'success')
+        }
+        return success
     })
 
     ipcMain.handle('set-prompt-menu-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
-        return shortcutManager.setPromptMenuShortcut(shortcut)
+        const success = shortcutManager.setPromptMenuShortcut(shortcut)
+        if (success) {
+            windowManager.win?.webContents.send('show-toast', `Prompts menu shortcut set to ${shortcut}`, 'success')
+        }
+        return success
     })
 
     ipcMain.on('start-shortcut-recording', () => {

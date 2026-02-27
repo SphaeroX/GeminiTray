@@ -30,7 +30,7 @@
                 transform: 'translateX(-50%)',
                 backgroundColor: '#131314',
                 color: '#e3e3e3',
-                padding: '10px 16px',
+                padding: '10px 14px',
                 borderRadius: '8px',
                 border: '1px solid #444746',
                 zIndex: '99999',
@@ -40,7 +40,7 @@
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                pointerEvents: 'none',
+                pointerEvents: 'auto',
                 transition: 'opacity 0.2s ease'
             });
             document.body.appendChild(indicatorElement);
@@ -64,7 +64,8 @@
         Object.assign(container.style, {
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'flex-start'
+            alignItems: 'flex-start',
+            gap: '2px'
         });
 
         // Label trace
@@ -89,6 +90,40 @@
         container.appendChild(label);
         container.appendChild(value);
         indicatorElement.appendChild(container);
+
+        // Create close button
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '&times;';
+        Object.assign(closeBtn.style, {
+            background: 'transparent',
+            border: 'none',
+            color: '#9aa0a6',
+            fontSize: '18px',
+            cursor: 'pointer',
+            padding: '0 4px',
+            lineHeight: '1',
+            borderRadius: '4px',
+            transition: 'all 0.2s ease',
+            pointerEvents: 'auto'
+        });
+        closeBtn.title = 'Deactivate prompt';
+        
+        closeBtn.addEventListener('mouseenter', () => {
+            closeBtn.style.color = '#e8eaed';
+            closeBtn.style.background = 'rgba(255,255,255,0.1)';
+        });
+        
+        closeBtn.addEventListener('mouseleave', () => {
+            closeBtn.style.color = '#9aa0a6';
+            closeBtn.style.background = 'transparent';
+        });
+        
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.__GEMINI_TRAY_SET_PROMPT(null);
+        });
+
+        indicatorElement.appendChild(closeBtn);
     }
 
     function escapeHtml(text) {

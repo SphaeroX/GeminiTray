@@ -26,5 +26,8 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   },
   onUpdateDownloaded(callback: (info: unknown) => void) {
     ipcRenderer.on('update-downloaded', (_event, info) => callback(info))
+  },
+  onShowToast(callback: (message: string, type: 'info' | 'success' | 'error') => void) {
+    ipcRenderer.on('show-toast', (_event, message, type) => callback(message, type))
   }
 })

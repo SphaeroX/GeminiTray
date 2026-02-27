@@ -7,6 +7,7 @@ import ToastNotification from './components/ToastNotification.vue'
 
 const isSettingsOpen = ref(false)
 const isPromptsMenuOpen = ref(false)
+const prompts = ref<Array<{ id: string; name: string; content: string }>>([])
 
 const toggleSettings = () => {
   isSettingsOpen.value = !isSettingsOpen.value
@@ -26,6 +27,14 @@ const handlePromptSelect = (prompt: any) => {
   togglePromptsMenu()
 }
 
+// Handle prompt selection by index (Alt+1 to Alt+9)
+const handlePromptSelectByIndex = (index: number) => {
+  if (prompts.value.length >= index) {
+    const prompt = prompts.value[index - 1];
+    handlePromptSelect(prompt);
+  }
+}
+
 // Check if any overlay is open
 const isOverlayOpen = computed(() => isSettingsOpen.value || isPromptsMenuOpen.value)
 
@@ -33,10 +42,22 @@ watch(isOverlayOpen, (isOpen) => {
   window.ipcRenderer.send('toggle-settings', isOpen)
 })
 
-onMounted(() => {
+onMounted(async () => {
+  // Load prompts
+  const settings = await window.ipcRenderer.invoke('get-settings') as any;
+  if (settings && settings.prompts) {
+    prompts.value = settings.prompts;
+  }
+
   window.ipcRenderer.on('toggle-prompt-menu', () => {
     togglePromptsMenu()
-  })
+  });
+
+  // Listen for prompt shortcut events (Alt+1 to Alt+9)
+  window.ipcRenderer.on('select-prompt-by-index', (_event: unknown, ...args: unknown[]) => {
+    const index = args[0] as number;
+    handlePromptSelectByIndex(index);
+  });
 })
 </script>
 

@@ -10,5 +10,6 @@ interface Window {
         onScreenshotTaken(callback: (path: string) => void): void
         onUpdateAvailable(callback: (info: unknown) => void): void
         onUpdateDownloaded(callback: (info: unknown) => void): void
+        onShowToast(callback: (message: string, type: 'info' | 'success' | 'error') => void): void
     }
 }

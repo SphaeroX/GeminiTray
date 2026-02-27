@@ -289,8 +289,6 @@ const handlePromptMenuShortcutBlur = () => {
 const categories = [
   { id: 'general', icon: '⚙️' },
   { id: 'shortcuts', icon: '⌨️' },
-  { id: 'sound', icon: '🔊' },
-  { id: 'feedback', icon: '💬' },
   { id: 'prompts', icon: '📝' },
   { id: 'screenshots', icon: '📸' },
   { id: 'troubleshooting', icon: '🔧' }
