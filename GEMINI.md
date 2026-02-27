@@ -107,3 +107,11 @@ Diese können über die Electron-Konsole oder im Preload-Script verwendet werden
 3. Bei Problemen (z.B. Screenshot-Upload) werden automatisch Snapshots erstellt
 4. Agent kann die HTML/JSON-Dateien in `%TEMP%/gemini-tray-debug/` analysieren
 5. DevTools ermöglichen Live-Inspektion der Gemini-Webseite
+
+### UI Debugging im Browser
+Die Vue-Oberfläche (Einstellungen, Prompts) kann unabhängig von Electron in einem Webbrowser getestet und debuggt werden:
+1. `npm run dev` ausführen.
+2. Im Browser `http://localhost:5173` öffnen.
+3. Ein automatisch geladener Mock für `ipcRenderer` (`browser-mock.ts`) fängt Electron-spezifische Aufrufe ab.
+4. Zustände und Einstellungen werden temporär im `localStorage` des Browsers gespeichert, sodass die UI interaktiv und funktional bleibt.
+5. Dies ermöglicht es KI-Agenten, die UI mit Standard-Browser-Tools zu betrachten und zu bedienen.

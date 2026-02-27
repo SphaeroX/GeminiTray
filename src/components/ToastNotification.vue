@@ -31,6 +31,11 @@ onMounted(() => {
   window.ipcRenderer.onUpdateAvailable(() => {
     addToast(t('app.updates.available'), 'info');
   });
+
+  // Listen for toast events from main process
+  window.ipcRenderer.onShowToast((message: string, type: 'info' | 'success' | 'error') => {
+    addToast(message, type);
+  });
 });
 
 defineExpose({ addToast });
