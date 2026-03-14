@@ -111,16 +111,16 @@ if (!window.ipcRenderer) {
             listeners[channel] = listeners[channel].filter(l => l !== listener);
             console.log(`[Browser Mock] Removed listener for: ${channel}`);
         },
-        onScreenshotTaken: (callback: (path: string) => void) => {
+        onScreenshotTaken: (_callback: (path: string) => void) => {
             console.log(`[Browser Mock] mock onScreenshotTaken`);
         },
-        onUpdateAvailable: (callback: (info: any) => void) => {
+        onUpdateAvailable: (_callback: (info: any) => void) => {
             console.log(`[Browser Mock] mock onUpdateAvailable`);
         },
-        onUpdateDownloaded: (callback: (info: any) => void) => {
+        onUpdateDownloaded: (_callback: (info: any) => void) => {
             console.log(`[Browser Mock] mock onUpdateDownloaded`);
         },
-        onShowToast: (callback: (message: string, type: 'info' | 'success' | 'error') => void) => {
+        onShowToast: (_callback: (message: string, type: 'info' | 'success' | 'error') => void) => {
             console.log(`[Browser Mock] mock onShowToast`);
         }
     };

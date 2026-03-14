@@ -30,7 +30,7 @@ const shortcutManager = new ShortcutManager(windowManager)
 if (!gotTheLock) {
   app.quit()
 } else {
-  app.on('second-instance', (_event, commandLine) => {
+  app.on('second-instance', (_event, _commandLine) => {
     // Someone tried to run a second instance, we should focus our window.
     if (windowManager.win) {
       if (windowManager.win.isMinimized()) windowManager.win.restore()
