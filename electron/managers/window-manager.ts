@@ -26,6 +26,7 @@ export class WindowManager {
 
     createWindow() {
         const opacity = store.get('opacity');
+        const alwaysOnTop = store.get('alwaysOnTop');
         this.win = new BrowserWindow({
             icon: path.join(VITE_PUBLIC, 'electron-vite.svg'),
             width: 500,
@@ -33,6 +34,7 @@ export class WindowManager {
             minWidth: 400,
             minHeight: 300,
             frame: false,
+            show: false,
             titleBarStyle: 'hidden',
             titleBarOverlay: {
                 color: '#00000000',
@@ -40,14 +42,13 @@ export class WindowManager {
                 height: 40
             },
             opacity: opacity,
-            alwaysOnTop: true,
+            alwaysOnTop: alwaysOnTop,
             webPreferences: {
                 preload: path.join(this.__dirname, 'preload.mjs'),
                 partition: 'persist:gemini'
             },
         })
 
-        const alwaysOnTop = store.get('alwaysOnTop');
         if (alwaysOnTop) {
             this.win.setAlwaysOnTop(true, 'screen-saver');
         }
@@ -108,8 +109,9 @@ export class WindowManager {
 
         this.win.once('ready-to-show', () => {
             this.updateViewBounds()
-            // Check process.argv for --hidden is a bit hacky here but acceptable for now
-            // or we can pass it in constructor.
+            if (!process.argv.includes('--hidden')) {
+                this.win?.show()
+            }
         })
     }
 
@@ -210,25 +212,13 @@ export class WindowManager {
 
         if (this.view) {
             try {
-                this.view.webContents.focus();
-                await new Promise(resolve => setTimeout(resolve, 100));
-                this.view.webContents.sendInputEvent({
-                    type: 'keyDown',
-                    keyCode: 'O',
-                    modifiers: ['control', 'shift']
-                });
-                this.view.webContents.sendInputEvent({
-                    type: 'keyUp',
-                    keyCode: 'O',
-                    modifiers: ['control', 'shift']
-                });
-                console.log('[GeminiTray] Sent Ctrl+Shift+O shortcut for new chat');
-
-                // Wait for the new chat to load, then select the default model
-                await new Promise(resolve => setTimeout(resolve, 500));
-                await this.selectDefaultModel();
+                console.log('[GeminiTray] Reloading Gemini for new chat');
+                this.view.webContents.loadURL('https://gemini.google.com/app');
+                
+                // The 'did-finish-load' event in createBrowserView will 
+                // automatically trigger selectDefaultModel() once it's loaded.
             } catch (e) {
-                console.error('Failed to trigger new chat:', e);
+                console.error('Failed to start new chat via reload:', e);
             }
         }
     }

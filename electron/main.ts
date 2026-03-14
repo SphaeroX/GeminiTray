@@ -21,59 +21,73 @@ app.commandLine.appendSwitch('enable-features', 'ThirdPartyStoragePartitioning')
 // Disable hardware acceleration to match GeminiDesk (stealth/stability)
 app.disableHardwareAcceleration();
 
+const gotTheLock = app.requestSingleInstanceLock()
 
 const windowManager = new WindowManager(__dirname)
 const trayManager = new TrayManager(windowManager)
 const shortcutManager = new ShortcutManager(windowManager)
 
-function setupAutoUpdater() {
-  autoUpdater.autoDownload = false;
-  autoUpdater.autoInstallOnAppQuit = true;
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, commandLine) => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (windowManager.win) {
+      if (windowManager.win.isMinimized()) windowManager.win.restore()
+      windowManager.win.show()
+      windowManager.win.focus()
+    }
+  })
 
-  autoUpdater.on('update-available', (info: unknown) => {
-    windowManager.win?.webContents.send('update-available', info);
-  });
+  function setupAutoUpdater() {
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit = true;
 
-  autoUpdater.on('update-downloaded', (info: unknown) => {
-    windowManager.win?.webContents.send('update-downloaded', info);
-  });
+    autoUpdater.on('update-available', (info: unknown) => {
+      windowManager.win?.webContents.send('update-available', info);
+    });
 
-  autoUpdater.on('error', (error: Error) => {
-    console.error('Auto-updater error:', error);
-  });
+    autoUpdater.on('update-downloaded', (info: unknown) => {
+      windowManager.win?.webContents.send('update-downloaded', info);
+    });
 
-  // Check for updates after app starts (only in production)
-  if (!VITE_DEV_SERVER_URL) {
-    autoUpdater.checkForUpdates().catch(console.error);
+    autoUpdater.on('error', (error: Error) => {
+      console.error('Auto-updater error:', error);
+    });
+
+    // Check for updates after app starts (only in production)
+    if (!VITE_DEV_SERVER_URL) {
+      autoUpdater.checkForUpdates().catch(console.error);
+    }
   }
-}
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-    windowManager.win = null
-    windowManager.view = null
-  }
-})
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit()
+      windowManager.win = null
+      windowManager.view = null
+    }
+  })
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      windowManager.createWindow()
+    }
+  })
+
+  app.on('before-quit', () => {
+    windowManager.setQuitting(true)
+  })
+
+  app.on('will-quit', () => {
+    shortcutManager.unregisterAll()
+  })
+
+  app.whenReady().then(() => {
     windowManager.createWindow()
-  }
-})
-
-app.on('before-quit', () => {
-  windowManager.setQuitting(true)
-})
-
-app.on('will-quit', () => {
-  shortcutManager.unregisterAll()
-})
-
-app.whenReady().then(() => {
-  windowManager.createWindow()
-  trayManager.createTray()
-  setupAutoUpdater()
-  registerIpcHandlers(windowManager, shortcutManager)
-  shortcutManager.registerGlobalShortcuts()
-})
+    trayManager.createTray()
+    setupAutoUpdater()
+    registerIpcHandlers(windowManager, shortcutManager)
+    shortcutManager.registerGlobalShortcuts()
+  })
+}

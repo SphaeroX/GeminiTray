@@ -85,6 +85,13 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
         }
     })
 
+    ipcMain.on('set-always-on-top', (_event: IpcMainEvent, alwaysOnTop: boolean) => {
+        store.set('alwaysOnTop', alwaysOnTop)
+        if (windowManager.win) {
+            windowManager.win.setAlwaysOnTop(alwaysOnTop, 'screen-saver')
+        }
+    })
+
     ipcMain.on('set-default-model', (_event: IpcMainEvent, model: 'fast' | 'thinking' | 'pro') => {
         store.set('defaultModel', model)
         // Update the model in the running BrowserView
