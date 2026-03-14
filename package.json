@@ -17,7 +17,8 @@
     "build:win": "vue-tsc && vite build && electron-builder --win",
     "build:linux": "vue-tsc && vite build && electron-builder --linux",
     "build:ci": "vue-tsc && vite build && electron-builder -p never",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "release": "powershell -ExecutionPolicy Bypass -File ./tag-release.ps1"
   },
   "dependencies": {
     "electron-store": "^11.0.2",
