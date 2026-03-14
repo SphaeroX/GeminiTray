@@ -46,6 +46,24 @@ const isEditing = ref(false);
 const editingId = ref<string | null>(null);
 
 
+// Listener for recorded shortcuts
+const handleShortcutRecorded = (_event: unknown, ...args: unknown[]) => {
+  const shortcut = args[0] as string;
+  if (isRecordingGlobal.value) {
+    globalShortcut.value = shortcut;
+    saveShortcut();
+  } else if (isRecordingScreenshot.value) {
+    screenshotShortcut.value = shortcut;
+    saveScreenshotShortcut();
+  } else if (isRecordingNewChat.value) {
+    newChatShortcut.value = shortcut;
+    saveNewChatShortcut();
+  } else if (isRecordingPromptMenu.value) {
+    promptMenuShortcut.value = shortcut;
+    savePromptMenuShortcut();
+  }
+};
+
 onMounted(async () => {
   const settings = await window.ipcRenderer.invoke('get-settings') as AppSettings | null;
   if (settings) {
@@ -62,27 +80,13 @@ onMounted(async () => {
     autoSelectModel.value = settings.autoSelectModel ?? false;
   }
   
-  // Listen for Alt+Space from main process (when blocked by globalShortcut)
-  window.ipcRenderer.on('shortcut-recorded', (_event: unknown, ...args: unknown[]) => {
-    const shortcut = args[0] as string;
-    if (isRecordingGlobal.value) {
-      globalShortcut.value = shortcut;
-      saveShortcut();
-    } else if (isRecordingScreenshot.value) {
-      screenshotShortcut.value = shortcut;
-      saveScreenshotShortcut();
-    } else if (isRecordingNewChat.value) {
-      newChatShortcut.value = shortcut;
-      saveNewChatShortcut();
-    } else if (isRecordingPromptMenu.value) {
-      promptMenuShortcut.value = shortcut;
-      savePromptMenuShortcut();
-    }
-  });
+  // Listen for recorded shortcuts from main process
+  window.ipcRenderer.on('shortcut-recorded', handleShortcutRecorded);
 });
 
 onUnmounted(() => {
   // Clean up listener and stop recording
+  window.ipcRenderer.off('shortcut-recorded', handleShortcutRecorded);
   stopRecording();
 });
 

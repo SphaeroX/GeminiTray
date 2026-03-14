@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -23,19 +23,30 @@ const removeToast = (id: number) => {
   }
 };
 
-onMounted(() => {
-  window.ipcRenderer.onScreenshotTaken(() => {
-    addToast(t('app.screenshot_copied'), 'success');
-  });
-  
-  window.ipcRenderer.onUpdateAvailable(() => {
-    addToast(t('app.updates.available'), 'info');
-  });
+const handleScreenshotTaken = () => {
+  addToast(t('app.screenshot_copied'), 'success');
+};
 
-  // Listen for toast events from main process
-  window.ipcRenderer.onShowToast((message: string, type: 'info' | 'success' | 'error') => {
-    addToast(message, type);
-  });
+const handleUpdateAvailable = () => {
+  addToast(t('app.updates.available'), 'info');
+};
+
+const handleShowToast = (_event: any, ...args: any[]) => {
+  const message = args[0] as string;
+  const type = args[1] as 'info' | 'success' | 'error';
+  addToast(message, type);
+};
+
+onMounted(() => {
+  window.ipcRenderer.on('screenshot-taken', handleScreenshotTaken);
+  window.ipcRenderer.on('update-available', handleUpdateAvailable);
+  window.ipcRenderer.on('show-toast', handleShowToast);
+});
+
+onUnmounted(() => {
+  window.ipcRenderer.off('screenshot-taken', handleScreenshotTaken);
+  window.ipcRenderer.off('update-available', handleUpdateAvailable);
+  window.ipcRenderer.off('show-toast', handleShowToast);
 });
 
 defineExpose({ addToast });

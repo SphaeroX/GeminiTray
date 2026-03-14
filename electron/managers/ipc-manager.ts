@@ -215,7 +215,7 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
 
             const croppedScreenshot = windowManager.fullScreenshot.crop(scaledBounds);
             const tempPath = path.join(os.tmpdir(), `gemini-screenshot-${Date.now()}.png`);
-            fs.writeFileSync(tempPath, croppedScreenshot.toPNG());
+            await fs.promises.writeFile(tempPath, croppedScreenshot.toPNG());
 
             windowManager.win?.show();
             windowManager.win?.focus();

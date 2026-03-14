@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import TitleBar from './components/TitleBar.vue'
 import SettingsView from './components/SettingsView.vue'
 import PromptsMenu from './components/PromptsMenu.vue'
@@ -42,6 +42,15 @@ watch(isOverlayOpen, (isOpen) => {
   window.ipcRenderer.send('toggle-settings', isOpen)
 })
 
+const handleTogglePromptMenu = () => {
+  togglePromptsMenu()
+};
+
+const handleSelectPromptByIndex = (_event: unknown, ...args: unknown[]) => {
+  const index = args[0] as number;
+  handlePromptSelectByIndex(index);
+};
+
 onMounted(async () => {
   // Load prompts
   const settings = await window.ipcRenderer.invoke('get-settings') as any;
@@ -49,15 +58,15 @@ onMounted(async () => {
     prompts.value = settings.prompts;
   }
 
-  window.ipcRenderer.on('toggle-prompt-menu', () => {
-    togglePromptsMenu()
-  });
+  window.ipcRenderer.on('toggle-prompt-menu', handleTogglePromptMenu);
 
   // Listen for prompt shortcut events (Alt+1 to Alt+9)
-  window.ipcRenderer.on('select-prompt-by-index', (_event: unknown, ...args: unknown[]) => {
-    const index = args[0] as number;
-    handlePromptSelectByIndex(index);
-  });
+  window.ipcRenderer.on('select-prompt-by-index', handleSelectPromptByIndex);
+})
+
+onUnmounted(() => {
+  window.ipcRenderer.off('toggle-prompt-menu', handleTogglePromptMenu);
+  window.ipcRenderer.off('select-prompt-by-index', handleSelectPromptByIndex);
 })
 </script>
 
@@ -83,7 +92,8 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden; /* Prevent scrolling in the main UI frame */
-  background: transparent;
+  background: #000000; /* Solid black */
+  color: #ffffff;
 }
 
 .app-container {
@@ -91,15 +101,15 @@ body {
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background: transparent; /* Allow transparency */
+  background: #000000; /* Solid black */
 }
 
 .content-overlay {
-  flex: 1 1 auto;
+  flex: 1;
   pointer-events: none; /* Let clicks pass through to BrowserView below where there is no UI */
   min-height: 0;
   overflow: hidden;
+  position: relative;
+  z-index: 10;
 }
-
-/* If we had a settings panel, we would re-enable pointer-events on it */
 </style>

@@ -2,22 +2,19 @@ import { ipcRenderer, contextBridge } from 'electron'
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
-  on(...args: Parameters<typeof ipcRenderer.on>) {
-    const [channel, listener] = args
-    return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args))
+  on(channel: string, listener: (event: any, ...args: any[]) => void) {
+    ipcRenderer.on(channel, listener)
   },
-  off(...args: Parameters<typeof ipcRenderer.off>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.off(channel, ...omit)
+  off(channel: string, listener: (event: any, ...args: any[]) => void) {
+    ipcRenderer.off(channel, listener)
   },
-  send(...args: Parameters<typeof ipcRenderer.send>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.send(channel, ...omit)
+  send(channel: string, ...args: any[]) {
+    ipcRenderer.send(channel, ...args)
   },
-  invoke(...args: Parameters<typeof ipcRenderer.invoke>) {
-    const [channel, ...omit] = args
-    return ipcRenderer.invoke(channel, ...omit)
+  invoke(channel: string, ...args: any[]) {
+    return ipcRenderer.invoke(channel, ...args)
   },
+  // Keep these for backward compatibility if needed, but they still have the leak issue if called multiple times
   onScreenshotTaken(callback: (path: string) => void) {
     ipcRenderer.on('screenshot-taken', (_event, path) => callback(path))
   },

@@ -35,9 +35,10 @@ export class WindowManager {
             minHeight: 300,
             frame: false,
             show: false,
+            backgroundColor: '#000000',
             titleBarStyle: 'hidden',
             titleBarOverlay: {
-                color: '#00000000',
+                color: '#000000',
                 symbolColor: '#ffffff',
                 height: 40
             },
