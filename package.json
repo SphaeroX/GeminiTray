@@ -1,7 +1,7 @@
 {
   "name": "gemini-tray",
   "private": true,
-  "version": "1.0.19",
+  "version": "1.0.23",
   "description": "A desktop app that integrates Google Gemini into your workflow via system tray",
   "author": "SphaeroX",
   "license": "MIT",
