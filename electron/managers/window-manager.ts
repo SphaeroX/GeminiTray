@@ -125,16 +125,38 @@ export class WindowManager {
             webPreferences: {
                 partition: 'persist:gemini',
                 devTools: IS_DEV,
-                // @ts-ignore
-                userAgent: userAgent
+                nodeIntegration: false,
+                contextIsolation: true,
+                spellcheck: true
             }
         })
 
+        // Set User Agent properly on the session
+        this.view.webContents.setUserAgent(userAgent);
+
+        // Stealth: Mask Electron and Automation properties
         this.view.webContents.on('did-start-loading', () => {
             this.view?.webContents.executeJavaScript(`
-                const newProto = navigator.__proto__;
-                delete newProto.webdriver;
-                navigator.__proto__ = newProto;
+                // Remove webdriver property
+                if (navigator.webdriver) {
+                    Object.defineProperty(navigator, 'webdriver', { get: () => false });
+                }
+                
+                // Mock chrome properties
+                window.chrome = {
+                  runtime: {},
+                  loadTimes: function() {},
+                  csi: function() {},
+                  app: {}
+                };
+
+                // Mock permissions
+                const originalQuery = window.navigator.permissions.query;
+                window.navigator.permissions.query = (parameters) => (
+                  parameters.name === 'notifications' ?
+                    Promise.resolve({ state: Notification.permission }) :
+                    originalQuery(parameters)
+                );
             `).catch(() => { });
         });
 
@@ -142,11 +164,7 @@ export class WindowManager {
             // Use ScriptInjector to inject all scripts
             this.scriptInjector.setView(this.view!);
             this.scriptInjector.injectAllScripts().then(() => {
-                // Also trigger model selection from main process side
-                const autoSelectModel = store.get('autoSelectModel') ?? false;
-                if (autoSelectModel) {
-                    setTimeout(() => this.selectDefaultModel(), 1500);
-                }
+                console.log('[GeminiTray] All scripts injected successfully');
             }).catch(err => console.error('Failed to inject scripts:', err));
         });
 

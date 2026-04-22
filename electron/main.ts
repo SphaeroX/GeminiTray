@@ -14,12 +14,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Fix for Google Login "This browser or app may not be secure"
 app.commandLine.appendSwitch('disable-features', 'AutomationControlled');
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
-app.commandLine.appendSwitch('disable-site-isolation-trials');
-// Allow third-party/partitioned cookies used by Google Sign-In (from GeminiDesk)
-app.commandLine.appendSwitch('enable-features', 'ThirdPartyStoragePartitioning');
+// Essential for modern Google apps in Electron
+app.commandLine.appendSwitch('enable-features', 'ThirdPartyStoragePartitioning,NetworkService,NetworkServiceInProcess');
+app.commandLine.appendSwitch('no-sandbox'); // Sometimes needed for specific GPU/Stealth combinations
 
-// Disable hardware acceleration to match GeminiDesk (stealth/stability)
-app.disableHardwareAcceleration();
+// RE-ENABLE hardware acceleration (disabling it is a bot signal)
+// app.disableHardwareAcceleration(); 
 
 const gotTheLock = app.requestSingleInstanceLock()
 

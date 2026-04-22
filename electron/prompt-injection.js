@@ -138,77 +138,137 @@
     function getSendButton() {
         return document.querySelector('button[aria-label*="Senden"]') ||
             document.querySelector('button[aria-label*="Send"]') ||
+            document.querySelector('button[data-test-id*="send"]') ||
             document.querySelector('button mat-icon[data-mat-icon-name="send_spark"]')?.closest('button') ||
-            document.querySelector('button mat-icon[data-mat-icon-name="send"]')?.closest('button');
+            document.querySelector('button mat-icon[data-mat-icon-name="send"]')?.closest('button') ||
+            document.querySelector('button svg[data-test-id="send-icon"]')?.closest('button') ||
+            document.querySelector('button[aria-disabled="false"] mat-icon[data-mat-icon-name="send"]')?.closest('button');
     }
 
     function getEditor() {
         return document.querySelector('.ql-editor[contenteditable="true"]') ||
-            document.querySelector('div[contenteditable="true"]');
+            document.querySelector('div[contenteditable="true"][role="textbox"]') ||
+            document.querySelector('rich-textarea div[contenteditable="true"]');
+    }
+
+    async function simulateTyping(element, text) {
+        element.focus();
+        element.innerHTML = '';
+        
+        // Split text into chunks to be faster but still "natural"
+        const chunks = text.split('\n');
+        for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i];
+            
+            // Insert chunk via text node to maintain cursor position and framework compatibility
+            const textNode = document.createTextNode(chunk);
+            const selection = window.getSelection();
+            const range = document.createRange();
+            
+            if (element.lastChild && element.lastChild.nodeName === 'BR') {
+                element.insertBefore(textNode, element.lastChild);
+            } else {
+                element.appendChild(textNode);
+            }
+            
+            range.setStartAfter(textNode);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            // Trigger events for each line
+            element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: chunk }));
+            
+            if (i < chunks.length - 1) {
+                // Simulate Enter for new line
+                const br = document.createElement('br');
+                element.appendChild(br);
+                element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertLineBreak' }));
+            }
+            
+            // Tiny micro-delay
+            await new Promise(r => setTimeout(r, 10));
+        }
+        
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+        element.blur();
+        await new Promise(r => setTimeout(r, 50));
+        element.focus();
     }
 
     async function handleSendWithPrompt(originalEvent) {
-        if (!activePrompt) return;
+        if (!activePrompt || isHandlingSend) return;
 
-        // Capture active prompt immediately to avoid race conditions if it gets nulled
+        isHandlingSend = true;
         const currentPrompt = activePrompt;
+        console.log('[GeminiTray] STARTING HUMAN-LIKE SEND:', currentPrompt.name);
 
         const editor = getEditor();
-        if (!editor) return;
+        if (!editor) {
+            console.error('[GeminiTray] ERROR: Editor not found');
+            isHandlingSend = false;
+            return;
+        }
 
-        // 1. Get current user text
-        const userText = editor.innerText;
-
-        // Prevent default only if we are actually going to handle it
+        const userText = editor.innerText || editor.textContent || '';
+        
         if (originalEvent) {
             originalEvent.preventDefault();
             originalEvent.stopPropagation();
-            originalEvent.stopImmediatePropagation();
         }
 
-        // 2. Clear current content and replace with combined text
-        editor.focus();
-        document.execCommand('selectAll', false, null);
-        await new Promise(r => setTimeout(r, 10));
+        try {
+            const combinedText = `${currentPrompt.content}\n\n${userText}`;
+            
+            // Use human-like typing simulation
+            await simulateTyping(editor, combinedText);
 
-        const combinedText = `${currentPrompt.content}\n\n${userText}`;
-        document.execCommand('insertText', false, combinedText);
+            // Give the UI time to enable the button
+            let attempts = 0;
+            let sendBtn = null;
+            
+            while (attempts < 10) {
+                sendBtn = getSendButton();
+                const isDisabled = !sendBtn || sendBtn.disabled || sendBtn.getAttribute('aria-disabled') === 'true';
+                
+                if (sendBtn && !isDisabled) break;
+                
+                console.log('[GeminiTray] Waiting for send button to enable... attempt', attempts + 1);
+                editor.dispatchEvent(new Event('input', { bubbles: true }));
+                await new Promise(r => setTimeout(r, 150));
+                attempts++;
+            }
 
-        // 3. Find and click send button
-        await new Promise(r => setTimeout(r, 100)); // Increased wait time for UI update
-        const sendBtn = getSendButton();
-
-        if (sendBtn && !sendBtn.disabled) {
-            // Clear active prompt BEFORE clicking send to avoid double-handling if enter is pressed again rapidly
-            // But we already captured currentPrompt so we are safe.
-            window.__GEMINI_TRAY_SET_PROMPT(null);
-
-            // Dispatch a proper click event
-            const clickEvent = new MouseEvent('click', {
-                view: window,
-                bubbles: true,
-                cancelable: true
-            });
-            sendBtn.dispatchEvent(clickEvent);
-
-        } else {
-            console.warn('[GeminiTray] Send button not found or disabled');
-            // If we fail to send, we should probably NOT clear the prompt so the user can try again?
-            // Or maybe we should, to avoid stuck state. Let's keep it but log.
+            if (sendBtn && sendBtn.getAttribute('aria-disabled') !== 'true') {
+                window.__GEMINI_TRAY_SET_PROMPT(null);
+                console.log('[GeminiTray] DISPATCHING FINAL CLICK');
+                
+                const events = ['mousedown', 'mouseup', 'click'];
+                for (const type of events) {
+                    sendBtn.dispatchEvent(new MouseEvent(type, { view: window, bubbles: true, cancelable: true }));
+                    await new Promise(r => setTimeout(r, 10));
+                }
+            } else {
+                console.warn('[GeminiTray] Button stuck. Trying Enter fallback.');
+                editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+            }
+        } catch (err) {
+            console.error('[GeminiTray] Critical interaction error:', err);
+        } finally {
+            setTimeout(() => { isHandlingSend = false; }, 1000);
         }
     }
 
     // Capture Enter key on the window/document level
     window.addEventListener('keydown', (e) => {
-        if (!activePrompt) return;
+        const target = e.target;
+        const isEditor = target.getAttribute('contenteditable') === 'true' ||
+            target.classList.contains('ql-editor') ||
+            target.closest('rich-textarea');
 
-        if (e.key === 'Enter' && !e.shiftKey) {
-            const target = e.target;
-            const isEditor = target.getAttribute('contenteditable') === 'true' ||
-                target.classList.contains('ql-editor') ||
-                target.closest('rich-textarea');
-
-            if (isEditor) {
+        if (e.key === 'Enter' && !e.shiftKey && isEditor) {
+            console.log('[GeminiTray] Enter pressed in editor. Active prompt:', activePrompt ? activePrompt.name : 'none');
+            if (activePrompt) {
                 handleSendWithPrompt(e);
             }
         }
@@ -216,17 +276,19 @@
 
     // Capture Click on Send button
     window.addEventListener('click', (e) => {
-        if (!activePrompt) return;
-
         const target = e.target;
         const sendBtn = target.closest('button');
         if (sendBtn) {
             const ariaLabel = sendBtn.getAttribute('aria-label') || '';
             const isSend = ariaLabel.includes('Send') || ariaLabel.includes('Senden') ||
-                sendBtn.querySelector('mat-icon[data-mat-icon-name*="send"]');
+                sendBtn.querySelector('mat-icon[data-mat-icon-name*="send"]') ||
+                sendBtn.getAttribute('data-test-id')?.includes('send');
 
             if (isSend) {
-                handleSendWithPrompt(e);
+                console.log('[GeminiTray] Send button clicked. Active prompt:', activePrompt ? activePrompt.name : 'none');
+                if (activePrompt) {
+                    handleSendWithPrompt(e);
+                }
             }
         }
     }, true);
