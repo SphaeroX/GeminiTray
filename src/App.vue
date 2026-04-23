@@ -24,7 +24,7 @@ const handlePromptSelect = (prompt: any) => {
   // alert('Debug: App received prompt');
   // Ensure we send a plain object to IPC
   window.ipcRenderer.send('set-active-prompt', JSON.parse(JSON.stringify(prompt)))
-  togglePromptsMenu()
+  isPromptsMenuOpen.value = false
 }
 
 // Handle prompt selection by index (Alt+1 to Alt+9)

@@ -7,10 +7,11 @@
 
     let activePrompt = null;
     let indicatorElement = null;
+    let isHandlingSend = false;
 
     // --- Visual Indicator Logic ---
 
-    function updateIndicator() {
+    function updateIndicator(errorMessage = null) {
         if (!activePrompt) {
             if (indicatorElement) {
                 indicatorElement.remove();
@@ -22,7 +23,6 @@
         if (!indicatorElement) {
             indicatorElement = document.createElement('div');
             indicatorElement.id = 'gemini-tray-prompt-indicator';
-            // Style it to float above the input area
             Object.assign(indicatorElement.style, {
                 position: 'fixed',
                 bottom: '100px',
@@ -41,25 +41,44 @@
                 alignItems: 'center',
                 gap: '12px',
                 pointerEvents: 'auto',
-                transition: 'opacity 0.2s ease'
+                transition: 'all 0.2s ease',
+                cursor: 'pointer',
+                userSelect: 'none'
             });
+
+            // Add hover effects
+            indicatorElement.addEventListener('mouseenter', () => {
+                indicatorElement.style.backgroundColor = '#1e1f20';
+                indicatorElement.style.borderColor = '#5f6368';
+                indicatorElement.style.transform = 'translateX(-50%) scale(1.02)';
+            });
+            indicatorElement.addEventListener('mouseleave', () => {
+                indicatorElement.style.backgroundColor = '#131314';
+                indicatorElement.style.borderColor = '#444746';
+                indicatorElement.style.transform = 'translateX(-50%) scale(1)';
+            });
+
+            // Click anywhere on the indicator to deactivate
+            indicatorElement.addEventListener('click', () => {
+                window.__GEMINI_TRAY_SET_PROMPT(null);
+            });
+
             document.body.appendChild(indicatorElement);
         }
 
-        // Attempt to position it relative to the input box if found
-        const inputContainer = document.querySelector('.input-area-container') || document.querySelector('rich-textarea');
+        const inputContainer = document.querySelector('.input-area-container') || document.querySelector('rich-textarea') || document.querySelector('.input-area');
         if (inputContainer) {
             const rect = inputContainer.getBoundingClientRect();
-            indicatorElement.style.bottom = (window.innerHeight - rect.top + 20) + 'px';
-            indicatorElement.style.left = (rect.left + rect.width / 2) + 'px';
+            if (rect.top > 0) {
+                indicatorElement.style.bottom = (window.innerHeight - rect.top + 20) + 'px';
+                indicatorElement.style.left = (rect.left + rect.width / 2) + 'px';
+            }
         }
 
-        // Clear existing content safely
         while (indicatorElement.firstChild) {
             indicatorElement.removeChild(indicatorElement.firstChild);
         }
 
-        // Create container
         const container = document.createElement('div');
         Object.assign(container.style, {
             display: 'flex',
@@ -68,20 +87,18 @@
             gap: '2px'
         });
 
-        // Label trace
         const label = document.createElement('span');
-        label.textContent = 'ACTIVE PROMPT';
+        label.textContent = errorMessage ? '⚠️ ERROR' : 'ACTIVE PROMPT';
         Object.assign(label.style, {
             fontSize: '11px',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
-            color: '#a8c7fa',
+            color: errorMessage ? '#f28b82' : '#a8c7fa',
             fontWeight: '600'
         });
 
-        // Value trace
         const value = document.createElement('span');
-        value.textContent = activePrompt.name;
+        value.textContent = errorMessage || activePrompt.name;
         Object.assign(value.style, {
             fontWeight: '400',
             fontSize: '14px'
@@ -91,47 +108,17 @@
         container.appendChild(value);
         indicatorElement.appendChild(container);
 
-        // Create close button
         const closeBtn = document.createElement('button');
         closeBtn.innerHTML = '&times;';
         Object.assign(closeBtn.style, {
-            background: 'transparent',
-            border: 'none',
-            color: '#9aa0a6',
-            fontSize: '18px',
-            cursor: 'pointer',
-            padding: '0 4px',
-            lineHeight: '1',
-            borderRadius: '4px',
-            transition: 'all 0.2s ease',
-            pointerEvents: 'auto'
+            background: 'transparent', border: 'none', color: '#9aa0a6', fontSize: '18px', cursor: 'pointer', padding: '0 4px', lineHeight: '1', borderRadius: '4px'
         });
-        closeBtn.title = 'Deactivate prompt';
-        
-        closeBtn.addEventListener('mouseenter', () => {
-            closeBtn.style.color = '#e8eaed';
-            closeBtn.style.background = 'rgba(255,255,255,0.1)';
-        });
-        
-        closeBtn.addEventListener('mouseleave', () => {
-            closeBtn.style.color = '#9aa0a6';
-            closeBtn.style.background = 'transparent';
-        });
-        
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             window.__GEMINI_TRAY_SET_PROMPT(null);
         });
-
         indicatorElement.appendChild(closeBtn);
     }
-
-    function escapeHtml(text) {
-        if (!text) return '';
-        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-    }
-
-    // --- Interaction Logic ---
 
     // --- Interaction Logic ---
 
@@ -142,74 +129,57 @@
             document.querySelector('button mat-icon[data-mat-icon-name="send_spark"]')?.closest('button') ||
             document.querySelector('button mat-icon[data-mat-icon-name="send"]')?.closest('button') ||
             document.querySelector('button svg[data-test-id="send-icon"]')?.closest('button') ||
-            document.querySelector('button[aria-disabled="false"] mat-icon[data-mat-icon-name="send"]')?.closest('button');
+            document.querySelector('.send-button-container button') ||
+            document.querySelector('button.send-button') ||
+            Array.from(document.querySelectorAll('button')).find(b => b.textContent.toLowerCase().includes('send'));
     }
 
     function getEditor() {
         return document.querySelector('.ql-editor[contenteditable="true"]') ||
             document.querySelector('div[contenteditable="true"][role="textbox"]') ||
-            document.querySelector('rich-textarea div[contenteditable="true"]');
+            document.querySelector('rich-textarea div[contenteditable="true"]') ||
+            document.querySelector('[aria-label*="Prompt"][contenteditable="true"]') ||
+            document.querySelector('.input-area div[contenteditable="true"]') ||
+            document.querySelector('div[contenteditable="true"]');
     }
 
-    async function simulateTyping(element, text) {
-        element.focus();
-        element.innerHTML = '';
+    async function setEditorText(editor, text) {
+        editor.focus();
         
-        // Split text into chunks to be faster but still "natural"
-        const chunks = text.split('\n');
-        for (let i = 0; i < chunks.length; i++) {
-            const chunk = chunks[i];
-            
-            // Insert chunk via text node to maintain cursor position and framework compatibility
-            const textNode = document.createTextNode(chunk);
-            const selection = window.getSelection();
-            const range = document.createRange();
-            
-            if (element.lastChild && element.lastChild.nodeName === 'BR') {
-                element.insertBefore(textNode, element.lastChild);
-            } else {
-                element.appendChild(textNode);
-            }
-            
-            range.setStartAfter(textNode);
-            range.collapse(true);
-            selection.removeAllRanges();
-            selection.addRange(range);
-
-            // Trigger events for each line
-            element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: chunk }));
-            
-            if (i < chunks.length - 1) {
-                // Simulate Enter for new line
-                const br = document.createElement('br');
-                element.appendChild(br);
-                element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertLineBreak' }));
-            }
-            
-            // Tiny micro-delay
-            await new Promise(r => setTimeout(r, 10));
+        // Strategy 1: document.execCommand (Most compatible with frameworks as it simulates user input)
+        try {
+            // Select all and delete
+            document.execCommand('selectAll', false, null);
+            document.execCommand('delete', false, null);
+            // Insert new text
+            document.execCommand('insertText', false, text);
+            console.log('[GeminiTray] Text set via execCommand');
+            return true;
+        } catch (e) {
+            console.warn('[GeminiTray] execCommand failed:', e);
         }
-        
-        element.dispatchEvent(new Event('change', { bubbles: true }));
-        element.blur();
-        await new Promise(r => setTimeout(r, 50));
-        element.focus();
+
+        // Strategy 2: Manual manipulation (Fallback)
+        editor.innerHTML = '';
+        const textNode = document.createTextNode(text);
+        editor.appendChild(textNode);
+        editor.dispatchEvent(new InputEvent('input', { bubbles: true }));
+        console.log('[GeminiTray] Text set via innerHTML fallback');
+        return true;
     }
 
     async function handleSendWithPrompt(originalEvent) {
         if (!activePrompt || isHandlingSend) return;
 
-        isHandlingSend = true;
-        const currentPrompt = activePrompt;
-        console.log('[GeminiTray] STARTING HUMAN-LIKE SEND:', currentPrompt.name);
-
         const editor = getEditor();
         if (!editor) {
             console.error('[GeminiTray] ERROR: Editor not found');
-            isHandlingSend = false;
+            updateIndicator('Editor not found');
             return;
         }
 
+        isHandlingSend = true;
+        const currentPrompt = activePrompt;
         const userText = editor.innerText || editor.textContent || '';
         
         if (originalEvent) {
@@ -219,56 +189,51 @@
 
         try {
             const combinedText = `${currentPrompt.content}\n\n${userText}`;
-            
-            // Use human-like typing simulation
-            await simulateTyping(editor, combinedText);
+            await setEditorText(editor, combinedText);
 
-            // Give the UI time to enable the button
+            // Deactivate prompt immediately to avoid loops
+            window.__GEMINI_TRAY_SET_PROMPT(null);
+
+            // Wait for send button to be enabled (Gemini enables it after input)
             let attempts = 0;
             let sendBtn = null;
-            
-            while (attempts < 10) {
+            while (attempts < 20) {
                 sendBtn = getSendButton();
-                const isDisabled = !sendBtn || sendBtn.disabled || sendBtn.getAttribute('aria-disabled') === 'true';
+                if (sendBtn && !sendBtn.disabled && sendBtn.getAttribute('aria-disabled') !== 'true') break;
                 
-                if (sendBtn && !isDisabled) break;
-                
-                console.log('[GeminiTray] Waiting for send button to enable... attempt', attempts + 1);
+                // Trigger input event to help the framework notice the change
                 editor.dispatchEvent(new Event('input', { bubbles: true }));
-                await new Promise(r => setTimeout(r, 150));
+                await new Promise(r => setTimeout(r, 100));
                 attempts++;
             }
 
-            if (sendBtn && sendBtn.getAttribute('aria-disabled') !== 'true') {
-                window.__GEMINI_TRAY_SET_PROMPT(null);
-                console.log('[GeminiTray] DISPATCHING FINAL CLICK');
-                
+            if (sendBtn) {
+                console.log('[GeminiTray] Clicking send button');
+                sendBtn.click();
+                // Fallback click events
                 const events = ['mousedown', 'mouseup', 'click'];
                 for (const type of events) {
                     sendBtn.dispatchEvent(new MouseEvent(type, { view: window, bubbles: true, cancelable: true }));
-                    await new Promise(r => setTimeout(r, 10));
                 }
             } else {
-                console.warn('[GeminiTray] Button stuck. Trying Enter fallback.');
+                console.warn('[GeminiTray] Send button not found or disabled, trying Enter');
                 editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
             }
         } catch (err) {
-            console.error('[GeminiTray] Critical interaction error:', err);
+            console.error('[GeminiTray] Critical error:', err);
         } finally {
             setTimeout(() => { isHandlingSend = false; }, 1000);
         }
     }
 
-    // Capture Enter key on the window/document level
-    window.addEventListener('keydown', (e) => {
-        const target = e.target;
-        const isEditor = target.getAttribute('contenteditable') === 'true' ||
-            target.classList.contains('ql-editor') ||
-            target.closest('rich-textarea');
+    // --- Event Listeners ---
 
-        if (e.key === 'Enter' && !e.shiftKey && isEditor) {
-            console.log('[GeminiTray] Enter pressed in editor. Active prompt:', activePrompt ? activePrompt.name : 'none');
-            if (activePrompt) {
+    // Capture Enter key (using capture phase for maximum priority)
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && activePrompt) {
+            const target = e.target;
+            const isEditor = target.getAttribute('contenteditable') === 'true' || target.closest('rich-textarea') || target.closest('.input-area');
+            if (isEditor) {
                 handleSendWithPrompt(e);
             }
         }
@@ -276,8 +241,8 @@
 
     // Capture Click on Send button
     window.addEventListener('click', (e) => {
-        const target = e.target;
-        const sendBtn = target.closest('button');
+        if (!activePrompt) return;
+        const sendBtn = e.target.closest('button');
         if (sendBtn) {
             const ariaLabel = sendBtn.getAttribute('aria-label') || '';
             const isSend = ariaLabel.includes('Send') || ariaLabel.includes('Senden') ||
@@ -285,66 +250,22 @@
                 sendBtn.getAttribute('data-test-id')?.includes('send');
 
             if (isSend) {
-                console.log('[GeminiTray] Send button clicked. Active prompt:', activePrompt ? activePrompt.name : 'none');
-                if (activePrompt) {
-                    handleSendWithPrompt(e);
-                }
+                handleSendWithPrompt(e);
             }
         }
     }, true);
 
-    function focusInputField() {
-        // Try multiple selectors to find the input field
-        const selectors = [
-            '.ql-editor[contenteditable="true"]',
-            'div[contenteditable="true"][role="textbox"]',
-            'rich-textarea .ql-editor',
-            '[aria-label*="Prompt"][contenteditable="true"]',
-            '[data-placeholder*="Gemini"][contenteditable="true"]'
-        ];
-
-        let inputField = null;
-        for (const selector of selectors) {
-            inputField = document.querySelector(selector);
-            if (inputField) break;
-        }
-
-        if (inputField) {
-            // Focus the input field
-            inputField.focus();
-
-            // Set cursor at the end of content if there's any
-            const range = document.createRange();
-            const selection = window.getSelection();
-
-            if (inputField.lastChild) {
-                range.setStartAfter(inputField.lastChild);
-            } else {
-                range.setStart(inputField, 0);
-            }
-            range.collapse(true);
-
-            selection.removeAllRanges();
-            selection.addRange(range);
-
-            console.log('[GeminiTray] Input field focused');
-        } else {
-            console.log('[GeminiTray] Could not find input field to focus');
-        }
-    }
-
-    // Expose API for Electron Main process
+    // API for Main process
     window.__GEMINI_TRAY_SET_PROMPT = function (prompt) {
         activePrompt = prompt;
         updateIndicator();
-
-        // Focus input field after setting the prompt
         if (prompt) {
-            // Small delay to ensure UI is ready
-            setTimeout(focusInputField, 100);
+            setTimeout(() => {
+                const editor = getEditor();
+                if (editor) editor.focus();
+            }, 100);
         }
     };
 
-    console.log('[GeminiTray] Prompt Injection Ready');
-
+    console.log('[GeminiTray] Enhanced Prompt Injection Ready');
 })();
