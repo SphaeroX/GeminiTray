@@ -220,45 +220,102 @@
 
     async function setEditorText(editor, text) {
         editor.focus();
-        
-        // Strategy 1: document.execCommand (Most compatible with rich text editors)
+        const richTextarea = editor.closest('rich-textarea') || editor.closest('[class*="rich-textarea"]');
+
+        // Method 1: Update .value property on rich-textarea custom element if supported
+        if (richTextarea && 'value' in richTextarea) {
+            try {
+                richTextarea.value = text;
+                console.log('[GeminiTray] Set richTextarea.value');
+            } catch (e) {
+                console.warn('[GeminiTray] richTextarea.value failed:', e);
+            }
+        }
+
+        // Method 2: Simulate ClipboardEvent (paste) which Gemini's rich-textarea handles natively
         try {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.setData('text/plain', text);
+            dataTransfer.setData('text/html', text.split('\n').map(l => `<p>${l || '<br>'}</p>`).join(''));
+
+            const pasteEvent = new ClipboardEvent('paste', {
+                clipboardData: dataTransfer,
+                bubbles: true,
+                cancelable: true,
+                composed: true
+            });
+
+            // Select all existing content so paste replaces everything
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(editor);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            editor.dispatchEvent(pasteEvent);
+            console.log('[GeminiTray] Dispatched paste ClipboardEvent');
+        } catch (e) {
+            console.warn('[GeminiTray] Simulated paste failed:', e);
+        }
+
+        // Method 3: document.execCommand
+        try {
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(editor);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
             document.execCommand('selectAll', false, null);
             document.execCommand('delete', false, null);
             document.execCommand('insertText', false, text);
             console.log('[GeminiTray] Text set via execCommand');
-
-            // Dispatch input and change events to notify framework
-            editor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
-            editor.dispatchEvent(new Event('change', { bubbles: true }));
-            return true;
         } catch (e) {
             console.warn('[GeminiTray] execCommand failed:', e);
         }
 
-        // Strategy 2: Direct DOM structure setting
-        try {
-            if (editor.tagName === 'TEXTAREA') {
-                editor.value = text;
-            } else {
-                editor.innerHTML = '';
-                const lines = text.split('\n');
-                lines.forEach(line => {
-                    const p = document.createElement('p');
-                    p.textContent = line || '\u200B';
-                    editor.appendChild(p);
-                });
+        // Method 4: Fallback direct DOM manipulation with <p> elements
+        const currentText = (editor.innerText || editor.textContent || '').trim();
+        if (!currentText || !currentText.includes(text.substring(0, 15))) {
+            try {
+                if (editor.tagName === 'TEXTAREA') {
+                    editor.value = text;
+                } else {
+                    editor.innerHTML = '';
+                    const lines = text.split('\n');
+                    lines.forEach(line => {
+                        const p = document.createElement('p');
+                        p.textContent = line || '\u200B';
+                        editor.appendChild(p);
+                    });
+                }
+            } catch (e) {
+                console.warn('[GeminiTray] Direct DOM fallback failed:', e);
             }
-
-            editor.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText', data: text }));
-            editor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
-            editor.dispatchEvent(new Event('change', { bubbles: true }));
-            console.log('[GeminiTray] Text set via DOM manipulation fallback');
-            return true;
-        } catch (e) {
-            console.error('[GeminiTray] setEditorText fallback failed:', e);
-            return false;
         }
+
+        // Method 5: Dispatch input and change events to notify Angular/Lit observers
+        const dataTransfer = new DataTransfer();
+        dataTransfer.setData('text/plain', text);
+
+        const events = [
+            new InputEvent('beforeinput', { bubbles: true, cancelable: true, composed: true, inputType: 'insertFromPaste', data: text, dataTransfer }),
+            new InputEvent('input', { bubbles: true, cancelable: true, composed: true, inputType: 'insertFromPaste', data: text, dataTransfer }),
+            new InputEvent('beforeinput', { bubbles: true, cancelable: true, composed: true, inputType: 'insertText', data: text }),
+            new InputEvent('input', { bubbles: true, cancelable: true, composed: true, inputType: 'insertText', data: text }),
+            new Event('change', { bubbles: true, composed: true })
+        ];
+
+        events.forEach(evt => {
+            try { editor.dispatchEvent(evt); } catch (e) {}
+            if (richTextarea) {
+                try { richTextarea.dispatchEvent(evt); } catch (e) {}
+            }
+        });
+
+        // Mandatory delay to yield execution thread and allow Angular/Lit microtasks to sync internal state
+        await new Promise(r => setTimeout(r, 150));
+        return true;
     }
 
     async function handleSendWithPrompt(originalEvent) {
@@ -281,13 +338,17 @@
         }
 
         try {
-            const combinedText = `${currentPrompt.content}\n\n${userText}`;
+            const combinedText = userText ? `${currentPrompt.content}\n\n${userText}` : currentPrompt.content;
+            console.log('[GeminiTray] Injecting combined prompt text...');
+            
             await setEditorText(editor, combinedText);
 
-            // Deactivate prompt immediately to avoid loops
+            // Deactivate prompt indicator after text insertion
             window.__GEMINI_TRAY_SET_PROMPT(null);
 
-            // Wait for send button to be enabled (Gemini enables it after input)
+            // Delay before clicking send button so Gemini framework completes internal model sync
+            await new Promise(r => setTimeout(r, 200));
+
             let attempts = 0;
             let sendBtn = null;
             while (attempts < 20) {
@@ -301,7 +362,7 @@
             }
 
             if (sendBtn) {
-                console.log('[GeminiTray] Clicking send button');
+                console.log('[GeminiTray] Clicking send button with updated prompt content');
                 sendBtn.click();
                 // Fallback click events
                 const events = ['mousedown', 'mouseup', 'click'];
@@ -361,4 +422,5 @@
 
     console.log('[GeminiTray] Enhanced Prompt Injection Ready');
 })();
+
 
