@@ -40,6 +40,7 @@ Gemini Tray ist eine Desktop-Anwendung, die das Google Gemini Webinterface in de
 - **Einstellungen:** Werden über `electron-store` persistiert (siehe `electron/utils/store.ts`).
 - **Build & Test:** Nach jeder Code-Änderung muss ein Build durchgeführt werden (`npm run build`), um die Änderungen in der Electron-Umgebung zu validieren.
 - **Versionierung:** Bei jeder Änderung muss die Versionsnummer in der `package.json` um `0.001` erhöht werden.
+- **Release-Automatisierung:** Nach jedem Git-Commit muss automatisch ein Release via `npm run release` ausgeführt werden, um das neue Versions-Tag zu erstellen und die Commits sowie Tags auf GitHub zu pushen.
 
 ## Besonderheiten
 
