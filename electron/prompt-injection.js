@@ -66,7 +66,7 @@
             document.body.appendChild(indicatorElement);
         }
 
-        const inputContainer = document.querySelector('.input-area-container') || document.querySelector('rich-textarea') || document.querySelector('.input-area');
+        const inputContainer = document.querySelector('.input-area-container') || document.querySelector('rich-textarea') || document.querySelector('.input-area') || document.querySelector('[class*="input-area"]');
         if (inputContainer) {
             const rect = inputContainer.getBoundingClientRect();
             if (rect.top > 0) {
@@ -122,50 +122,143 @@
 
     // --- Interaction Logic ---
 
+    function isSendButton(element) {
+        if (!element) return false;
+        const btn = element.closest('button, [role="button"]');
+        if (!btn) return false;
+
+        const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
+        const title = (btn.getAttribute('title') || '').toLowerCase();
+        const testId = (btn.getAttribute('data-test-id') || btn.getAttribute('data-testid') || '').toLowerCase();
+        const text = (btn.textContent || '').toLowerCase();
+        const className = (typeof btn.className === 'string' ? btn.className : '').toLowerCase();
+
+        const keywords = ['send', 'senden', 'submit', 'übermitteln', 'abschicken', 'übertragen'];
+        
+        for (const kw of keywords) {
+            if (ariaLabel.includes(kw) || title.includes(kw) || testId.includes(kw) || className.includes(kw)) {
+                return true;
+            }
+        }
+
+        if (btn.querySelector('mat-icon[data-mat-icon-name*="send" i]') ||
+            btn.querySelector('svg[data-test-id*="send" i]') ||
+            btn.querySelector('svg[data-testid*="send" i]') ||
+            btn.querySelector('[class*="send-icon" i]')) {
+            return true;
+        }
+
+        // Fallback for simple button text
+        if (text && keywords.some(kw => text.trim() === kw)) {
+            return true;
+        }
+
+        return false;
+    }
+
     function getSendButton() {
-        return document.querySelector('button[aria-label*="Senden"]') ||
-            document.querySelector('button[aria-label*="Send"]') ||
-            document.querySelector('button[data-test-id*="send"]') ||
-            document.querySelector('button mat-icon[data-mat-icon-name="send_spark"]')?.closest('button') ||
-            document.querySelector('button mat-icon[data-mat-icon-name="send"]')?.closest('button') ||
-            document.querySelector('button svg[data-test-id="send-icon"]')?.closest('button') ||
-            document.querySelector('.send-button-container button') ||
-            document.querySelector('button.send-button') ||
-            Array.from(document.querySelectorAll('button')).find(b => b.textContent.toLowerCase().includes('send'));
+        // 1. Try CSS selectors with case-insensitive flag i
+        const selectors = [
+            'button[aria-label*="send" i]',
+            'button[aria-label*="senden" i]',
+            'button[aria-label*="submit" i]',
+            'button[data-test-id*="send" i]',
+            'button[data-testid*="send" i]',
+            '[role="button"][aria-label*="send" i]',
+            '[role="button"][aria-label*="senden" i]',
+            'button mat-icon[data-mat-icon-name*="send" i]',
+            'button svg[data-test-id*="send" i]',
+            '.send-button-container button',
+            'button.send-button'
+        ];
+
+        for (const selector of selectors) {
+            try {
+                const el = document.querySelector(selector);
+                if (el) {
+                    return el.closest('button, [role="button"]') || el;
+                }
+            } catch (e) {}
+        }
+
+        // 2. Fallback scan all buttons
+        const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
+        return allButtons.find(b => isSendButton(b)) || null;
     }
 
     function getEditor() {
-        return document.querySelector('.ql-editor[contenteditable="true"]') ||
-            document.querySelector('div[contenteditable="true"][role="textbox"]') ||
-            document.querySelector('rich-textarea div[contenteditable="true"]') ||
-            document.querySelector('[aria-label*="Prompt"][contenteditable="true"]') ||
-            document.querySelector('.input-area div[contenteditable="true"]') ||
-            document.querySelector('div[contenteditable="true"]');
+        // 1. Check focused element
+        if (document.activeElement) {
+            if (document.activeElement.isContentEditable) {
+                return document.activeElement.closest('[contenteditable="true"]') || document.activeElement;
+            }
+            if (document.activeElement.tagName === 'TEXTAREA') {
+                return document.activeElement;
+            }
+        }
+
+        // 2. Query selectors for Gemini editor
+        const selectors = [
+            '.ql-editor[contenteditable="true"]',
+            'div[contenteditable="true"][role="textbox"]',
+            'rich-textarea div[contenteditable="true"]',
+            '[aria-label*="Prompt" i][contenteditable="true"]',
+            '.input-area div[contenteditable="true"]',
+            'div[contenteditable="true"]',
+            'textarea'
+        ];
+
+        for (const selector of selectors) {
+            try {
+                const el = document.querySelector(selector);
+                if (el) return el;
+            } catch (e) {}
+        }
+
+        return null;
     }
 
     async function setEditorText(editor, text) {
         editor.focus();
         
-        // Strategy 1: document.execCommand (Most compatible with frameworks as it simulates user input)
+        // Strategy 1: document.execCommand (Most compatible with rich text editors)
         try {
-            // Select all and delete
             document.execCommand('selectAll', false, null);
             document.execCommand('delete', false, null);
-            // Insert new text
             document.execCommand('insertText', false, text);
             console.log('[GeminiTray] Text set via execCommand');
+
+            // Dispatch input and change events to notify framework
+            editor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
+            editor.dispatchEvent(new Event('change', { bubbles: true }));
             return true;
         } catch (e) {
             console.warn('[GeminiTray] execCommand failed:', e);
         }
 
-        // Strategy 2: Manual manipulation (Fallback)
-        editor.innerHTML = '';
-        const textNode = document.createTextNode(text);
-        editor.appendChild(textNode);
-        editor.dispatchEvent(new InputEvent('input', { bubbles: true }));
-        console.log('[GeminiTray] Text set via innerHTML fallback');
-        return true;
+        // Strategy 2: Direct DOM structure setting
+        try {
+            if (editor.tagName === 'TEXTAREA') {
+                editor.value = text;
+            } else {
+                editor.innerHTML = '';
+                const lines = text.split('\n');
+                lines.forEach(line => {
+                    const p = document.createElement('p');
+                    p.textContent = line || '\u200B';
+                    editor.appendChild(p);
+                });
+            }
+
+            editor.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText', data: text }));
+            editor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
+            editor.dispatchEvent(new Event('change', { bubbles: true }));
+            console.log('[GeminiTray] Text set via DOM manipulation fallback');
+            return true;
+        } catch (e) {
+            console.error('[GeminiTray] setEditorText fallback failed:', e);
+            return false;
+        }
     }
 
     async function handleSendWithPrompt(originalEvent) {
@@ -180,7 +273,7 @@
 
         isHandlingSend = true;
         const currentPrompt = activePrompt;
-        const userText = editor.innerText || editor.textContent || '';
+        const userText = (editor.innerText || editor.textContent || '').trim();
         
         if (originalEvent) {
             originalEvent.preventDefault();
@@ -216,11 +309,11 @@
                     sendBtn.dispatchEvent(new MouseEvent(type, { view: window, bubbles: true, cancelable: true }));
                 }
             } else {
-                console.warn('[GeminiTray] Send button not found or disabled, trying Enter');
+                console.warn('[GeminiTray] Send button not found or disabled, trying Enter key');
                 editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
             }
         } catch (err) {
-            console.error('[GeminiTray] Critical error:', err);
+            console.error('[GeminiTray] Critical error in handleSendWithPrompt:', err);
         } finally {
             setTimeout(() => { isHandlingSend = false; }, 1000);
         }
@@ -232,7 +325,14 @@
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey && activePrompt) {
             const target = e.target;
-            const isEditor = target.getAttribute('contenteditable') === 'true' || target.closest('rich-textarea') || target.closest('.input-area');
+            const isEditor = target && (
+                target.isContentEditable ||
+                target.getAttribute?.('contenteditable') === 'true' ||
+                target.closest?.('[contenteditable="true"]') ||
+                target.closest?.('rich-textarea') ||
+                target.closest?.('.input-area') ||
+                target.tagName === 'TEXTAREA'
+            );
             if (isEditor) {
                 handleSendWithPrompt(e);
             }
@@ -242,16 +342,8 @@
     // Capture Click on Send button
     window.addEventListener('click', (e) => {
         if (!activePrompt) return;
-        const sendBtn = e.target.closest('button');
-        if (sendBtn) {
-            const ariaLabel = sendBtn.getAttribute('aria-label') || '';
-            const isSend = ariaLabel.includes('Send') || ariaLabel.includes('Senden') ||
-                sendBtn.querySelector('mat-icon[data-mat-icon-name*="send"]') ||
-                sendBtn.getAttribute('data-test-id')?.includes('send');
-
-            if (isSend) {
-                handleSendWithPrompt(e);
-            }
+        if (isSendButton(e.target)) {
+            handleSendWithPrompt(e);
         }
     }, true);
 
@@ -269,3 +361,4 @@
 
     console.log('[GeminiTray] Enhanced Prompt Injection Ready');
 })();
+
