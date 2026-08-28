@@ -161,6 +161,7 @@
             '[aria-label*="Aufnahme beenden" i]',
             '[aria-label*="Stop recording" i]',
             '[aria-label*="Spracheingabe beenden" i]',
+            '[aria-label*="Aufnahme stoppen" i]',
             'button[aria-pressed="true"]',
             'mat-icon[data-mat-icon-name*="mic_off" i]',
             'mat-icon[data-mat-icon-name*="stop" i]'
@@ -169,13 +170,41 @@
         for (const sel of recordingSelectors) {
             try {
                 const el = document.querySelector(sel);
-                if (el && el.offsetParent !== null) {
+                if (el && (el.offsetParent !== null || el.getClientRects().length > 0)) {
                     return true;
                 }
             } catch (e) {}
         }
 
         return false;
+    }
+
+    function getStopRecordingButton() {
+        const selectors = [
+            'button[aria-label*="Aufnahme beenden" i]',
+            'button[aria-label*="Spracheingabe beenden" i]',
+            'button[aria-label*="Stop recording" i]',
+            'button[aria-label*="Aufnahme stoppen" i]',
+            'button[aria-label*="Stop listening" i]',
+            'button mat-icon[data-mat-icon-name*="mic_off" i]',
+            'button mat-icon[data-mat-icon-name*="stop" i]',
+            'button[aria-pressed="true"]',
+            'button mat-icon[data-mat-icon-name*="mic" i]',
+            'button[aria-label*="mic" i]',
+            'button[aria-label*="sprache" i]',
+            'button[aria-label*="audio" i]',
+            'button[data-test-id*="mic" i]'
+        ];
+
+        for (const sel of selectors) {
+            try {
+                const el = document.querySelector(sel);
+                if (el && (el.offsetParent !== null || el.getClientRects().length > 0)) {
+                    return el.closest('button, [role="button"]') || el;
+                }
+            } catch (e) {}
+        }
+        return null;
     }
 
     function isSendButton(element) {
@@ -390,28 +419,39 @@
         }
 
         try {
-            // If voice recording is active, wait for speech-to-text to finalize in the editor
+            // If voice recording is active, explicitly stop the voice recording first so Gemini finalizes transcription
             if (isVoiceRecording || isVoiceRecordingActiveInDOM()) {
-                console.log('[GeminiTray] Voice recording detected on send. Waiting for transcription...');
-                const maxWait = 2000;
+                console.log('[GeminiTray] Voice recording active on send. Triggering stop to obtain transcription...');
+                const stopBtn = getStopRecordingButton();
+                if (stopBtn) {
+                    stopBtn.click();
+                    try {
+                        stopBtn.dispatchEvent(new MouseEvent('click', { view: window, bubbles: true, cancelable: true }));
+                    } catch (e) {}
+                }
+
+                const maxWait = 2500;
                 const pollInterval = 100;
                 let waited = 0;
-                let lastLength = (editor.innerText || editor.textContent || '').trim().length;
+                let lastText = (editor.innerText || editor.textContent || '').trim();
 
                 while (waited < maxWait) {
                     await new Promise(r => setTimeout(r, pollInterval));
                     waited += pollInterval;
+
                     const currentText = (editor.innerText || editor.textContent || '').trim();
+                    const isStillRecording = isVoiceRecordingActiveInDOM();
+
                     if (currentText.length > 0) {
-                        if (currentText.length === lastLength) {
-                            // Text has settled
+                        if (currentText === lastText && !isStillRecording) {
                             break;
                         }
-                        lastLength = currentText.length;
+                        lastText = currentText;
+                    } else if (!isStillRecording && waited > 600) {
+                        break;
                     }
                 }
-                // Brief pause for any remaining syllables/words
-                await new Promise(r => setTimeout(r, 150));
+                await new Promise(r => setTimeout(r, 200));
                 isVoiceRecording = false;
             }
 
