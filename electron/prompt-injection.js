@@ -220,101 +220,89 @@
 
     async function setEditorText(editor, text) {
         editor.focus();
-        const richTextarea = editor.closest('rich-textarea') || editor.closest('[class*="rich-textarea"]');
 
-        // Method 1: Update .value property on rich-textarea custom element if supported
-        if (richTextarea && 'value' in richTextarea) {
-            try {
-                richTextarea.value = text;
-                console.log('[GeminiTray] Set richTextarea.value');
-            } catch (e) {
-                console.warn('[GeminiTray] richTextarea.value failed:', e);
-            }
+        if (editor.tagName === 'TEXTAREA') {
+            editor.value = text;
+            editor.dispatchEvent(new Event('input', { bubbles: true }));
+            editor.dispatchEvent(new Event('change', { bubbles: true }));
+            return true;
         }
 
-        // Method 2: Simulate ClipboardEvent (paste) which Gemini's rich-textarea handles natively
+        const lines = text.split('\n');
+
+        // Approach 1: Try document.execCommand line-by-line using insertText and insertParagraph
+        // This simulates native user typing and triggers native contenteditable mutations
+        let execCommandSuccess = false;
         try {
-            const dataTransfer = new DataTransfer();
-            dataTransfer.setData('text/plain', text);
-            dataTransfer.setData('text/html', text.split('\n').map(l => `<p>${l || '<br>'}</p>`).join(''));
-
-            const pasteEvent = new ClipboardEvent('paste', {
-                clipboardData: dataTransfer,
-                bubbles: true,
-                cancelable: true,
-                composed: true
-            });
-
-            // Select all existing content so paste replaces everything
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(editor);
-            selection.removeAllRanges();
-            selection.addRange(range);
-
-            editor.dispatchEvent(pasteEvent);
-            console.log('[GeminiTray] Dispatched paste ClipboardEvent');
-        } catch (e) {
-            console.warn('[GeminiTray] Simulated paste failed:', e);
-        }
-
-        // Method 3: document.execCommand
-        try {
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(editor);
-            selection.removeAllRanges();
-            selection.addRange(range);
-
             document.execCommand('selectAll', false, null);
             document.execCommand('delete', false, null);
-            document.execCommand('insertText', false, text);
-            console.log('[GeminiTray] Text set via execCommand');
+
+            for (let i = 0; i < lines.length; i++) {
+                if (i > 0) {
+                    document.execCommand('insertParagraph', false, null);
+                }
+                if (lines[i]) {
+                    document.execCommand('insertText', false, lines[i]);
+                }
+            }
+
+            const currentText = (editor.innerText || editor.textContent || '').trim();
+            const firstLinePrefix = lines[0].trim().substring(0, Math.min(20, lines[0].trim().length));
+            if (currentText && (firstLinePrefix.length === 0 || currentText.includes(firstLinePrefix))) {
+                execCommandSuccess = true;
+                console.log('[GeminiTray] Text inserted via execCommand line-by-line');
+            }
         } catch (e) {
-            console.warn('[GeminiTray] execCommand failed:', e);
+            console.warn('[GeminiTray] execCommand line-by-line failed:', e);
         }
 
-        // Method 4: Fallback direct DOM manipulation with <p> elements
-        const currentText = (editor.innerText || editor.textContent || '').trim();
-        if (!currentText || !currentText.includes(text.substring(0, 15))) {
+        // Approach 2: Direct DOM construction fallback if execCommand was incomplete or failed
+        if (!execCommandSuccess) {
             try {
-                if (editor.tagName === 'TEXTAREA') {
-                    editor.value = text;
-                } else {
-                    editor.innerHTML = '';
-                    const lines = text.split('\n');
-                    lines.forEach(line => {
-                        const p = document.createElement('p');
-                        p.textContent = line || '\u200B';
-                        editor.appendChild(p);
-                    });
-                }
+                editor.innerHTML = '';
+                lines.forEach(line => {
+                    const p = document.createElement('p');
+                    if (line) {
+                        p.textContent = line;
+                    } else {
+                        p.appendChild(document.createElement('br'));
+                    }
+                    editor.appendChild(p);
+                });
+                console.log('[GeminiTray] Text inserted via direct DOM paragraphs fallback');
             } catch (e) {
-                console.warn('[GeminiTray] Direct DOM fallback failed:', e);
+                console.error('[GeminiTray] DOM fallback failed:', e);
             }
         }
 
-        // Method 5: Dispatch input and change events to notify Angular/Lit observers
-        const dataTransfer = new DataTransfer();
-        dataTransfer.setData('text/plain', text);
+        // Position cursor at the end of the text
+        try {
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(editor);
+            range.collapse(false);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        } catch (e) {}
 
-        const events = [
-            new InputEvent('beforeinput', { bubbles: true, cancelable: true, composed: true, inputType: 'insertFromPaste', data: text, dataTransfer }),
-            new InputEvent('input', { bubbles: true, cancelable: true, composed: true, inputType: 'insertFromPaste', data: text, dataTransfer }),
-            new InputEvent('beforeinput', { bubbles: true, cancelable: true, composed: true, inputType: 'insertText', data: text }),
-            new InputEvent('input', { bubbles: true, cancelable: true, composed: true, inputType: 'insertText', data: text }),
+        // Dispatch input and change events to ensure Angular / Lit / Quill detects the change
+        const richTextarea = editor.closest('rich-textarea') || editor.closest('[class*="rich-textarea"]');
+
+        const inputEvents = [
+            new InputEvent('input', { bubbles: true, composed: true, inputType: 'insertText', data: text }),
+            new Event('input', { bubbles: true, composed: true }),
             new Event('change', { bubbles: true, composed: true })
         ];
 
-        events.forEach(evt => {
+        inputEvents.forEach(evt => {
             try { editor.dispatchEvent(evt); } catch (e) {}
             if (richTextarea) {
                 try { richTextarea.dispatchEvent(evt); } catch (e) {}
             }
         });
 
-        // Mandatory delay to yield execution thread and allow Angular/Lit microtasks to sync internal state
-        await new Promise(r => setTimeout(r, 150));
+        // Delay to allow UI / framework microtasks to sync
+        await new Promise(r => setTimeout(r, 100));
         return true;
     }
 
@@ -384,7 +372,7 @@
 
     // Capture Enter key (using capture phase for maximum priority)
     window.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey && activePrompt) {
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && activePrompt) {
             const target = e.target;
             const isEditor = target && (
                 target.isContentEditable ||
