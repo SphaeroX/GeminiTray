@@ -21,6 +21,10 @@ export class TrayManager {
                 click: () => this.windowManager.toggleWindowVisibility()
             },
             {
+                label: 'Voice Input',
+                click: () => this.windowManager.handleVoiceInput()
+            },
+            {
                 label: 'Screenshot & Ask',
                 click: () => this.windowManager.takeScreenshot()
             },

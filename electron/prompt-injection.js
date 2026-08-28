@@ -207,6 +207,95 @@
         return null;
     }
 
+    function getMicButton() {
+        const selectors = [
+            'button[aria-label*="Mikrofon" i]',
+            'button[aria-label*="Microphone" i]',
+            'button[aria-label*="Spracheingabe" i]',
+            'button[aria-label*="speech" i]',
+            'button[aria-label*="voice" i]',
+            'button[aria-label*="dikt" i]',
+            'button[aria-label*="mic" i]',
+            'button[aria-label*="audio" i]',
+            'button[data-test-id*="mic" i]',
+            'button[data-testid*="mic" i]',
+            'button[data-test-id*="dictat" i]',
+            'button[data-test-id*="speech" i]',
+            'button[data-test-id*="voice" i]',
+            'button mat-icon[data-mat-icon-name*="mic" i]',
+            'button mat-icon[data-mat-icon-name*="voice" i]',
+            'button svg[data-test-id*="mic" i]',
+            'button svg[data-testid*="mic" i]',
+            'speech-dictation-mic button',
+            '.speech-dictation button',
+            '.speech-mic button',
+            '[class*="mic-button"] button',
+            'button[class*="mic"]'
+        ];
+
+        for (const sel of selectors) {
+            try {
+                const el = document.querySelector(sel);
+                if (el && (el.offsetParent !== null || el.getClientRects().length > 0)) {
+                    return el.closest('button, [role="button"]') || el;
+                }
+            } catch (e) {}
+        }
+
+        const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
+        for (const btn of allButtons) {
+            if (isMicButton(btn) && (btn.offsetParent !== null || btn.getClientRects().length > 0)) {
+                return btn;
+            }
+        }
+
+        return null;
+    }
+
+    async function activateVoiceInput() {
+        if (isVoiceRecordingActiveInDOM()) {
+            console.log('[GeminiTray] Voice recording already active');
+            return true;
+        }
+
+        console.log('[GeminiTray] Attempting to activate voice input...');
+        let attempts = 0;
+        const maxAttempts = 25; // Try for ~2.5s
+
+        while (attempts < maxAttempts) {
+            if (isVoiceRecordingActiveInDOM()) {
+                console.log('[GeminiTray] Voice recording is now active');
+                return true;
+            }
+
+            const micBtn = getMicButton();
+            if (micBtn) {
+                console.log('[GeminiTray] Found mic button, triggering click');
+                micBtn.focus();
+                micBtn.click();
+                try {
+                    micBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
+                    micBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
+                    micBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                } catch (e) {}
+                isVoiceRecording = true;
+                return true;
+            }
+
+            // Also try focusing the editor so input controls appear
+            const editor = getEditor();
+            if (editor && attempts % 5 === 0) {
+                editor.focus();
+            }
+
+            await new Promise(r => setTimeout(r, 100));
+            attempts++;
+        }
+
+        console.warn('[GeminiTray] Could not find microphone button after multiple attempts');
+        return false;
+    }
+
     function isSendButton(element) {
         if (!element) return false;
         const btn = element.closest('button, [role="button"]');
@@ -547,6 +636,10 @@
                 if (editor) editor.focus();
             }, 100);
         }
+    };
+
+    window.__GEMINI_TRAY_ACTIVATE_VOICE = function () {
+        return activateVoiceInput();
     };
 
     console.log('[GeminiTray] Enhanced Prompt Injection Ready');

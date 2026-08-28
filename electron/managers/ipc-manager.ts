@@ -26,6 +26,7 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
             opacity: store.get('opacity'),
             globalShortcut: store.get('globalShortcut'),
             screenshotShortcut: store.get('screenshotShortcut'),
+            voiceShortcut: store.get('voiceShortcut'),
             openAtLogin: store.get('openAtLogin'),
             openAsHidden: store.get('openAsHidden'),
             alwaysOnTop: store.get('alwaysOnTop'),
@@ -136,6 +137,19 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
             windowManager.win?.webContents.send('show-toast', `New chat shortcut set to ${shortcut}`, 'success')
         }
         return success
+    })
+
+    ipcMain.handle('set-voice-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
+        const success = shortcutManager.setVoiceShortcut(shortcut)
+        if (success) {
+            windowManager.win?.webContents.send('show-toast', `Voice input shortcut set to ${shortcut}`, 'success')
+        }
+        return success
+    })
+
+    ipcMain.handle('trigger-voice-input', async () => {
+        await windowManager.handleVoiceInput()
+        return true
     })
 
     ipcMain.handle('set-prompt-menu-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {

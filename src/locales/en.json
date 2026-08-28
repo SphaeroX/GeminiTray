@@ -17,6 +17,8 @@
         "screenshot_copied": "Screenshot copied to clipboard! Paste it in Gemini to ask.",
         "new_chat_shortcut": "New Chat",
         "new_chat_shortcut_desc": "Open app and start a new conversation",
+        "voice_shortcut": "Voice Input",
+        "voice_shortcut_desc": "Open window and activate voice input directly",
         "prompts_menu_shortcut": "Prompts Menu",
         "prompts_menu_shortcut_desc": "Open the prompts selection menu",
         "default_model": "Default Model",

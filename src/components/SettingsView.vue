@@ -6,6 +6,7 @@ interface AppSettings {
   opacity: number;
   globalShortcut: string;
   screenshotShortcut: string;
+  voiceShortcut: string;
   openAtLogin: boolean;
   openAsHidden: boolean;
   alwaysOnTop: boolean;
@@ -32,12 +33,14 @@ const activeCategory = ref<string | null>('general'); // Default to general
 const opacity = ref(0.95);
 const globalShortcut = ref('');
 const screenshotShortcut = ref('');
+const voiceShortcut = ref('');
 const openAtLogin = ref(false);
 const openAsHidden = ref(true);
 const alwaysOnTop = ref(false);
 const isRecordingGlobal = ref(false);
 const isRecordingScreenshot = ref(false);
 const isRecordingNewChat = ref(false);
+const isRecordingVoice = ref(false);
 const newChatShortcut = ref('');
 const prompts = ref<Prompt[]>([]);
 const newPromptName = ref('');
@@ -58,6 +61,9 @@ const handleShortcutRecorded = (_event: unknown, ...args: unknown[]) => {
   } else if (isRecordingNewChat.value) {
     newChatShortcut.value = shortcut;
     saveNewChatShortcut();
+  } else if (isRecordingVoice.value) {
+    voiceShortcut.value = shortcut;
+    saveVoiceShortcut();
   } else if (isRecordingPromptMenu.value) {
     promptMenuShortcut.value = shortcut;
     savePromptMenuShortcut();
@@ -70,6 +76,7 @@ onMounted(async () => {
     opacity.value = settings.opacity ?? 0.95;
     globalShortcut.value = settings.globalShortcut ?? '';
     screenshotShortcut.value = settings.screenshotShortcut ?? '';
+    voiceShortcut.value = settings.voiceShortcut ?? '';
     openAtLogin.value = settings.openAtLogin ?? false;
     openAsHidden.value = settings.openAsHidden ?? true;
     alwaysOnTop.value = settings.alwaysOnTop ?? false;
@@ -99,6 +106,7 @@ const stopRecording = () => {
   isRecordingGlobal.value = false;
   isRecordingScreenshot.value = false;
   isRecordingNewChat.value = false;
+  isRecordingVoice.value = false;
   isRecordingPromptMenu.value = false;
 };
 
@@ -144,6 +152,15 @@ const saveNewChatShortcut = async () => {
   }
 };
 
+const saveVoiceShortcut = async () => {
+  if (voiceShortcut.value) {
+    const success = await window.ipcRenderer.invoke('set-voice-shortcut', voiceShortcut.value);
+    if (!success) {
+      console.error('Failed to set voice shortcut');
+    }
+  }
+};
+
 const buildShortcutString = (e: KeyboardEvent): string | null => {
   // Ignore standalone modifier presses
   if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return null;
@@ -182,13 +199,14 @@ const handleGlobalShortcutFocus = () => {
   isRecordingGlobal.value = true;
   isRecordingScreenshot.value = false;
   isRecordingNewChat.value = false;
+  isRecordingVoice.value = false;
   isRecordingPromptMenu.value = false;
   startRecording();
 };
 
 const handleGlobalShortcutBlur = () => {
   isRecordingGlobal.value = false;
-  if (!isRecordingScreenshot.value && !isRecordingNewChat.value && !isRecordingPromptMenu.value) {
+  if (!isRecordingScreenshot.value && !isRecordingNewChat.value && !isRecordingVoice.value && !isRecordingPromptMenu.value) {
     stopRecording();
   }
 };
@@ -210,13 +228,14 @@ const handleScreenshotShortcutFocus = () => {
   isRecordingScreenshot.value = true;
   isRecordingGlobal.value = false;
   isRecordingNewChat.value = false;
+  isRecordingVoice.value = false;
   isRecordingPromptMenu.value = false;
   startRecording();
 };
 
 const handleScreenshotShortcutBlur = () => {
   isRecordingScreenshot.value = false;
-  if (!isRecordingGlobal.value && !isRecordingNewChat.value && !isRecordingPromptMenu.value) {
+  if (!isRecordingGlobal.value && !isRecordingNewChat.value && !isRecordingVoice.value && !isRecordingPromptMenu.value) {
     stopRecording();
   }
 };
@@ -238,12 +257,43 @@ const handleNewChatShortcutFocus = () => {
   isRecordingNewChat.value = true;
   isRecordingGlobal.value = false;
   isRecordingScreenshot.value = false;
+  isRecordingVoice.value = false;
+  isRecordingPromptMenu.value = false;
   startRecording();
 };
 
 const handleNewChatShortcutBlur = () => {
   isRecordingNewChat.value = false;
-  if (!isRecordingGlobal.value && !isRecordingScreenshot.value && !isRecordingPromptMenu.value) {
+  if (!isRecordingGlobal.value && !isRecordingScreenshot.value && !isRecordingVoice.value && !isRecordingPromptMenu.value) {
+    stopRecording();
+  }
+};
+
+const handleVoiceShortcutKeydown = (e: KeyboardEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+  
+  const shortcut = buildShortcutString(e);
+  if (shortcut) {
+    voiceShortcut.value = shortcut;
+    saveVoiceShortcut();
+  }
+  return false;
+};
+
+const handleVoiceShortcutFocus = () => {
+  isRecordingVoice.value = true;
+  isRecordingGlobal.value = false;
+  isRecordingScreenshot.value = false;
+  isRecordingNewChat.value = false;
+  isRecordingPromptMenu.value = false;
+  startRecording();
+};
+
+const handleVoiceShortcutBlur = () => {
+  isRecordingVoice.value = false;
+  if (!isRecordingGlobal.value && !isRecordingScreenshot.value && !isRecordingNewChat.value && !isRecordingPromptMenu.value) {
     stopRecording();
   }
 };
@@ -280,12 +330,13 @@ const handlePromptMenuShortcutFocus = () => {
   isRecordingGlobal.value = false;
   isRecordingScreenshot.value = false;
   isRecordingNewChat.value = false;
+  isRecordingVoice.value = false;
   startRecording();
 };
 
 const handlePromptMenuShortcutBlur = () => {
   isRecordingPromptMenu.value = false;
-  if (!isRecordingGlobal.value && !isRecordingScreenshot.value && !isRecordingNewChat.value) {
+  if (!isRecordingGlobal.value && !isRecordingScreenshot.value && !isRecordingNewChat.value && !isRecordingVoice.value) {
     stopRecording();
   }
 };
@@ -527,6 +578,22 @@ const resetSession = async () => {
                   @keydown.prevent="handleNewChatShortcutKeydown"
                   @focus="handleNewChatShortcutFocus"
                   @blur="handleNewChatShortcutBlur"
+                  :placeholder="t('app.shortcut_placeholder')"
+                  class="shortcut-input"
+                  readonly
+                >
+              </div>
+              <div class="setting-item">
+                <div class="setting-label">
+                  <span>{{ t('app.voice_shortcut') }}</span>
+                </div>
+                <p class="setting-description">{{ t('app.voice_shortcut_desc') }}</p>
+                <input 
+                  type="text" 
+                  :value="voiceShortcut"
+                  @keydown.prevent="handleVoiceShortcutKeydown"
+                  @focus="handleVoiceShortcutFocus"
+                  @blur="handleVoiceShortcutBlur"
                   :placeholder="t('app.shortcut_placeholder')"
                   class="shortcut-input"
                   readonly

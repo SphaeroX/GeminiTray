@@ -6,6 +6,7 @@ export interface StoreSchema {
     opacity: number;
     globalShortcut: string;
     screenshotShortcut: string;
+    voiceShortcut: string;
     openAtLogin: boolean;
     openAsHidden: boolean;
     alwaysOnTop: boolean;
@@ -22,6 +23,7 @@ export const store = new Store<StoreSchema>({
         opacity: 0.95,
         globalShortcut: 'Alt+Space',
         screenshotShortcut: 'Alt+Shift+S',
+        voiceShortcut: 'Alt+V',
         openAtLogin: false,
         openAsHidden: true,
         alwaysOnTop: true,

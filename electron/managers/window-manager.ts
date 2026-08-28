@@ -134,6 +134,19 @@ export class WindowManager {
         // Set User Agent properly on the session
         this.view.webContents.setUserAgent(userAgent);
 
+        // Automatically grant media (microphone) and notification permissions
+        this.view.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
+            if (permission === 'media' || permission === 'notifications') {
+                callback(true);
+            } else {
+                callback(true);
+            }
+        });
+
+        this.view.webContents.session.setPermissionCheckHandler((_webContents, _permission) => {
+            return true;
+        });
+
         // Stealth: Mask Electron and Automation properties
         this.view.webContents.on('did-start-loading', () => {
             this.view?.webContents.executeJavaScript(`
@@ -238,6 +251,32 @@ export class WindowManager {
                 // automatically trigger selectDefaultModel() once it's loaded.
             } catch (e) {
                 console.error('Failed to start new chat via reload:', e);
+            }
+        }
+    }
+
+    async handleVoiceInput() {
+        if (this.win) {
+            if (!this.win.isVisible()) {
+                this.win.show();
+            }
+            if (!this.win.isFocused()) {
+                this.win.focus();
+            }
+        }
+
+        if (this.view) {
+            try {
+                console.log('[GeminiTray] Activating voice input in Gemini view');
+                await this.view.webContents.executeJavaScript(`
+                    if (window.__GEMINI_TRAY_ACTIVATE_VOICE) {
+                        window.__GEMINI_TRAY_ACTIVATE_VOICE();
+                    } else {
+                        console.warn('[GeminiTray] window.__GEMINI_TRAY_ACTIVATE_VOICE not available yet');
+                    }
+                `);
+            } catch (e) {
+                console.error('Failed to trigger voice input:', e);
             }
         }
     }

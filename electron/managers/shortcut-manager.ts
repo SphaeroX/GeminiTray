@@ -60,6 +60,11 @@ export class ShortcutManager {
             globalShortcut.register(initialNewChatShortcut, () => this.windowManager.handleNewChat());
         }
 
+        const initialVoiceShortcut = store.get('voiceShortcut');
+        if (initialVoiceShortcut) {
+            globalShortcut.register(initialVoiceShortcut, () => this.windowManager.handleVoiceInput());
+        }
+
         const initialPromptMenuShortcut = store.get('promptMenuShortcut');
         if (initialPromptMenuShortcut) {
             globalShortcut.register(initialPromptMenuShortcut, () => {
@@ -185,6 +190,35 @@ export class ShortcutManager {
         }
     }
 
+    setVoiceShortcut(shortcut: string): boolean {
+        const oldShortcut = store.get('voiceShortcut');
+        if (oldShortcut) {
+            globalShortcut.unregister(oldShortcut);
+        }
+
+        try {
+            const ret = globalShortcut.register(shortcut, () => {
+                this.windowManager.handleVoiceInput();
+            });
+
+            if (!ret) {
+                if (oldShortcut) {
+                    globalShortcut.register(oldShortcut, () => this.windowManager.handleVoiceInput());
+                }
+                return false;
+            }
+
+            store.set('voiceShortcut', shortcut);
+            return true;
+        } catch (error) {
+            console.error('Failed to register voice shortcut:', error);
+            if (oldShortcut) {
+                globalShortcut.register(oldShortcut, () => this.windowManager.handleVoiceInput());
+            }
+            return false;
+        }
+    }
+
     setPromptMenuShortcut(shortcut: string): boolean {
         const oldShortcut = store.get('promptMenuShortcut');
         if (oldShortcut) {
@@ -251,6 +285,10 @@ export class ShortcutManager {
         if (currentNewChat && currentNewChat !== 'Alt+Space') {
             globalShortcut.unregister(currentNewChat);
         }
+        const currentVoice = store.get('voiceShortcut');
+        if (currentVoice && currentVoice !== 'Alt+Space') {
+            globalShortcut.unregister(currentVoice);
+        }
         const currentPromptMenu = store.get('promptMenuShortcut');
         if (currentPromptMenu && currentPromptMenu !== 'Alt+Space') {
             globalShortcut.unregister(currentPromptMenu);
@@ -267,6 +305,7 @@ export class ShortcutManager {
         const currentGlobal = store.get('globalShortcut');
         const currentScreenshot = store.get('screenshotShortcut');
         const currentNewChat = store.get('newChatShortcut');
+        const currentVoice = store.get('voiceShortcut');
         const currentPromptMenu = store.get('promptMenuShortcut');
 
         if (currentGlobal === 'Alt+Space') {
@@ -287,6 +326,10 @@ export class ShortcutManager {
 
         if (currentNewChat && currentNewChat !== 'Alt+Space') {
             globalShortcut.register(currentNewChat, () => this.windowManager.handleNewChat());
+        }
+
+        if (currentVoice && currentVoice !== 'Alt+Space') {
+            globalShortcut.register(currentVoice, () => this.windowManager.handleVoiceInput());
         }
 
         if (currentPromptMenu && currentPromptMenu !== 'Alt+Space') {
