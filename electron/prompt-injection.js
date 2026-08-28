@@ -8,6 +8,7 @@
     let activePrompt = null;
     let indicatorElement = null;
     let isHandlingSend = false;
+    let isVoiceRecording = false;
 
     // --- Visual Indicator Logic ---
 
@@ -122,6 +123,61 @@
 
     // --- Interaction Logic ---
 
+    function isMicButton(element) {
+        if (!element) return false;
+        const btn = element.closest('button, [role="button"]');
+        if (!btn) return false;
+
+        const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
+        const title = (btn.getAttribute('title') || '').toLowerCase();
+        const testId = (btn.getAttribute('data-test-id') || btn.getAttribute('data-testid') || '').toLowerCase();
+        const className = (typeof btn.className === 'string' ? btn.className : '').toLowerCase();
+
+        const micKeywords = ['mic', 'mikrofon', 'sprache', 'speech', 'voice', 'audio', 'dikt', 'record', 'aufnahme'];
+        for (const kw of micKeywords) {
+            if (ariaLabel.includes(kw) || title.includes(kw) || testId.includes(kw) || className.includes(kw)) {
+                return true;
+            }
+        }
+
+        if (btn.querySelector('mat-icon[data-mat-icon-name*="mic" i]') ||
+            btn.querySelector('mat-icon[data-mat-icon-name*="voice" i]') ||
+            btn.querySelector('svg[data-test-id*="mic" i]') ||
+            btn.querySelector('svg[data-testid*="mic" i]')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function isVoiceRecordingActiveInDOM() {
+        const recordingSelectors = [
+            '[class*="waveform"]',
+            '[class*="recording"]',
+            '[class*="audio-bar"]',
+            '[class*="listening"]',
+            '[class*="speech-indicator"]',
+            '[class*="mic-active"]',
+            '[aria-label*="Aufnahme beenden" i]',
+            '[aria-label*="Stop recording" i]',
+            '[aria-label*="Spracheingabe beenden" i]',
+            'button[aria-pressed="true"]',
+            'mat-icon[data-mat-icon-name*="mic_off" i]',
+            'mat-icon[data-mat-icon-name*="stop" i]'
+        ];
+
+        for (const sel of recordingSelectors) {
+            try {
+                const el = document.querySelector(sel);
+                if (el && el.offsetParent !== null) {
+                    return true;
+                }
+            } catch (e) {}
+        }
+
+        return false;
+    }
+
     function isSendButton(element) {
         if (!element) return false;
         const btn = element.closest('button, [role="button"]');
@@ -142,10 +198,19 @@
         }
 
         if (btn.querySelector('mat-icon[data-mat-icon-name*="send" i]') ||
+            btn.querySelector('mat-icon[data-mat-icon-name*="spark" i]') ||
             btn.querySelector('svg[data-test-id*="send" i]') ||
             btn.querySelector('svg[data-testid*="send" i]') ||
             btn.querySelector('[class*="send-icon" i]')) {
             return true;
+        }
+
+        // When voice recording is active, finish/stop/submit buttons also act as send
+        const voiceStopKeywords = ['aufnahme beenden', 'spracheingabe beenden', 'stop recording', 'done', 'fertig'];
+        for (const kw of voiceStopKeywords) {
+            if (ariaLabel.includes(kw) || title.includes(kw) || testId.includes(kw)) {
+                return true;
+            }
         }
 
         // Fallback for simple button text
@@ -318,7 +383,6 @@
 
         isHandlingSend = true;
         const currentPrompt = activePrompt;
-        const userText = (editor.innerText || editor.textContent || '').trim();
         
         if (originalEvent) {
             originalEvent.preventDefault();
@@ -326,8 +390,34 @@
         }
 
         try {
+            // If voice recording is active, wait for speech-to-text to finalize in the editor
+            if (isVoiceRecording || isVoiceRecordingActiveInDOM()) {
+                console.log('[GeminiTray] Voice recording detected on send. Waiting for transcription...');
+                const maxWait = 2000;
+                const pollInterval = 100;
+                let waited = 0;
+                let lastLength = (editor.innerText || editor.textContent || '').trim().length;
+
+                while (waited < maxWait) {
+                    await new Promise(r => setTimeout(r, pollInterval));
+                    waited += pollInterval;
+                    const currentText = (editor.innerText || editor.textContent || '').trim();
+                    if (currentText.length > 0) {
+                        if (currentText.length === lastLength) {
+                            // Text has settled
+                            break;
+                        }
+                        lastLength = currentText.length;
+                    }
+                }
+                // Brief pause for any remaining syllables/words
+                await new Promise(r => setTimeout(r, 150));
+                isVoiceRecording = false;
+            }
+
+            const userText = (editor.innerText || editor.textContent || '').trim();
             const combinedText = userText ? `${currentPrompt.content}\n\n${userText}` : currentPrompt.content;
-            console.log('[GeminiTray] Injecting combined prompt text...');
+            console.log('[GeminiTray] Injecting combined prompt text (user text length:', userText.length, ')...');
             
             await setEditorText(editor, combinedText);
 
@@ -364,6 +454,7 @@
         } catch (err) {
             console.error('[GeminiTray] Critical error in handleSendWithPrompt:', err);
         } finally {
+            isVoiceRecording = false;
             setTimeout(() => { isHandlingSend = false; }, 1000);
         }
     }
@@ -388,9 +479,19 @@
         }
     }, true);
 
-    // Capture Click on Send button
+    // Capture Click on Send / Mic button
     window.addEventListener('click', (e) => {
         if (!activePrompt) return;
+
+        // Detect if microphone / voice button was clicked to initiate recording
+        if (isMicButton(e.target)) {
+            if (!isVoiceRecording) {
+                console.log('[GeminiTray] Mic button clicked, voice recording initiated');
+                isVoiceRecording = true;
+                return;
+            }
+        }
+
         if (isSendButton(e.target)) {
             handleSendWithPrompt(e);
         }
