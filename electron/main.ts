@@ -26,6 +26,7 @@ const gotTheLock = app.requestSingleInstanceLock()
 const windowManager = new WindowManager(__dirname)
 const trayManager = new TrayManager(windowManager)
 const shortcutManager = new ShortcutManager(windowManager)
+windowManager.isRecordingShortcut = () => shortcutManager.isRecording()
 
 if (!gotTheLock) {
   app.quit()

@@ -8,6 +8,7 @@
         "transparency": "Transparency",
         "toggle_visibility": "Toggle Visibility",
         "shortcut_placeholder": "Click to set shortcut",
+        "recording_shortcut": "Press keys...",
         "autostart": "Start at login",
         "start_minimized": "Start minimized",
         "always_on_top": "Always on top",

@@ -2,30 +2,38 @@ import { globalShortcut } from 'electron'
 import { store } from '../utils/store'
 import { WindowManager } from './window-manager'
 
+export type ConfigurableShortcut = 
+    | 'globalShortcut' 
+    | 'screenshotShortcut' 
+    | 'newChatShortcut' 
+    | 'voiceShortcut' 
+    | 'promptMenuShortcut';
+
+export interface ShortcutResult {
+    success: boolean;
+    error?: string;
+}
+
 export class ShortcutManager {
     private windowManager: WindowManager
     private isRecordingShortcut = false
-    private shortcutRecordingCallback: ((shortcut: string) => void) | null = null
 
     constructor(windowManager: WindowManager) {
         this.windowManager = windowManager
     }
 
-    private handleAltSpace = () => {
-        if (this.isRecordingShortcut && this.shortcutRecordingCallback) {
-            this.shortcutRecordingCallback('Alt+Space');
-        } else {
-            this.windowManager.toggleWindowVisibility();
-        }
-    };
+    public isRecording(): boolean {
+        return this.isRecordingShortcut;
+    }
 
-    private ensureAltSpaceRegistered() {
-        if (!globalShortcut.isRegistered('Alt+Space')) {
-            try {
-                globalShortcut.register('Alt+Space', this.handleAltSpace);
-            } catch (e) {
-                console.error('Failed to register Alt+Space:', e);
-            }
+    private getShortcutLabel(type: ConfigurableShortcut): string {
+        switch (type) {
+            case 'globalShortcut': return 'Toggle Visibility';
+            case 'screenshotShortcut': return 'Screenshot & Ask';
+            case 'newChatShortcut': return 'New Chat';
+            case 'voiceShortcut': return 'Voice Input';
+            case 'promptMenuShortcut': return 'Prompts Menu';
+            default: return type;
         }
     }
 
@@ -42,37 +50,46 @@ export class ShortcutManager {
     };
 
     registerGlobalShortcuts() {
-        // Register initial shortcuts
-        const initialShortcut = store.get('globalShortcut');
-        if (initialShortcut === 'Alt+Space') {
-            this.ensureAltSpaceRegistered();
-        } else if (initialShortcut) {
-            globalShortcut.register(initialShortcut, () => this.windowManager.toggleWindowVisibility());
-        }
+        if (this.isRecordingShortcut) return;
 
-        const initialScreenshotShortcut = store.get('screenshotShortcut');
-        if (initialScreenshotShortcut) {
-            globalShortcut.register(initialScreenshotShortcut, () => this.windowManager.takeScreenshot());
-        }
+        globalShortcut.unregisterAll();
 
-        const initialNewChatShortcut = store.get('newChatShortcut');
-        if (initialNewChatShortcut) {
-            globalShortcut.register(initialNewChatShortcut, () => this.windowManager.handleNewChat());
-        }
-
-        const initialVoiceShortcut = store.get('voiceShortcut');
-        if (initialVoiceShortcut) {
-            globalShortcut.register(initialVoiceShortcut, () => this.windowManager.handleVoiceInput());
-        }
-
-        const initialPromptMenuShortcut = store.get('promptMenuShortcut');
-        if (initialPromptMenuShortcut) {
-            globalShortcut.register(initialPromptMenuShortcut, () => {
+        const handlers: Record<ConfigurableShortcut, () => void> = {
+            globalShortcut: () => this.windowManager.toggleWindowVisibility(),
+            screenshotShortcut: () => this.windowManager.takeScreenshot(),
+            newChatShortcut: () => this.windowManager.handleNewChat(),
+            voiceShortcut: () => this.windowManager.handleVoiceInput(),
+            promptMenuShortcut: () => {
                 if (this.windowManager.win) {
-                    if (!this.windowManager.win.isVisible()) this.windowManager.win.show();
+                    if (!this.windowManager.win.isVisible()) {
+                        this.windowManager.win.show();
+                        this.windowManager.win.focus();
+                    }
                     this.windowManager.win.webContents.send('toggle-prompt-menu');
                 }
-            });
+            }
+        };
+
+        const keys: ConfigurableShortcut[] = [
+            'globalShortcut',
+            'screenshotShortcut',
+            'newChatShortcut',
+            'voiceShortcut',
+            'promptMenuShortcut'
+        ];
+
+        for (const key of keys) {
+            const accelerator = store.get(key);
+            if (accelerator && accelerator.trim()) {
+                try {
+                    const ok = globalShortcut.register(accelerator, handlers[key]);
+                    if (!ok) {
+                        console.warn(`[ShortcutManager] Failed to register global shortcut ${key}: "${accelerator}" (already in use)`);
+                    }
+                } catch (err) {
+                    console.error(`[ShortcutManager] Error registering global shortcut ${key}: "${accelerator}":`, err);
+                }
+            }
         }
 
         // Register prompt shortcuts (Alt+1 to Alt+9)
@@ -81,265 +98,112 @@ export class ShortcutManager {
             try {
                 globalShortcut.register(shortcut, () => this.handlePromptShortcut(i));
             } catch (e) {
-                console.error(`Failed to register ${shortcut}:`, e);
+                console.error(`[ShortcutManager] Failed to register prompt shortcut ${shortcut}:`, e);
             }
         }
     }
 
-    // Methods for IPC Handling
-    setGlobalShortcut(shortcut: string): boolean {
-        const oldShortcut = store.get('globalShortcut');
-
-        if (oldShortcut && oldShortcut !== 'Alt+Space') {
-            globalShortcut.unregister(oldShortcut);
+    setShortcut(type: ConfigurableShortcut, accelerator: string): ShortcutResult {
+        if (!accelerator || !accelerator.trim()) {
+            return { success: false, error: 'Shortcut cannot be empty' };
         }
 
+        const normalized = accelerator.trim();
+
+        // Check if reserved prompt shortcut (Alt+1 to Alt+9)
+        if (/^Alt\+[1-9]$/i.test(normalized)) {
+            return { success: false, error: `Shortcut "${normalized}" is reserved for quick prompts (Alt+1 to Alt+9)` };
+        }
+
+        // Check collision with other configurable shortcuts in store
+        const keys: ConfigurableShortcut[] = [
+            'globalShortcut',
+            'screenshotShortcut',
+            'newChatShortcut',
+            'voiceShortcut',
+            'promptMenuShortcut'
+        ];
+
+        for (const otherKey of keys) {
+            if (otherKey !== type) {
+                const otherVal = store.get(otherKey);
+                if (otherVal && otherVal.toLowerCase() === normalized.toLowerCase()) {
+                    const label = this.getShortcutLabel(otherKey);
+                    return { success: false, error: `Shortcut "${normalized}" is already assigned to "${label}"` };
+                }
+            }
+        }
+
+        // Test if Electron can register this accelerator
         try {
-            let ret: boolean;
+            const wasRecording = this.isRecordingShortcut;
+            this.isRecordingShortcut = true;
+            globalShortcut.unregisterAll();
 
-            if (shortcut === 'Alt+Space') {
-                if (globalShortcut.isRegistered('Alt+Space')) {
-                    ret = true;
-                } else {
-                    ret = globalShortcut.register('Alt+Space', this.handleAltSpace);
-                }
-            } else {
-                if (oldShortcut === 'Alt+Space') {
-                    try { globalShortcut.unregister('Alt+Space'); } catch (e) { /* ignore */ }
-                }
-                ret = globalShortcut.register(shortcut, () => this.windowManager.toggleWindowVisibility());
+            const canRegister = globalShortcut.register(normalized, () => {});
+            if (canRegister) {
+                globalShortcut.unregister(normalized);
             }
 
-            if (!ret) {
-                if (oldShortcut === 'Alt+Space') {
-                    this.ensureAltSpaceRegistered();
-                } else if (oldShortcut) {
-                    globalShortcut.register(oldShortcut, () => this.windowManager.toggleWindowVisibility());
-                }
-                return false;
-            }
+            this.isRecordingShortcut = wasRecording;
 
-            store.set('globalShortcut', shortcut);
-            return true;
-        } catch (error) {
-            console.error('Failed to register shortcut:', error);
-            if (oldShortcut === 'Alt+Space') {
-                this.ensureAltSpaceRegistered();
-            } else if (oldShortcut) {
-                globalShortcut.register(oldShortcut, () => this.windowManager.toggleWindowVisibility());
+            if (!canRegister) {
+                if (!wasRecording) {
+                    this.registerGlobalShortcuts();
+                }
+                return { success: false, error: `Shortcut "${normalized}" could not be registered (may be in use by another program)` };
             }
-            return false;
+        } catch (e) {
+            if (!this.isRecordingShortcut) {
+                this.registerGlobalShortcuts();
+            }
+            return { success: false, error: `Invalid shortcut format: "${normalized}"` };
         }
+
+        // Persist directly to store
+        store.set(type, normalized);
+
+        // If not recording, re-register all shortcuts immediately
+        if (!this.isRecordingShortcut) {
+            this.registerGlobalShortcuts();
+        }
+
+        return { success: true };
+    }
+
+    // Convenience methods matching previous API
+    setGlobalShortcut(shortcut: string): boolean {
+        return this.setShortcut('globalShortcut', shortcut).success;
     }
 
     setScreenshotShortcut(shortcut: string): boolean {
-        const oldShortcut = store.get('screenshotShortcut');
-        if (oldShortcut) {
-            globalShortcut.unregister(oldShortcut);
-        }
-
-        try {
-            const ret = globalShortcut.register(shortcut, () => {
-                this.windowManager.takeScreenshot();
-            });
-
-            if (!ret) {
-                if (oldShortcut) {
-                    globalShortcut.register(oldShortcut, () => this.windowManager.takeScreenshot());
-                }
-                return false;
-            }
-
-            store.set('screenshotShortcut', shortcut);
-            return true;
-        } catch (error) {
-            console.error('Failed to register screenshot shortcut:', error);
-            if (oldShortcut) {
-                globalShortcut.register(oldShortcut, () => this.windowManager.takeScreenshot());
-            }
-            return false;
-        }
+        return this.setShortcut('screenshotShortcut', shortcut).success;
     }
 
     setNewChatShortcut(shortcut: string): boolean {
-        const oldShortcut = store.get('newChatShortcut');
-        if (oldShortcut) {
-            globalShortcut.unregister(oldShortcut);
-        }
-
-        try {
-            const ret = globalShortcut.register(shortcut, () => {
-                this.windowManager.handleNewChat();
-            });
-
-            if (!ret) {
-                if (oldShortcut) {
-                    globalShortcut.register(oldShortcut, () => this.windowManager.handleNewChat());
-                }
-                return false;
-            }
-
-            store.set('newChatShortcut', shortcut);
-            return true;
-        } catch (error) {
-            console.error('Failed to register new chat shortcut:', error);
-            if (oldShortcut) {
-                globalShortcut.register(oldShortcut, () => this.windowManager.handleNewChat());
-            }
-            return false;
-        }
+        return this.setShortcut('newChatShortcut', shortcut).success;
     }
 
     setVoiceShortcut(shortcut: string): boolean {
-        const oldShortcut = store.get('voiceShortcut');
-        if (oldShortcut) {
-            globalShortcut.unregister(oldShortcut);
-        }
-
-        try {
-            const ret = globalShortcut.register(shortcut, () => {
-                this.windowManager.handleVoiceInput();
-            });
-
-            if (!ret) {
-                if (oldShortcut) {
-                    globalShortcut.register(oldShortcut, () => this.windowManager.handleVoiceInput());
-                }
-                return false;
-            }
-
-            store.set('voiceShortcut', shortcut);
-            return true;
-        } catch (error) {
-            console.error('Failed to register voice shortcut:', error);
-            if (oldShortcut) {
-                globalShortcut.register(oldShortcut, () => this.windowManager.handleVoiceInput());
-            }
-            return false;
-        }
+        return this.setShortcut('voiceShortcut', shortcut).success;
     }
 
     setPromptMenuShortcut(shortcut: string): boolean {
-        const oldShortcut = store.get('promptMenuShortcut');
-        if (oldShortcut) {
-            globalShortcut.unregister(oldShortcut);
-        }
-
-        try {
-            const ret = globalShortcut.register(shortcut, () => {
-                if (this.windowManager.win) {
-                    if (!this.windowManager.win.isVisible()) {
-                        this.windowManager.win.show();
-                        this.windowManager.win.focus();
-                    }
-                    this.windowManager.win.webContents.send('toggle-prompt-menu');
-                }
-            });
-
-            if (!ret) {
-                if (oldShortcut) {
-                    globalShortcut.register(oldShortcut, () => {
-                        if (this.windowManager.win) {
-                            if (!this.windowManager.win.isVisible()) this.windowManager.win.show();
-                            this.windowManager.win.webContents.send('toggle-prompt-menu');
-                        }
-                    });
-                }
-                return false;
-            }
-
-            store.set('promptMenuShortcut', shortcut);
-            return true;
-        } catch (error) {
-            console.error('Failed to register prompt menu shortcut:', error);
-            if (oldShortcut) {
-                globalShortcut.register(oldShortcut, () => {
-                    if (this.windowManager.win) {
-                        if (!this.windowManager.win.isVisible()) this.windowManager.win.show();
-                        this.windowManager.win.webContents.send('toggle-prompt-menu');
-                    }
-                });
-            }
-            return false;
-        }
+        return this.setShortcut('promptMenuShortcut', shortcut).success;
     }
 
     startRecording() {
         if (this.isRecordingShortcut) return;
         this.isRecordingShortcut = true;
-
-        this.shortcutRecordingCallback = (shortcut: string) => {
-            this.windowManager.win?.webContents.send('shortcut-recorded', shortcut);
-        };
-
-        const currentGlobal = store.get('globalShortcut');
-        const currentScreenshot = store.get('screenshotShortcut');
-
-        if (currentGlobal && currentGlobal !== 'Alt+Space') {
-            globalShortcut.unregister(currentGlobal);
-        }
-        if (currentScreenshot && currentScreenshot !== 'Alt+Space') {
-            globalShortcut.unregister(currentScreenshot);
-        }
-        const currentNewChat = store.get('newChatShortcut');
-        if (currentNewChat && currentNewChat !== 'Alt+Space') {
-            globalShortcut.unregister(currentNewChat);
-        }
-        const currentVoice = store.get('voiceShortcut');
-        if (currentVoice && currentVoice !== 'Alt+Space') {
-            globalShortcut.unregister(currentVoice);
-        }
-        const currentPromptMenu = store.get('promptMenuShortcut');
-        if (currentPromptMenu && currentPromptMenu !== 'Alt+Space') {
-            globalShortcut.unregister(currentPromptMenu);
-        }
-
-        this.ensureAltSpaceRegistered();
+        // Release all global shortcuts so keystrokes reach renderer
+        globalShortcut.unregisterAll();
     }
 
     stopRecording() {
         if (!this.isRecordingShortcut) return;
         this.isRecordingShortcut = false;
-        this.shortcutRecordingCallback = null;
-
-        const currentGlobal = store.get('globalShortcut');
-        const currentScreenshot = store.get('screenshotShortcut');
-        const currentNewChat = store.get('newChatShortcut');
-        const currentVoice = store.get('voiceShortcut');
-        const currentPromptMenu = store.get('promptMenuShortcut');
-
-        if (currentGlobal === 'Alt+Space') {
-            this.ensureAltSpaceRegistered();
-        } else {
-            try {
-                globalShortcut.unregister('Alt+Space');
-            } catch (e) { }
-
-            if (currentGlobal) {
-                globalShortcut.register(currentGlobal, () => this.windowManager.toggleWindowVisibility());
-            }
-        }
-
-        if (currentScreenshot && currentScreenshot !== 'Alt+Space') {
-            globalShortcut.register(currentScreenshot, () => this.windowManager.takeScreenshot());
-        }
-
-        if (currentNewChat && currentNewChat !== 'Alt+Space') {
-            globalShortcut.register(currentNewChat, () => this.windowManager.handleNewChat());
-        }
-
-        if (currentVoice && currentVoice !== 'Alt+Space') {
-            globalShortcut.register(currentVoice, () => this.windowManager.handleVoiceInput());
-        }
-
-        if (currentPromptMenu && currentPromptMenu !== 'Alt+Space') {
-            globalShortcut.register(currentPromptMenu, () => {
-                if (this.windowManager.win) {
-                    if (!this.windowManager.win.isVisible()) this.windowManager.win.show();
-                    this.windowManager.win.webContents.send('toggle-prompt-menu');
-                }
-            });
-        }
+        // Re-register all shortcuts from store
+        this.registerGlobalShortcuts();
     }
 
     unregisterAll() {

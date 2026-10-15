@@ -116,35 +116,43 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
     })
 
     ipcMain.handle('set-global-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
-        const success = shortcutManager.setGlobalShortcut(shortcut)
-        if (success) {
+        const result = shortcutManager.setShortcut('globalShortcut', shortcut)
+        if (result.success) {
             windowManager.win?.webContents.send('show-toast', `Shortcut set to ${shortcut}`, 'success')
+        } else {
+            windowManager.win?.webContents.send('show-toast', result.error || 'Failed to set shortcut', 'error')
         }
-        return success
+        return result
     })
 
     ipcMain.handle('set-screenshot-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
-        const success = shortcutManager.setScreenshotShortcut(shortcut)
-        if (success) {
+        const result = shortcutManager.setShortcut('screenshotShortcut', shortcut)
+        if (result.success) {
             windowManager.win?.webContents.send('show-toast', `Screenshot shortcut set to ${shortcut}`, 'success')
+        } else {
+            windowManager.win?.webContents.send('show-toast', result.error || 'Failed to set screenshot shortcut', 'error')
         }
-        return success
+        return result
     })
 
     ipcMain.handle('set-new-chat-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
-        const success = shortcutManager.setNewChatShortcut(shortcut)
-        if (success) {
+        const result = shortcutManager.setShortcut('newChatShortcut', shortcut)
+        if (result.success) {
             windowManager.win?.webContents.send('show-toast', `New chat shortcut set to ${shortcut}`, 'success')
+        } else {
+            windowManager.win?.webContents.send('show-toast', result.error || 'Failed to set new chat shortcut', 'error')
         }
-        return success
+        return result
     })
 
     ipcMain.handle('set-voice-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
-        const success = shortcutManager.setVoiceShortcut(shortcut)
-        if (success) {
+        const result = shortcutManager.setShortcut('voiceShortcut', shortcut)
+        if (result.success) {
             windowManager.win?.webContents.send('show-toast', `Voice input shortcut set to ${shortcut}`, 'success')
+        } else {
+            windowManager.win?.webContents.send('show-toast', result.error || 'Failed to set voice shortcut', 'error')
         }
-        return success
+        return result
     })
 
     ipcMain.handle('trigger-voice-input', async () => {
@@ -153,11 +161,13 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
     })
 
     ipcMain.handle('set-prompt-menu-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
-        const success = shortcutManager.setPromptMenuShortcut(shortcut)
-        if (success) {
+        const result = shortcutManager.setShortcut('promptMenuShortcut', shortcut)
+        if (result.success) {
             windowManager.win?.webContents.send('show-toast', `Prompts menu shortcut set to ${shortcut}`, 'success')
+        } else {
+            windowManager.win?.webContents.send('show-toast', result.error || 'Failed to set prompt menu shortcut', 'error')
         }
-        return success
+        return result
     })
 
     ipcMain.on('start-shortcut-recording', () => {

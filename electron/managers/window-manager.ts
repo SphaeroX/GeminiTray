@@ -14,6 +14,7 @@ export class WindowManager {
     private scriptInjector: ScriptInjector
 
     public isQuitting = false
+    public isRecordingShortcut: (() => boolean) | null = null
 
     constructor(dirname: string) {
         this.__dirname = dirname
@@ -94,6 +95,9 @@ export class WindowManager {
         this.win.webContents.on('before-input-event', (event, input) => {
             if (input.alt && input.key === ' ') {
                 event.preventDefault()
+                if (input.type === 'keyDown' && this.isRecordingShortcut && this.isRecordingShortcut()) {
+                    this.win?.webContents.send('shortcut-recorded', 'Alt+Space')
+                }
             }
         })
 
