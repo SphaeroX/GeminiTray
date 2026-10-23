@@ -20,6 +20,8 @@
         "new_chat_shortcut_desc": "Open app and start a new conversation",
         "voice_shortcut": "Voice Input",
         "voice_shortcut_desc": "Open window and activate voice input directly",
+        "dictation_shortcut": "Dictation (Voice to Clipboard)",
+        "dictation_shortcut_desc": "Open, dictate with voice, and automatically copy text to clipboard and close on stop",
         "prompts_menu_shortcut": "Prompts Menu",
         "prompts_menu_shortcut_desc": "Open the prompts selection menu",
         "default_model": "Default Model",

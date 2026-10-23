@@ -7,6 +7,7 @@ export type ConfigurableShortcut =
     | 'screenshotShortcut' 
     | 'newChatShortcut' 
     | 'voiceShortcut' 
+    | 'dictationShortcut'
     | 'promptMenuShortcut';
 
 export interface ShortcutResult {
@@ -32,6 +33,7 @@ export class ShortcutManager {
             case 'screenshotShortcut': return 'Screenshot & Ask';
             case 'newChatShortcut': return 'New Chat';
             case 'voiceShortcut': return 'Voice Input';
+            case 'dictationShortcut': return 'Dictation (Voice to Clipboard)';
             case 'promptMenuShortcut': return 'Prompts Menu';
             default: return type;
         }
@@ -59,6 +61,7 @@ export class ShortcutManager {
             screenshotShortcut: () => this.windowManager.takeScreenshot(),
             newChatShortcut: () => this.windowManager.handleNewChat(),
             voiceShortcut: () => this.windowManager.handleVoiceInput(),
+            dictationShortcut: () => this.windowManager.handleDictation(),
             promptMenuShortcut: () => {
                 if (this.windowManager.win) {
                     if (!this.windowManager.win.isVisible()) {
@@ -75,6 +78,7 @@ export class ShortcutManager {
             'screenshotShortcut',
             'newChatShortcut',
             'voiceShortcut',
+            'dictationShortcut',
             'promptMenuShortcut'
         ];
 
@@ -121,6 +125,7 @@ export class ShortcutManager {
             'screenshotShortcut',
             'newChatShortcut',
             'voiceShortcut',
+            'dictationShortcut',
             'promptMenuShortcut'
         ];
 
@@ -186,6 +191,10 @@ export class ShortcutManager {
 
     setVoiceShortcut(shortcut: string): boolean {
         return this.setShortcut('voiceShortcut', shortcut).success;
+    }
+
+    setDictationShortcut(shortcut: string): boolean {
+        return this.setShortcut('dictationShortcut', shortcut).success;
     }
 
     setPromptMenuShortcut(shortcut: string): boolean {

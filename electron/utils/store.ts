@@ -7,6 +7,7 @@ export interface StoreSchema {
     globalShortcut: string;
     screenshotShortcut: string;
     voiceShortcut: string;
+    dictationShortcut: string;
     openAtLogin: boolean;
     openAsHidden: boolean;
     alwaysOnTop: boolean;
@@ -24,6 +25,7 @@ export const store = new Store<StoreSchema>({
         globalShortcut: 'Alt+Space',
         screenshotShortcut: 'Alt+Shift+S',
         voiceShortcut: 'Alt+V',
+        dictationShortcut: 'Alt+Shift+V',
         openAtLogin: false,
         openAsHidden: true,
         alwaysOnTop: true,

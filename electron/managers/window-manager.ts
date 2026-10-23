@@ -1,4 +1,4 @@
-import { BrowserWindow, BrowserView, shell, screen, desktopCapturer } from 'electron'
+import { BrowserWindow, BrowserView, shell, screen, desktopCapturer, clipboard } from 'electron'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
 import { store } from '../utils/store'
@@ -15,6 +15,7 @@ export class WindowManager {
 
     public isQuitting = false
     public isRecordingShortcut: (() => boolean) | null = null
+    public isDictating = false
 
     constructor(dirname: string) {
         this.__dirname = dirname
@@ -67,6 +68,7 @@ export class WindowManager {
         this.createBrowserView()
 
         this.win.on('resize', () => this.updateViewBounds())
+        this.win.on('hide', () => this.cancelDictation())
         this.win.on('maximize', () => this.updateViewBounds())
         this.win.on('unmaximize', () => this.updateViewBounds())
 
@@ -224,6 +226,7 @@ export class WindowManager {
         if (this.win) {
             if (this.win.isVisible()) {
                 if (this.win.isFocused()) {
+                    this.cancelDictation();
                     this.win.hide();
                 } else {
                     this.win.show();
@@ -282,6 +285,78 @@ export class WindowManager {
             } catch (e) {
                 console.error('Failed to trigger voice input:', e);
             }
+        }
+    }
+
+    async handleDictation() {
+        if (this.isDictating) {
+            console.log('[GeminiTray] Dictation already active, requesting stop...');
+            if (this.view) {
+                try {
+                    await this.view.webContents.executeJavaScript(`
+                        if (window.__GEMINI_TRAY_STOP_DICTATION) {
+                            window.__GEMINI_TRAY_STOP_DICTATION();
+                        }
+                    `);
+                } catch (e) {
+                    console.error('Failed to trigger stop dictation:', e);
+                }
+            }
+            return;
+        }
+
+        if (this.win) {
+            if (!this.win.isVisible()) {
+                this.win.show();
+            }
+            if (!this.win.isFocused()) {
+                this.win.focus();
+            }
+        }
+
+        if (!this.view) return;
+
+        this.isDictating = true;
+        try {
+            console.log('[GeminiTray] Starting dictation (speech-to-clipboard)...');
+            const text = await this.view.webContents.executeJavaScript(`
+                (function() {
+                    if (window.__GEMINI_TRAY_START_DICTATION) {
+                        return window.__GEMINI_TRAY_START_DICTATION();
+                    } else {
+                        console.warn('[GeminiTray] window.__GEMINI_TRAY_START_DICTATION not available');
+                        return null;
+                    }
+                })()
+            `);
+
+            console.log('[GeminiTray] Dictation returned:', text);
+            if (typeof text === 'string' && text.trim().length > 0) {
+                clipboard.writeText(text.trim());
+                if (this.win?.isVisible()) {
+                    this.win.hide();
+                }
+                this.win?.webContents.send('show-toast', 'Transkript in Zwischenablage kopiert!', 'success');
+            } else if (text !== null) {
+                if (this.win?.isVisible()) {
+                    this.win.hide();
+                }
+            }
+        } catch (e) {
+            console.error('Failed to run dictation:', e);
+        } finally {
+            this.isDictating = false;
+        }
+    }
+
+    cancelDictation() {
+        if (this.isDictating && this.view) {
+            this.isDictating = false;
+            this.view.webContents.executeJavaScript(`
+                if (window.__GEMINI_TRAY_CANCEL_DICTATION) {
+                    window.__GEMINI_TRAY_CANCEL_DICTATION();
+                }
+            `).catch(() => {});
         }
     }
 

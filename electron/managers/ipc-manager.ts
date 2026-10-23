@@ -27,6 +27,7 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
             globalShortcut: store.get('globalShortcut'),
             screenshotShortcut: store.get('screenshotShortcut'),
             voiceShortcut: store.get('voiceShortcut'),
+            dictationShortcut: store.get('dictationShortcut'),
             openAtLogin: store.get('openAtLogin'),
             openAsHidden: store.get('openAsHidden'),
             alwaysOnTop: store.get('alwaysOnTop'),
@@ -160,6 +161,21 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
         return true
     })
 
+    ipcMain.handle('set-dictation-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
+        const result = shortcutManager.setShortcut('dictationShortcut', shortcut)
+        if (result.success) {
+            windowManager.win?.webContents.send('show-toast', `Dictation shortcut set to ${shortcut}`, 'success')
+        } else {
+            windowManager.win?.webContents.send('show-toast', result.error || 'Failed to set dictation shortcut', 'error')
+        }
+        return result
+    })
+
+    ipcMain.handle('trigger-dictation', async () => {
+        await windowManager.handleDictation()
+        return true
+    })
+
     ipcMain.handle('set-prompt-menu-shortcut', (_event: IpcMainInvokeEvent, shortcut: string) => {
         const result = shortcutManager.setShortcut('promptMenuShortcut', shortcut)
         if (result.success) {
@@ -205,13 +221,6 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
 
     // DOM Handler for Screenshot selection
     ipcMain.on('screenshot-region-selected', async (_event, bounds: { x: number, y: number, width: number, height: number }) => {
-        // Since this logic is tightly coupled with window manager's selection window and screenshot handling,
-        // we might want to move the implementation details to WindowManager or keep it here but call WindowManager methods.
-        // However, the original code had heavy logic here including cropping and pasting.
-        // Let's try to extract the logic to a method in IPC Manager or leave it here if it doesn't fit WindowManager well.
-        // Actually, the pasting logic interacts with the view, which is in WindowManager.
-        // Let's keep the logic here for now but access windowManager properties.
-
         if (windowManager.selectionWindow) {
             windowManager.selectionWindow.close();
             windowManager.selectionWindow = null;
@@ -223,10 +232,6 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
         }
 
         try {
-            // Screen, clipboard, fs, path, os are now imported at top level
-
-
-
             const primaryDisplay = screen.getPrimaryDisplay();
             const scaleFactor = primaryDisplay.scaleFactor;
 

@@ -25,6 +25,10 @@ export class TrayManager {
                 click: () => this.windowManager.handleVoiceInput()
             },
             {
+                label: 'Dictation (Voice to Clipboard)',
+                click: () => this.windowManager.handleDictation()
+            },
+            {
                 label: 'Screenshot & Ask',
                 click: () => this.windowManager.takeScreenshot()
             },

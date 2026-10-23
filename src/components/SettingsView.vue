@@ -7,6 +7,7 @@ interface AppSettings {
   globalShortcut: string;
   screenshotShortcut: string;
   voiceShortcut: string;
+  dictationShortcut: string;
   openAtLogin: boolean;
   openAsHidden: boolean;
   alwaysOnTop: boolean;
@@ -35,6 +36,7 @@ const globalShortcut = ref('');
 const screenshotShortcut = ref('');
 const newChatShortcut = ref('');
 const voiceShortcut = ref('');
+const dictationShortcut = ref('');
 const promptMenuShortcut = ref('');
 const defaultModel = ref<'fast' | 'thinking' | 'pro'>('fast');
 const autoSelectModel = ref(false);
@@ -47,7 +49,7 @@ const newPromptContent = ref('');
 const isEditing = ref(false);
 const editingId = ref<string | null>(null);
 
-type ShortcutType = 'globalShortcut' | 'screenshotShortcut' | 'newChatShortcut' | 'voiceShortcut' | 'promptMenuShortcut';
+type ShortcutType = 'globalShortcut' | 'screenshotShortcut' | 'newChatShortcut' | 'voiceShortcut' | 'dictationShortcut' | 'promptMenuShortcut';
 
 const currentlyRecording = ref<ShortcutType | null>(null);
 
@@ -56,6 +58,7 @@ const shortcuts: Record<ShortcutType, typeof globalShortcut> = {
   screenshotShortcut,
   newChatShortcut,
   voiceShortcut,
+  dictationShortcut,
   promptMenuShortcut
 };
 
@@ -64,6 +67,7 @@ const shortcutIpcNames: Record<ShortcutType, string> = {
   screenshotShortcut: 'screenshot',
   newChatShortcut: 'new-chat',
   voiceShortcut: 'voice',
+  dictationShortcut: 'dictation',
   promptMenuShortcut: 'prompt-menu'
 };
 
@@ -105,6 +109,7 @@ onMounted(async () => {
     globalShortcut.value = settings.globalShortcut ?? '';
     screenshotShortcut.value = settings.screenshotShortcut ?? '';
     voiceShortcut.value = settings.voiceShortcut ?? '';
+    dictationShortcut.value = settings.dictationShortcut ?? '';
     openAtLogin.value = settings.openAtLogin ?? false;
     openAsHidden.value = settings.openAsHidden ?? true;
     alwaysOnTop.value = settings.alwaysOnTop ?? false;
@@ -491,6 +496,23 @@ const resetSession = async () => {
                   @keydown="handleShortcutKeydown('voiceShortcut', $event)"
                   @focus="handleShortcutFocus('voiceShortcut')"
                   @blur="handleShortcutBlur('voiceShortcut')"
+                  :placeholder="t('app.shortcut_placeholder')"
+                  class="shortcut-input"
+                  readonly
+                >
+              </div>
+              <div class="setting-item">
+                <div class="setting-label">
+                  <span>{{ t('app.dictation_shortcut') || 'Dictation (Voice to Clipboard)' }}</span>
+                </div>
+                <p class="setting-description">{{ t('app.dictation_shortcut_desc') || 'Open, record voice, copy text to clipboard and close on stop' }}</p>
+                <input 
+                  type="text" 
+                  :value="currentlyRecording === 'dictationShortcut' ? (t('app.recording_shortcut') || 'Press keys...') : dictationShortcut"
+                  :class="{ 'recording': currentlyRecording === 'dictationShortcut' }"
+                  @keydown="handleShortcutKeydown('dictationShortcut', $event)"
+                  @focus="handleShortcutFocus('dictationShortcut')"
+                  @blur="handleShortcutBlur('dictationShortcut')"
                   :placeholder="t('app.shortcut_placeholder')"
                   class="shortcut-input"
                   readonly

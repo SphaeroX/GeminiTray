@@ -207,6 +207,70 @@
         return null;
     }
 
+    function isStopButton(element) {
+        if (!element) return false;
+        const btn = element.closest('button, [role="button"]');
+        if (!btn) return false;
+
+        const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
+        const title = (btn.getAttribute('title') || '').toLowerCase();
+        const testId = (btn.getAttribute('data-test-id') || btn.getAttribute('data-testid') || '').toLowerCase();
+
+        const stopKeywords = [
+            'spracheingabe beenden',
+            'aufnahme beenden',
+            'aufnahme stoppen',
+            'stop recording',
+            'stop listening',
+            'beenden'
+        ];
+        for (const kw of stopKeywords) {
+            if (ariaLabel.includes(kw) || title.includes(kw) || testId.includes(kw)) {
+                return true;
+            }
+        }
+
+        if (btn.querySelector('mat-icon[data-mat-icon-name*="stop" i]') ||
+            btn.querySelector('mat-icon[data-mat-icon-name*="mic_off" i]') ||
+            btn.querySelector('svg[data-test-id*="stop" i]')) {
+            return true;
+        }
+
+        if (isVoiceRecordingActiveInDOM() && isMicButton(btn)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    async function clearEditorText(editor) {
+        if (!editor) return;
+        try {
+            editor.focus();
+            if (editor.tagName === 'TEXTAREA') {
+                editor.value = '';
+                editor.dispatchEvent(new Event('input', { bubbles: true }));
+                editor.dispatchEvent(new Event('change', { bubbles: true }));
+                return;
+            }
+
+            try {
+                document.execCommand('selectAll', false, null);
+                document.execCommand('delete', false, null);
+            } catch (e) {}
+
+            editor.innerHTML = '<p><br></p>';
+            editor.dispatchEvent(new Event('input', { bubbles: true }));
+            editor.dispatchEvent(new Event('change', { bubbles: true }));
+        } catch (e) {
+            console.warn('[GeminiTray] clearEditorText failed:', e);
+            try {
+                editor.innerHTML = '<p><br></p>';
+                editor.dispatchEvent(new Event('input', { bubbles: true }));
+            } catch (inner) {}
+        }
+    }
+
     function getMicButton() {
         const selectors = [
             'button[aria-label*="Mikrofon" i]',
@@ -588,6 +652,225 @@
         }
     }
 
+    // --- Dictation (Speech to Clipboard) Mode ---
+    let isDictationMode = false;
+    let isFinishingDictation = false;
+    let dictationResolver = null;
+    let dictationMonitorInterval = null;
+    let dictationIndicator = null;
+
+    function showDictationIndicator(text) {
+        if (!dictationIndicator) {
+            dictationIndicator = document.createElement('div');
+            dictationIndicator.id = 'gemini-tray-dictation-indicator';
+            Object.assign(dictationIndicator.style, {
+                position: 'fixed',
+                bottom: '100px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                backgroundColor: '#131314',
+                color: '#e3e3e3',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: '1px solid #1a73e8',
+                zIndex: '999999',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                fontSize: '13px',
+                fontWeight: '500',
+                fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                pointerEvents: 'none',
+                userSelect: 'none',
+                transition: 'all 0.2s ease'
+            });
+            document.body.appendChild(dictationIndicator);
+        }
+
+        const inputContainer = document.querySelector('.input-area-container') ||
+            document.querySelector('rich-textarea') ||
+            document.querySelector('.input-area') ||
+            document.querySelector('[class*="input-area"]');
+        if (inputContainer) {
+            const rect = inputContainer.getBoundingClientRect();
+            if (rect.top > 0) {
+                dictationIndicator.style.bottom = (window.innerHeight - rect.top + 16) + 'px';
+                dictationIndicator.style.left = (rect.left + rect.width / 2) + 'px';
+            }
+        }
+
+        dictationIndicator.textContent = text;
+        dictationIndicator.style.display = 'flex';
+    }
+
+    function hideDictationIndicator() {
+        if (dictationIndicator) {
+            dictationIndicator.style.display = 'none';
+        }
+    }
+
+    async function finishDictation() {
+        if (!isDictationMode || isFinishingDictation) return;
+        isFinishingDictation = true;
+
+        if (dictationMonitorInterval) {
+            clearInterval(dictationMonitorInterval);
+            dictationMonitorInterval = null;
+        }
+
+        try {
+            console.log('[GeminiTray] Finishing dictation session...');
+            showDictationIndicator('⏳ Kopiere in Zwischenablage...');
+
+            const editor = getEditor();
+
+            // If voice recording is still active in DOM, click the stop button
+            if (isVoiceRecordingActiveInDOM()) {
+                const stopBtn = getStopRecordingButton();
+                if (stopBtn) {
+                    stopBtn.click();
+                    try {
+                        stopBtn.dispatchEvent(new MouseEvent('click', { view: window, bubbles: true, cancelable: true }));
+                    } catch (e) {}
+                }
+            }
+
+            // Wait for Gemini transcription to settle into the editor
+            const maxWait = 2500;
+            const pollInterval = 100;
+            let waited = 0;
+            let lastText = editor ? (editor.innerText || editor.textContent || '').trim() : '';
+
+            while (waited < maxWait) {
+                await new Promise(r => setTimeout(r, pollInterval));
+                waited += pollInterval;
+
+                const currentText = editor ? (editor.innerText || editor.textContent || '').trim() : '';
+                const stillRecording = isVoiceRecordingActiveInDOM();
+
+                if (currentText.length > 0) {
+                    if (currentText === lastText && !stillRecording && waited >= 300) {
+                        break;
+                    }
+                    lastText = currentText;
+                } else if (!stillRecording && waited >= 500) {
+                    break;
+                }
+            }
+
+            const finalText = editor ? (editor.innerText || editor.textContent || '').trim() : '';
+            console.log('[GeminiTray] Dictation transcription finished. Text length:', finalText.length);
+
+            // Copy to clipboard in renderer
+            if (finalText) {
+                try {
+                    await navigator.clipboard.writeText(finalText);
+                    console.log('[GeminiTray] Copied to navigator.clipboard');
+                } catch (e) {
+                    console.warn('[GeminiTray] navigator.clipboard.writeText failed (will rely on main process):', e);
+                }
+            }
+
+            // Clear editor so it is completely empty again
+            if (editor) {
+                await clearEditorText(editor);
+            }
+
+            hideDictationIndicator();
+
+            if (dictationResolver) {
+                const resolve = dictationResolver;
+                dictationResolver = null;
+                resolve(finalText);
+            }
+        } catch (err) {
+            console.error('[GeminiTray] Error in finishDictation:', err);
+            hideDictationIndicator();
+            if (dictationResolver) {
+                const resolve = dictationResolver;
+                dictationResolver = null;
+                resolve(null);
+            }
+        } finally {
+            isDictationMode = false;
+            isFinishingDictation = false;
+            isVoiceRecording = false;
+        }
+    }
+
+    function cancelDictation() {
+        if (dictationMonitorInterval) {
+            clearInterval(dictationMonitorInterval);
+            dictationMonitorInterval = null;
+        }
+        hideDictationIndicator();
+        isDictationMode = false;
+        isFinishingDictation = false;
+        isVoiceRecording = false;
+        if (dictationResolver) {
+            const resolve = dictationResolver;
+            dictationResolver = null;
+            resolve(null);
+        }
+    }
+
+    function startDictation() {
+        if (isDictationMode) {
+            console.log('[GeminiTray] Dictation already active, stopping...');
+            finishDictation();
+            return;
+        }
+
+        return new Promise(async (resolve) => {
+            dictationResolver = resolve;
+            isDictationMode = true;
+            isFinishingDictation = false;
+
+            // Clear any prior editor content
+            const editor = getEditor();
+            if (editor) {
+                await clearEditorText(editor);
+            }
+
+            showDictationIndicator('🎙️ Diktat aktiv – Sprich & klicke auf Stopp');
+
+            const activated = await activateVoiceInput();
+            if (!activated) {
+                console.warn('[GeminiTray] Failed to activate voice input for dictation');
+                cancelDictation();
+                return;
+            }
+
+            // Start monitoring recording status
+            let recordingHadStarted = false;
+            let inactiveCount = 0;
+
+            dictationMonitorInterval = setInterval(() => {
+                if (!isDictationMode || isFinishingDictation) {
+                    clearInterval(dictationMonitorInterval);
+                    dictationMonitorInterval = null;
+                    return;
+                }
+
+                const currentlyRecording = isVoiceRecordingActiveInDOM();
+                if (currentlyRecording) {
+                    recordingHadStarted = true;
+                    inactiveCount = 0;
+                } else if (recordingHadStarted) {
+                    inactiveCount++;
+                    // If recording was active and now has been inactive for ~400ms, finalize!
+                    if (inactiveCount >= 2) {
+                        console.log('[GeminiTray] Voice recording ended in DOM, finalizing dictation');
+                        clearInterval(dictationMonitorInterval);
+                        dictationMonitorInterval = null;
+                        finishDictation();
+                    }
+                }
+            }, 200);
+        });
+    }
+
     // --- Event Listeners ---
 
     // Capture Enter key (using capture phase for maximum priority)
@@ -610,6 +893,16 @@
 
     // Capture Click on Send / Mic button
     window.addEventListener('click', (e) => {
+        if (isDictationMode && !isFinishingDictation) {
+            if (isStopButton(e.target)) {
+                console.log('[GeminiTray] Stop button clicked during dictation mode');
+                setTimeout(() => {
+                    finishDictation();
+                }, 50);
+                return;
+            }
+        }
+
         if (!activePrompt) return;
 
         // Detect if microphone / voice button was clicked to initiate recording
@@ -640,6 +933,18 @@
 
     window.__GEMINI_TRAY_ACTIVATE_VOICE = function () {
         return activateVoiceInput();
+    };
+
+    window.__GEMINI_TRAY_START_DICTATION = function () {
+        return startDictation();
+    };
+
+    window.__GEMINI_TRAY_STOP_DICTATION = function () {
+        return finishDictation();
+    };
+
+    window.__GEMINI_TRAY_CANCEL_DICTATION = function () {
+        return cancelDictation();
     };
 
     console.log('[GeminiTray] Enhanced Prompt Injection Ready');
