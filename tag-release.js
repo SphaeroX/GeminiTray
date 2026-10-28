@@ -7,7 +7,12 @@ const version = 'v' + packageJson.version;
 console.log(`Creating tag for version ${version}...`);
 
 try {
-  execSync(`git tag ${version}`, { stdio: 'inherit' });
+  const existingTags = execSync('git tag', { encoding: 'utf-8' }).split('\n');
+  if (!existingTags.includes(version)) {
+    execSync(`git tag ${version}`, { stdio: 'inherit' });
+  } else {
+    console.log(`Tag ${version} already exists locally.`);
+  }
   console.log('Pushing commits and tags to origin...');
   execSync('git push origin main --tags', { stdio: 'inherit' });
   console.log(`Successfully pushed ${version} to GitHub. This should trigger the release action.`);
