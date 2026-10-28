@@ -209,7 +209,7 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
             try {
                 await windowManager.view.webContents.session.clearStorageData();
                 console.log('[GeminiTray] Session storage cleared');
-                windowManager.view.webContents.reload();
+                await windowManager.view.webContents.loadURL('https://gemini.google.com/app');
                 return true;
             } catch (error) {
                 console.error('Failed to reset session:', error);
@@ -217,6 +217,38 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
             }
         }
         return false;
+    })
+
+    ipcMain.handle('import-cookies', async (_event, cookieString: string) => {
+        if (!windowManager.view || !cookieString) return false;
+        try {
+            const sess = windowManager.view.webContents.session;
+            const cookies = cookieString.split(';').map(c => c.trim()).filter(Boolean);
+            for (const c of cookies) {
+                const eqIdx = c.indexOf('=');
+                if (eqIdx === -1) continue;
+                const name = c.slice(0, eqIdx).trim();
+                const value = c.slice(eqIdx + 1).trim();
+                if (!name) continue;
+
+                await sess.cookies.set({
+                    url: 'https://gemini.google.com',
+                    domain: '.google.com',
+                    path: '/',
+                    name,
+                    value,
+                    secure: true,
+                    httpOnly: name.startsWith('__Secure-') || name.startsWith('__Host-'),
+                    sameSite: 'no_restriction'
+                });
+            }
+            console.log('[GeminiTray] Imported cookies successfully');
+            await windowManager.view.webContents.loadURL('https://gemini.google.com/app');
+            return true;
+        } catch (error) {
+            console.error('Failed to import cookies:', error);
+            return false;
+        }
     })
 
     // DOM Handler for Screenshot selection

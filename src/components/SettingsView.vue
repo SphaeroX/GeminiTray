@@ -326,6 +326,25 @@ const resetSession = async () => {
     }
 };
 
+const cookieInput = ref('');
+const cookieImportStatus = ref<{ message: string; type: 'success' | 'error' } | null>(null);
+
+const importCookies = async () => {
+    if (!cookieInput.value.trim()) return;
+    try {
+        const success = await window.ipcRenderer.invoke('import-cookies', cookieInput.value.trim());
+        if (success) {
+            cookieImportStatus.value = { message: t('app.troubleshooting.import_success'), type: 'success' };
+            cookieInput.value = '';
+            setTimeout(() => { cookieImportStatus.value = null; }, 4000);
+        } else {
+            cookieImportStatus.value = { message: t('app.troubleshooting.import_error'), type: 'error' };
+        }
+    } catch {
+        cookieImportStatus.value = { message: t('app.troubleshooting.import_error'), type: 'error' };
+    }
+};
+
 </script>
 
 <template>
@@ -613,6 +632,28 @@ const resetSession = async () => {
                  <button @click="resetSession" class="danger-btn">
                    {{ t('app.troubleshooting.reset_btn') }}
                  </button>
+               </div>
+
+               <div class="setting-item" style="margin-top: 16px;">
+                 <div class="setting-label">
+                   <span>{{ t('app.troubleshooting.import_cookies') }}</span>
+                 </div>
+                 <p class="setting-description">{{ t('app.troubleshooting.import_cookies_desc') }}</p>
+                 <div style="display: flex; gap: 8px; margin-top: 8px;">
+                   <input
+                     v-model="cookieInput"
+                     type="text"
+                     :placeholder="t('app.troubleshooting.import_placeholder')"
+                     class="setting-input"
+                     style="flex: 1;"
+                   />
+                   <button @click="importCookies" class="btn" :disabled="!cookieInput.trim()">
+                     {{ t('app.troubleshooting.import_btn') }}
+                   </button>
+                 </div>
+                 <p v-if="cookieImportStatus" :style="{ color: cookieImportStatus.type === 'success' ? '#81c995' : '#f28b82', fontSize: '12px', marginTop: '6px' }">
+                   {{ cookieImportStatus.message }}
+                 </p>
                </div>
             </div>
             

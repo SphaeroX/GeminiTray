@@ -60,7 +60,13 @@
         "troubleshooting": {
             "reset_session": "Reset Session",
             "reset_session_desc": "Clears all cookies and local data. Useful if you are stuck in a login loop or experiencing other issues.",
-            "reset_btn": "Reset & Restart"
+            "reset_btn": "Reset & Restart",
+            "import_cookies": "Import Cookies (Manual Sign-In)",
+            "import_cookies_desc": "If Google Sign-In is blocked by security policies, paste your cookies from a logged-in browser (e.g. __Secure-1PSID=...; __Secure-1PSIDTS=...).",
+            "import_placeholder": "Paste cookies (__Secure-1PSID=...; ...)",
+            "import_btn": "Import & Reload",
+            "import_success": "Cookies imported successfully!",
+            "import_error": "Failed to import cookies. Please check format."
         },
         "tray": {
             "show_hide": "Show/Hide",

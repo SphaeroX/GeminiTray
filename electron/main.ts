@@ -7,19 +7,16 @@ import { WindowManager } from './managers/window-manager'
 import { TrayManager } from './managers/tray-manager'
 import { ShortcutManager } from './managers/shortcut-manager'
 import { registerIpcHandlers } from './managers/ipc-manager'
-import { VITE_DEV_SERVER_URL } from './utils/constants'
+import { VITE_DEV_SERVER_URL, getPlatformUserAgent } from './utils/constants'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // Fix for Google Login "This browser or app may not be secure"
-app.commandLine.appendSwitch('disable-features', 'AutomationControlled');
 app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
-// Essential for modern Google apps in Electron
-app.commandLine.appendSwitch('enable-features', 'ThirdPartyStoragePartitioning,NetworkService,NetworkServiceInProcess');
-app.commandLine.appendSwitch('no-sandbox'); // Sometimes needed for specific GPU/Stealth combinations
+app.commandLine.appendSwitch('enable-features', 'ThirdPartyStoragePartitioning');
 
-// RE-ENABLE hardware acceleration (disabling it is a bot signal)
-// app.disableHardwareAcceleration(); 
+// Set a clean, platform-matching Google Chrome User-Agent as fallback
+app.userAgentFallback = getPlatformUserAgent('chrome'); 
 
 const gotTheLock = app.requestSingleInstanceLock()
 

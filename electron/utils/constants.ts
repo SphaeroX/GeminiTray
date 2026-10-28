@@ -32,3 +32,22 @@ export const PROMPT_INJECTION_PATH = IS_DEV
     : path.join(process.resourcesPath, 'electron/prompt-injection.js');
 
 export const DEBUG_DIR = path.join(os.tmpdir(), 'gemini-tray-debug')
+
+export function getPlatformUserAgent(browser: 'chrome' | 'firefox' = 'chrome'): string {
+    const chromeVersion = process.versions.chrome;
+    switch (process.platform) {
+        case 'linux':
+            return browser === 'firefox'
+                ? 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0'
+                : `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
+        case 'darwin':
+            return browser === 'firefox'
+                ? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:128.0) Gecko/20100101 Firefox/128.0'
+                : `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
+        case 'win32':
+        default:
+            return browser === 'firefox'
+                ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0'
+                : `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVersion} Safari/537.36`;
+    }
+}

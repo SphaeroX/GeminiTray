@@ -1,8 +1,8 @@
-import { BrowserWindow, BrowserView, shell, screen, desktopCapturer, clipboard } from 'electron'
+import { BrowserWindow, BrowserView, session, shell, screen, desktopCapturer, clipboard } from 'electron'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
 import { store } from '../utils/store'
-import { IS_DEV, OPEN_DEVTOOLS, VITE_DEV_SERVER_URL, RENDERER_DIST, VITE_PUBLIC, DEBUG_DIR } from '../utils/constants'
+import { IS_DEV, OPEN_DEVTOOLS, VITE_DEV_SERVER_URL, RENDERER_DIST, VITE_PUBLIC, DEBUG_DIR, getPlatformUserAgent } from '../utils/constants'
 import { ScriptInjector } from './script-injector'
 
 export class WindowManager {
@@ -74,12 +74,31 @@ export class WindowManager {
 
         // Handle external links
         this.view!.webContents.setWindowOpenHandler(({ url }) => {
+            if (
+                url.includes('accounts.google.') ||
+                url.includes('myaccount.google.') ||
+                url.includes('accounts.youtube.')
+            ) {
+                return {
+                    action: 'allow',
+                    overrideBrowserWindowOptions: {
+                        webPreferences: {
+                            partition: 'persist:gemini'
+                        }
+                    }
+                }
+            }
             shell.openExternal(url)
             return { action: 'deny' }
         })
 
         this.view!.webContents.on('will-navigate', (event, url) => {
-            if (url.startsWith('https://gemini.google.com') || url.startsWith('https://accounts.google.com')) {
+            if (
+                url.startsWith('https://gemini.google.com') ||
+                url.includes('accounts.google.') ||
+                url.includes('myaccount.google.') ||
+                url.includes('accounts.youtube.')
+            ) {
                 return
             }
             event.preventDefault()
@@ -125,7 +144,30 @@ export class WindowManager {
     createBrowserView() {
         if (!this.win) return
 
-        const userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36`;
+        const chromeUA = getPlatformUserAgent('chrome');
+        const firefoxUA = getPlatformUserAgent('firefox');
+
+        const geminiSession = session.fromPartition('persist:gemini');
+        geminiSession.setUserAgent(chromeUA);
+
+        // Clear potential Google rejection cookies on startup so user is not stuck
+        geminiSession.cookies.remove('https://accounts.google.com', '__Host-GAPS').catch(() => { });
+        geminiSession.cookies.remove('https://accounts.google.com', 'GAPS').catch(() => { });
+
+        // Rewrite headers for Google auth endpoints to use Firefox UA and strip Chromium Client Hints
+        geminiSession.webRequest.onBeforeSendHeaders((details, callback) => {
+            const isGoogleAuth = details.url.includes('accounts.google.') || details.url.includes('accounts.youtube.');
+            if (isGoogleAuth) {
+                details.requestHeaders['User-Agent'] = firefoxUA;
+                delete details.requestHeaders['Sec-CH-UA'];
+                delete details.requestHeaders['Sec-CH-UA-Mobile'];
+                delete details.requestHeaders['Sec-CH-UA-Platform'];
+                delete details.requestHeaders['sec-ch-ua'];
+                delete details.requestHeaders['sec-ch-ua-mobile'];
+                delete details.requestHeaders['sec-ch-ua-platform'];
+            }
+            callback({ cancel: false, requestHeaders: details.requestHeaders });
+        });
 
         this.view = new BrowserView({
             webPreferences: {
@@ -138,7 +180,7 @@ export class WindowManager {
         })
 
         // Set User Agent properly on the session
-        this.view.webContents.setUserAgent(userAgent);
+        this.view.webContents.setUserAgent(chromeUA);
 
         // Automatically grant media (microphone) and notification permissions
         this.view.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
@@ -151,32 +193,6 @@ export class WindowManager {
 
         this.view.webContents.session.setPermissionCheckHandler((_webContents, _permission) => {
             return true;
-        });
-
-        // Stealth: Mask Electron and Automation properties
-        this.view.webContents.on('did-start-loading', () => {
-            this.view?.webContents.executeJavaScript(`
-                // Remove webdriver property
-                if (navigator.webdriver) {
-                    Object.defineProperty(navigator, 'webdriver', { get: () => false });
-                }
-                
-                // Mock chrome properties
-                window.chrome = {
-                  runtime: {},
-                  loadTimes: function() {},
-                  csi: function() {},
-                  app: {}
-                };
-
-                // Mock permissions
-                const originalQuery = window.navigator.permissions.query;
-                window.navigator.permissions.query = (parameters) => (
-                  parameters.name === 'notifications' ?
-                    Promise.resolve({ state: Notification.permission }) :
-                    originalQuery(parameters)
-                );
-            `).catch(() => { });
         });
 
         this.view.webContents.on('did-finish-load', () => {
