@@ -93,6 +93,11 @@ export class WindowManager {
         })
 
         this.view!.webContents.on('will-navigate', (event, url) => {
+            if (url.includes('accounts.google.com') && (url.includes('ec=') || url.includes('/ServiceLogin'))) {
+                event.preventDefault()
+                this.view!.webContents.loadURL('https://accounts.google.com/InteractiveLogin?continue=https://gemini.google.com/app')
+                return
+            }
             if (
                 url.startsWith('https://gemini.google.com') ||
                 url.includes('accounts.google.') ||
@@ -144,30 +149,17 @@ export class WindowManager {
     createBrowserView() {
         if (!this.win) return
 
-        const chromeUA = getPlatformUserAgent('chrome');
-        const firefoxUA = getPlatformUserAgent('firefox');
+        const defaultUA = getPlatformUserAgent('firefox');
+
 
         const geminiSession = session.fromPartition('persist:gemini');
-        geminiSession.setUserAgent(chromeUA);
+        geminiSession.setUserAgent(defaultUA);
 
         // Clear potential Google rejection cookies on startup so user is not stuck
         geminiSession.cookies.remove('https://accounts.google.com', '__Host-GAPS').catch(() => { });
         geminiSession.cookies.remove('https://accounts.google.com', 'GAPS').catch(() => { });
-
-        // Rewrite headers for Google auth endpoints to use Firefox UA and strip Chromium Client Hints
-        geminiSession.webRequest.onBeforeSendHeaders((details, callback) => {
-            const isGoogleAuth = details.url.includes('accounts.google.') || details.url.includes('accounts.youtube.');
-            if (isGoogleAuth) {
-                details.requestHeaders['User-Agent'] = firefoxUA;
-                delete details.requestHeaders['Sec-CH-UA'];
-                delete details.requestHeaders['Sec-CH-UA-Mobile'];
-                delete details.requestHeaders['Sec-CH-UA-Platform'];
-                delete details.requestHeaders['sec-ch-ua'];
-                delete details.requestHeaders['sec-ch-ua-mobile'];
-                delete details.requestHeaders['sec-ch-ua-platform'];
-            }
-            callback({ cancel: false, requestHeaders: details.requestHeaders });
-        });
+        geminiSession.cookies.remove('https://google.com', '__Host-GAPS').catch(() => { });
+        geminiSession.cookies.remove('https://google.com', 'GAPS').catch(() => { });
 
         this.view = new BrowserView({
             webPreferences: {
@@ -180,7 +172,7 @@ export class WindowManager {
         })
 
         // Set User Agent properly on the session
-        this.view.webContents.setUserAgent(chromeUA);
+        this.view.webContents.setUserAgent(defaultUA);
 
         // Automatically grant media (microphone) and notification permissions
         this.view.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
@@ -196,11 +188,14 @@ export class WindowManager {
         });
 
         this.view.webContents.on('did-finish-load', () => {
-            // Use ScriptInjector to inject all scripts
+            const currentUrl = this.view?.webContents.getURL() || '';
+            if (currentUrl.startsWith('https://gemini.google.com')) {
+                // Use ScriptInjector to inject all scripts
             this.scriptInjector.setView(this.view!);
             this.scriptInjector.injectAllScripts().then(() => {
                 console.log('[GeminiTray] All scripts injected successfully');
             }).catch(err => console.error('Failed to inject scripts:', err));
+            }
         });
 
         if (IS_DEV) {

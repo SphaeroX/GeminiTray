@@ -476,6 +476,12 @@ export class ScriptInjector {
     async injectAllScripts(): Promise<void> {
         if (!this.view) return
 
+        const currentUrl = this.view.webContents.getURL() || ''
+        if (!currentUrl.startsWith('https://gemini.google.com')) {
+            console.log('[ScriptInjector] Skipping injection on non-Gemini URL:', currentUrl)
+            return
+        }
+
         try {
             // Inject prompt handling script
             await this.view.webContents.executeJavaScript(PROMPT_INJECTION_SCRIPT)
@@ -514,6 +520,12 @@ export class ScriptInjector {
 
     private injectObserverCleanup() {
         if (!this.view) return
+
+        const currentUrl = this.view.webContents.getURL() || ''
+        if (!currentUrl.startsWith('https://gemini.google.com')) {
+            console.log('[ScriptInjector] Skipping injection on non-Gemini URL:', currentUrl)
+            return
+        }
 
         const cleanupScript = `
             (function() {
@@ -555,6 +567,12 @@ export class ScriptInjector {
 
     async injectPromptScript(): Promise<void> {
         if (!this.view) return
+
+        const currentUrl = this.view.webContents.getURL() || ''
+        if (!currentUrl.startsWith('https://gemini.google.com')) {
+            console.log('[ScriptInjector] Skipping injection on non-Gemini URL:', currentUrl)
+            return
+        }
         await this.view.webContents.executeJavaScript(PROMPT_INJECTION_SCRIPT).catch(err => {
             console.error('[ScriptInjector] Failed to inject prompt script:', err)
         })
@@ -562,6 +580,12 @@ export class ScriptInjector {
 
     async updateModelSettings(): Promise<void> {
         if (!this.view) return
+
+        const currentUrl = this.view.webContents.getURL() || ''
+        if (!currentUrl.startsWith('https://gemini.google.com')) {
+            console.log('[ScriptInjector] Skipping injection on non-Gemini URL:', currentUrl)
+            return
+        }
 
         const defaultModel = store.get('defaultModel') || 'fast'
         const autoSelectModel = store.get('autoSelectModel') ?? false

@@ -16,7 +16,7 @@ app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
 app.commandLine.appendSwitch('enable-features', 'ThirdPartyStoragePartitioning');
 
 // Set a clean, platform-matching Google Chrome User-Agent as fallback
-app.userAgentFallback = getPlatformUserAgent('chrome'); 
+app.userAgentFallback = getPlatformUserAgent('firefox'); 
 
 const gotTheLock = app.requestSingleInstanceLock()
 

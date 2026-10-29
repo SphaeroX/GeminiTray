@@ -1,4 +1,70 @@
-import { ipcMain, IpcMainEvent, IpcMainInvokeEvent, app, screen, clipboard } from 'electron'
+
+interface ParsedCookie {
+    name: string;
+    value: string;
+    domain?: string;
+    path?: string;
+}
+
+function parseCookies(input: string): ParsedCookie[] {
+    const trimmed = input.trim();
+    const cookies: ParsedCookie[] = [];
+
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+                for (const item of parsed) {
+                    if (item && item.name && item.value !== undefined) {
+                        cookies.push({
+                            name: String(item.name).trim(),
+                            value: String(item.value).trim(),
+                            domain: item.domain ? String(item.domain).trim() : '.google.com',
+                            path: item.path ? String(item.path).trim() : '/'
+                        });
+                    }
+                }
+                if (cookies.length > 0) return cookies;
+            }
+        } catch {}
+    }
+
+    const lines = trimmed.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+    let netscapeFound = false;
+    for (const line of lines) {
+        const parts = line.split(/\t+| +/);
+        if (parts.length >= 7) {
+            cookies.push({
+                domain: parts[0],
+                path: parts[2],
+                name: parts[5].trim(),
+                value: parts[6].trim()
+            });
+            netscapeFound = true;
+        }
+    }
+    if (netscapeFound && cookies.length > 0) return cookies;
+
+    const rawPairs = trimmed.split(/[;\r\n]/).map(p => p.trim()).filter(Boolean);
+    for (const pair of rawPairs) {
+        const eqIdx = pair.indexOf('=');
+        if (eqIdx === -1) continue;
+        const name = pair.slice(0, eqIdx).trim();
+        const value = pair.slice(eqIdx + 1).trim();
+        if (name) {
+            cookies.push({
+                name,
+                value,
+                domain: '.google.com',
+                path: '/'
+            });
+        }
+    }
+
+    return cookies;
+}
+
+import { ipcMain, IpcMainEvent, IpcMainInvokeEvent, app, screen, clipboard, shell } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { store } from '../utils/store'
 import { WindowManager } from './window-manager'
@@ -220,35 +286,51 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
     })
 
     ipcMain.handle('import-cookies', async (_event, cookieString: string) => {
-        if (!windowManager.view || !cookieString) return false;
+        if (!windowManager.view || !cookieString) return { success: false, count: 0 };
         try {
             const sess = windowManager.view.webContents.session;
-            const cookies = cookieString.split(';').map(c => c.trim()).filter(Boolean);
-            for (const c of cookies) {
-                const eqIdx = c.indexOf('=');
-                if (eqIdx === -1) continue;
-                const name = c.slice(0, eqIdx).trim();
-                const value = c.slice(eqIdx + 1).trim();
-                if (!name) continue;
+            const cookies = parseCookies(cookieString);
+            if (cookies.length === 0) return { success: false, count: 0 };
 
-                await sess.cookies.set({
-                    url: 'https://gemini.google.com',
-                    domain: '.google.com',
-                    path: '/',
-                    name,
-                    value,
-                    secure: true,
-                    httpOnly: name.startsWith('__Secure-') || name.startsWith('__Host-'),
-                    sameSite: 'no_restriction'
-                });
+            let count = 0;
+            for (const c of cookies) {
+                try {
+                    const isHost = c.name.startsWith('__Host-');
+                    const isHttpOnly = c.name.startsWith('__Secure-1PSID') || 
+                                       c.name.startsWith('__Secure-3PSID') ||
+                                       c.name === 'SID' || c.name === 'HSID' || c.name === 'SSID';
+
+                    await sess.cookies.set({
+                        url: isHost ? 'https://gemini.google.com' : 'https://google.com',
+                        domain: isHost ? undefined : (c.domain || '.google.com'),
+                        path: c.path || '/',
+                        name: c.name,
+                        value: c.value,
+                        secure: true,
+                        httpOnly: isHttpOnly,
+                        sameSite: 'no_restriction'
+                    });
+                    count++;
+                } catch (e) {
+                    console.warn('[GeminiTray] Failed to set cookie ' + c.name + ':', e);
+                }
             }
-            console.log('[GeminiTray] Imported cookies successfully');
-            await windowManager.view.webContents.loadURL('https://gemini.google.com/app');
-            return true;
+
+            console.log('[GeminiTray] Imported ' + count + ' cookies successfully');
+            if (count > 0) {
+                await windowManager.view.webContents.loadURL('https://gemini.google.com/app');
+                return { success: true, count };
+            }
+            return { success: false, count: 0 };
         } catch (error) {
             console.error('Failed to import cookies:', error);
-            return false;
+            return { success: false, count: 0 };
         }
+    })
+
+    ipcMain.handle('open-browser-gemini', async () => {
+        await shell.openExternal('https://gemini.google.com/app');
+        return true;
     })
 
     // DOM Handler for Screenshot selection

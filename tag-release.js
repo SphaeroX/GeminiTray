@@ -1,5 +1,8 @@
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
+if (process.platform === 'win32' && !process.env.PATH.includes('Git\\cmd')) {
+  process.env.PATH += ';C:\\Program Files\\Git\\cmd';
+}
 
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 const version = 'v' + packageJson.version;

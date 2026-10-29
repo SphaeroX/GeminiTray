@@ -329,14 +329,21 @@ const resetSession = async () => {
 const cookieInput = ref('');
 const cookieImportStatus = ref<{ message: string; type: 'success' | 'error' } | null>(null);
 
+const openBrowserGemini = async () => {
+    await window.ipcRenderer.invoke('open-browser-gemini');
+};
+
 const importCookies = async () => {
     if (!cookieInput.value.trim()) return;
     try {
-        const success = await window.ipcRenderer.invoke('import-cookies', cookieInput.value.trim());
-        if (success) {
-            cookieImportStatus.value = { message: t('app.troubleshooting.import_success'), type: 'success' };
+        const res = (await window.ipcRenderer.invoke('import-cookies', cookieInput.value.trim())) as { success: boolean; count: number };
+        if (res && res.success) {
+            cookieImportStatus.value = { 
+                message: t('app.troubleshooting.import_success', { count: res.count }), 
+                type: 'success' 
+            };
             cookieInput.value = '';
-            setTimeout(() => { cookieImportStatus.value = null; }, 4000);
+            setTimeout(() => { cookieImportStatus.value = null; }, 5000);
         } else {
             cookieImportStatus.value = { message: t('app.troubleshooting.import_error'), type: 'error' };
         }
@@ -639,15 +646,25 @@ const importCookies = async () => {
                    <span>{{ t('app.troubleshooting.import_cookies') }}</span>
                  </div>
                  <p class="setting-description">{{ t('app.troubleshooting.import_cookies_desc') }}</p>
-                 <div style="display: flex; gap: 8px; margin-top: 8px;">
-                   <input
+                 <div style="margin-top: 8px; margin-bottom: 8px;">
+                   <button @click="openBrowserGemini" class="btn" style="display: inline-flex; align-items: center; gap: 6px;">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                       <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                       <polyline points="15 3 21 3 21 9"></polyline>
+                       <line x1="10" y1="14" x2="21" y2="3"></line>
+                     </svg>
+                     {{ t('app.troubleshooting.open_browser_btn') }}
+                   </button>
+                 </div>
+                 <div style="display: flex; flex-direction: column; gap: 8px;">
+                   <textarea
                      v-model="cookieInput"
-                     type="text"
+                     rows="3"
                      :placeholder="t('app.troubleshooting.import_placeholder')"
                      class="setting-input"
-                     style="flex: 1;"
-                   />
-                   <button @click="importCookies" class="btn" :disabled="!cookieInput.trim()">
+                     style="width: 100%; resize: vertical; font-family: monospace; font-size: 11px; padding: 8px;"
+                   ></textarea>
+                   <button @click="importCookies" class="btn" :disabled="!cookieInput.trim()" style="align-self: flex-start;">
                      {{ t('app.troubleshooting.import_btn') }}
                    </button>
                  </div>
