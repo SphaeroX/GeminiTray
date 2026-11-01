@@ -932,6 +932,16 @@
     };
 
     window.__GEMINI_TRAY_ACTIVATE_VOICE = function () {
+        // Toggle: a second press stops a running recording
+        if (isVoiceRecordingActiveInDOM()) {
+            const stopBtn = getStopRecordingButton();
+            if (stopBtn) {
+                console.log('[GeminiTray] Voice recording active, stopping via shortcut');
+                stopBtn.click();
+                isVoiceRecording = false;
+                return true;
+            }
+        }
         return activateVoiceInput();
     };
 
