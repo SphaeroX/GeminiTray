@@ -93,11 +93,6 @@ export class WindowManager {
         })
 
         this.view!.webContents.on('will-navigate', (event, url) => {
-            if (url.includes('accounts.google.com') && (url.includes('ec=') || url.includes('/ServiceLogin'))) {
-                event.preventDefault()
-                this.view!.webContents.loadURL('https://accounts.google.com/InteractiveLogin?continue=https://gemini.google.com/app')
-                return
-            }
             if (
                 url.startsWith('https://gemini.google.com') ||
                 url.includes('accounts.google.') ||
@@ -149,7 +144,7 @@ export class WindowManager {
     createBrowserView() {
         if (!this.win) return
 
-        const defaultUA = getPlatformUserAgent('firefox');
+        const defaultUA = getPlatformUserAgent('chrome');
 
 
         const geminiSession = session.fromPartition('persist:gemini');

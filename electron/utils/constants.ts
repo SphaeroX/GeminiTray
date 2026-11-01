@@ -33,8 +33,9 @@ export const PROMPT_INJECTION_PATH = IS_DEV
 
 export const DEBUG_DIR = path.join(os.tmpdir(), 'gemini-tray-debug')
 
-export function getPlatformUserAgent(browser: 'chrome' | 'firefox' = 'firefox'): string {
-    const chromeVersion = process.versions.chrome;
+export function getPlatformUserAgent(browser: 'chrome' | 'firefox' = 'chrome'): string {
+    // Real Chrome reports a reduced version (major.0.0.0); it must match the engine's sec-ch-ua client hints
+    const chromeVersion = `${process.versions.chrome.split('.')[0]}.0.0.0`;
     switch (process.platform) {
         case 'linux':
             return browser === 'firefox'
