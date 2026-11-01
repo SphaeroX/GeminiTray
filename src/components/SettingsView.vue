@@ -333,6 +333,22 @@ const openBrowserGemini = async () => {
     await window.ipcRenderer.invoke('open-browser-gemini');
 };
 
+const browserLoginBusy = ref(false);
+const browserLogin = async () => {
+    browserLoginBusy.value = true;
+    cookieImportStatus.value = null;
+    try {
+        const res = (await window.ipcRenderer.invoke('login-with-browser')) as { success: boolean; count: number; error?: string };
+        cookieImportStatus.value = res.success
+            ? { message: t('app.troubleshooting.browser_login_success'), type: 'success' }
+            : { message: t('app.troubleshooting.browser_login_error'), type: 'error' };
+    } catch (e) {
+        cookieImportStatus.value = { message: t('app.troubleshooting.browser_login_error'), type: 'error' };
+    } finally {
+        browserLoginBusy.value = false;
+    }
+};
+
 const importCookies = async () => {
     if (!cookieInput.value.trim()) return;
     try {
@@ -638,6 +654,16 @@ const importCookies = async () => {
                  <p class="setting-description">{{ t('app.troubleshooting.reset_session_desc') }}</p>
                  <button @click="resetSession" class="danger-btn">
                    {{ t('app.troubleshooting.reset_btn') }}
+                 </button>
+               </div>
+
+               <div class="setting-item" style="margin-top: 16px;">
+                 <div class="setting-label">
+                   <span>{{ t('app.troubleshooting.browser_login') }}</span>
+                 </div>
+                 <p class="setting-description">{{ t('app.troubleshooting.browser_login_desc') }}</p>
+                 <button @click="browserLogin" class="btn" :disabled="browserLoginBusy" style="align-self: flex-start;">
+                   {{ browserLoginBusy ? t('app.troubleshooting.browser_login_waiting') : t('app.troubleshooting.browser_login_btn') }}
                  </button>
                </div>
 

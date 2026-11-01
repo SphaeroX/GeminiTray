@@ -328,6 +328,10 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
         }
     })
 
+    ipcMain.handle('login-with-browser', async () => {
+        return windowManager.startBrowserLogin();
+    })
+
     ipcMain.handle('open-browser-gemini', async () => {
         await shell.openExternal('https://gemini.google.com/app');
         return true;

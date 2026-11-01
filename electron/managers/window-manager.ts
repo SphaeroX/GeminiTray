@@ -4,6 +4,7 @@ import * as fs from 'node:fs'
 import { store } from '../utils/store'
 import { IS_DEV, OPEN_DEVTOOLS, VITE_DEV_SERVER_URL, RENDERER_DIST, VITE_PUBLIC, DEBUG_DIR, getPlatformUserAgent } from '../utils/constants'
 import { ScriptInjector } from './script-injector'
+import { loginWithSystemBrowser, isBrowserLoginRunning } from '../services/browser-login-service'
 
 export class WindowManager {
     public win: BrowserWindow | null = null
@@ -74,6 +75,10 @@ export class WindowManager {
 
         // Handle external links
         this.view!.webContents.setWindowOpenHandler(({ url }) => {
+            if (this.isGoogleSignInUrl(url)) {
+                this.startBrowserLogin()
+                return { action: 'deny' }
+            }
             if (
                 url.includes('accounts.google.') ||
                 url.includes('myaccount.google.') ||
@@ -92,7 +97,23 @@ export class WindowManager {
             return { action: 'deny' }
         })
 
+        // Google blocks sign-in inside Electron: hand it over to the system browser
+        const interceptSignIn = (event: Electron.Event, url: string) => {
+            if (!this.isGoogleSignInUrl(url)) return false
+            event.preventDefault()
+            this.startBrowserLogin()
+            return true
+        }
+        this.view!.webContents.on('will-redirect', (event, url) => { interceptSignIn(event, url) })
+        this.view!.webContents.on('did-navigate', (_event, url) => {
+            if (this.isGoogleSignInUrl(url)) {
+                this.view!.webContents.loadURL('https://gemini.google.com/app')
+                this.startBrowserLogin()
+            }
+        })
+
         this.view!.webContents.on('will-navigate', (event, url) => {
+            if (interceptSignIn(event, url)) return
             if (
                 url.startsWith('https://gemini.google.com') ||
                 url.includes('accounts.google.') ||
@@ -169,6 +190,9 @@ export class WindowManager {
         // Set User Agent properly on the session
         this.view.webContents.setUserAgent(defaultUA);
 
+        // Electron's client hints lack the "Google Chrome" brand, which Google uses to reject embedded browsers
+        this.applyChromeClientHints(this.view.webContents, defaultUA);
+
         // Automatically grant media (microphone) and notification permissions
         this.view.webContents.session.setPermissionRequestHandler((_webContents, permission, callback) => {
             if (permission === 'media' || permission === 'notifications') {
@@ -218,6 +242,62 @@ export class WindowManager {
                     devTools.focus()
                 }
             }, 1000)
+        }
+    }
+
+    private isGoogleSignInUrl(url: string): boolean {
+        try {
+            const u = new URL(url)
+            return u.hostname === 'accounts.google.com' &&
+                /\/(v\d\/)?(signin|servicelogin|interactivelogin|accountchooser)/i.test(u.pathname)
+        } catch {
+            return false
+        }
+    }
+
+    async startBrowserLogin() {
+        if (isBrowserLoginRunning()) return { success: false, count: 0, error: 'already-running' }
+        const result = await loginWithSystemBrowser()
+        if (result.success) {
+            this.view?.webContents.loadURL('https://gemini.google.com/app')
+            this.win?.show()
+        }
+        return result
+    }
+
+    private applyChromeClientHints(webContents: Electron.WebContents, userAgent: string) {
+        const fullVersion = process.versions.chrome
+        const major = fullVersion.split('.')[0]
+        const platform = process.platform === 'darwin' ? 'macOS' : process.platform === 'linux' ? 'Linux' : 'Windows'
+        const platformVersion = process.platform === 'win32' ? '15.0.0' : process.platform === 'darwin' ? '14.5.0' : '6.5.0'
+        try {
+            if (!webContents.debugger.isAttached()) webContents.debugger.attach('1.3')
+            webContents.debugger.sendCommand('Emulation.setUserAgentOverride', {
+                userAgent,
+                platform: process.platform === 'win32' ? 'Win32' : process.platform === 'darwin' ? 'MacIntel' : 'Linux x86_64',
+                userAgentMetadata: {
+                    brands: [
+                        { brand: 'Chromium', version: major },
+                        { brand: 'Google Chrome', version: major },
+                        { brand: 'Not.A/Brand', version: '99' }
+                    ],
+                    fullVersionList: [
+                        { brand: 'Chromium', version: fullVersion },
+                        { brand: 'Google Chrome', version: fullVersion },
+                        { brand: 'Not.A/Brand', version: '99.0.0.0' }
+                    ],
+                    fullVersion,
+                    platform,
+                    platformVersion,
+                    architecture: 'x86',
+                    model: '',
+                    mobile: false,
+                    bitness: '64',
+                    wow64: false
+                }
+            }).catch((e: unknown) => console.error('[GeminiTray] UA override failed:', e))
+        } catch (e) {
+            console.error('[GeminiTray] Failed to attach debugger for UA override:', e)
         }
     }
 
