@@ -386,8 +386,34 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
 
                 await new Promise(resolve => setTimeout(resolve, 100));
 
-                windowManager.view.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'V', modifiers: ['control'] });
-                windowManager.view.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'V', modifiers: ['control'] });
+                // A simulated Ctrl+V makes Gemini's clipboard upload fail ("upload error" chip),
+                // while a regular file drop goes through the same path as the "+" upload.
+                const pngBase64 = croppedScreenshot.toPNG().toString('base64');
+                const dropped = await windowManager.view.webContents.executeJavaScript(`
+            (function() {
+              try {
+                const bin = atob('${pngBase64}');
+                const bytes = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                const file = new File([bytes], 'screenshot-' + Date.now() + '.png', { type: 'image/png', lastModified: Date.now() });
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                const target = document.querySelector('.text-input-field') || document.querySelector('.ql-editor[contenteditable="true"]');
+                if (!target) return false;
+                for (const type of ['dragenter', 'dragover', 'drop']) {
+                  target.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, composed: true, dataTransfer: dt }));
+                }
+                return true;
+              } catch (e) {
+                return false;
+              }
+            })();
+          `);
+
+                if (!dropped) {
+                    windowManager.view.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'V', modifiers: ['control'] });
+                    windowManager.view.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'V', modifiers: ['control'] });
+                }
 
                 // Wait logic...
                 let attempts = 0;
