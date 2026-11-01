@@ -6,6 +6,7 @@ import WebSocket from 'ws'
 
 const LOGIN_URL = 'https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fgemini.google.com%2Fapp'
 const LOGIN_TIMEOUT_MS = 10 * 60 * 1000
+const SESSION_COOKIE_LIFETIME_S = 30 * 24 * 60 * 60
 const SESSION_COOKIES = ['SID', '__Secure-1PSID', '__Secure-3PSID']
 
 interface CdpCookie {
@@ -79,7 +80,8 @@ async function importCookies(cookies: CdpCookie[]): Promise<number> {
                 value: c.value,
                 secure: c.secure || isHostPrefixed || c.name.startsWith('__Secure-'),
                 httpOnly: c.httpOnly,
-                expirationDate: c.expires > 0 ? c.expires : undefined,
+                // Session cookies would be dropped on app restart (user ends up logged out), so give them a lifetime
+                expirationDate: c.expires > 0 ? c.expires : Math.floor(Date.now() / 1000) + SESSION_COOKIE_LIFETIME_S,
                 sameSite: c.sameSite === 'Strict' ? 'strict' : c.sameSite === 'Lax' ? 'lax' : 'no_restriction'
             })
             count++
