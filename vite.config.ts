@@ -28,7 +28,9 @@ export default defineConfig({
         // Shortcut of `build.lib.entry`.
         entry: 'electron/main.ts',
         vite: {
-          plugins: [copyScreenshotHtml()]
+          plugins: [copyScreenshotHtml()],
+          // ws must be loaded from node_modules: bundled, its optional bufferutil lookup breaks (e.mask is not a function)
+          build: { rollupOptions: { external: ['ws'] } }
         }
       },
       preload: {
