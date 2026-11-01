@@ -384,7 +384,8 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
             })();
           `);
 
-                await new Promise(resolve => setTimeout(resolve, 100));
+                windowManager.view.webContents.focus();
+                await new Promise(resolve => setTimeout(resolve, 400));
 
                 // A simulated Ctrl+V makes Gemini's clipboard upload fail ("upload error" chip),
                 // while a regular file drop goes through the same path as the "+" upload.
@@ -410,7 +411,25 @@ export function registerIpcHandlers(windowManager: WindowManager, shortcutManage
             })();
           `);
 
-                if (!dropped) {
+                const hasAttachmentNow = () => windowManager.view!.webContents.executeJavaScript(`
+            (function() {
+              const f = document.querySelector('.text-input-field, [class*="text-input"]');
+              return !!f && f.querySelectorAll('[class*="chip"], [class*="thumbnail"], [class*="preview"], [class*="attachment"], [class*="media"], img:not([class*="icon"])').length > 0;
+            })();
+          `);
+
+                let attached = false;
+                if (dropped) {
+                    for (let i = 0; i < 15 && !attached; i++) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        attached = await hasAttachmentNow();
+                    }
+                }
+
+                if (!attached) {
+                    console.log('Screenshot drop did not attach, falling back to Ctrl+V');
+                    windowManager.view.webContents.focus();
+                    await new Promise(resolve => setTimeout(resolve, 300));
                     windowManager.view.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'V', modifiers: ['control'] });
                     windowManager.view.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'V', modifiers: ['control'] });
                 }
