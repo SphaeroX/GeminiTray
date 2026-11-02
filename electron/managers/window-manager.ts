@@ -1,4 +1,4 @@
-import { BrowserWindow, BrowserView, session, shell, screen, desktopCapturer, clipboard } from 'electron'
+import { app, BrowserWindow, BrowserView, session, shell, screen, desktopCapturer, clipboard } from 'electron'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
 import { store } from '../utils/store'
@@ -162,6 +162,41 @@ export class WindowManager {
         })
     }
 
+    /**
+     * Google login cookies are often session cookies (no expiry), which Chromium drops on app restart.
+     * Rewrite them with a long lifetime and flush the cookie store to disk so the login survives restarts and PC reboots.
+     */
+    private keepSessionCookiesAlive(sess: Electron.Session) {
+        const LIFETIME_S = 30 * 24 * 60 * 60;
+
+        sess.cookies.on('changed', (_event, cookie, _cause, removed) => {
+            if (removed || !cookie.session) return;
+            const domain = cookie.domain || '';
+            if (!/(^|\.)(google|youtube)\.[a-z.]+$/.test(domain.replace(/^\./, ''))) return;
+
+            const isHostPrefixed = cookie.name.startsWith('__Host-');
+            const host = domain.replace(/^\./, '');
+            sess.cookies.set({
+                url: `https://${host}${cookie.path || '/'}`,
+                domain: isHostPrefixed || !domain.startsWith('.') ? undefined : domain,
+                path: cookie.path || '/',
+                name: cookie.name,
+                value: cookie.value,
+                secure: cookie.secure || isHostPrefixed || cookie.name.startsWith('__Secure-'),
+                httpOnly: cookie.httpOnly,
+                sameSite: cookie.sameSite,
+                expirationDate: Math.floor(Date.now() / 1000) + LIFETIME_S
+            }).catch(() => { });
+        });
+
+        const flush = () => {
+            sess.cookies.flushStore().catch(() => { });
+            sess.flushStorageData();
+        };
+        setInterval(flush, 30_000);
+        app.on('before-quit', flush);
+    }
+
     createBrowserView() {
         if (!this.win) return
 
@@ -176,6 +211,8 @@ export class WindowManager {
         geminiSession.cookies.remove('https://accounts.google.com', 'GAPS').catch(() => { });
         geminiSession.cookies.remove('https://google.com', '__Host-GAPS').catch(() => { });
         geminiSession.cookies.remove('https://google.com', 'GAPS').catch(() => { });
+
+        this.keepSessionCookiesAlive(geminiSession);
 
         this.view = new BrowserView({
             webPreferences: {
