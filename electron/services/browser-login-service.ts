@@ -6,6 +6,7 @@ import WebSocket from 'ws'
 
 const LOGIN_URL = 'https://accounts.google.com/ServiceLogin?service=youtube&continue=https%3A%2F%2Fgemini.google.com%2Fapp'
 const LOGIN_TIMEOUT_MS = 10 * 60 * 1000
+const SILENT_TIMEOUT_MS = 30 * 1000
 const SESSION_COOKIE_LIFETIME_S = 30 * 24 * 60 * 60
 const SESSION_COOKIES = ['SID', '__Secure-1PSID', '__Secure-3PSID']
 
@@ -102,23 +103,27 @@ export function isBrowserLoginRunning() {
  * Google rejects sign-in inside Electron, so the user signs in with a real Chrome/Edge
  * (own profile dir) and the resulting Google cookies are copied into the app session.
  */
-export async function loginWithSystemBrowser(): Promise<{ success: boolean; count: number; error?: string }> {
+export async function loginWithSystemBrowser(options: { silent?: boolean } = {}): Promise<{ success: boolean; count: number; error?: string }> {
     if (running) return { success: false, count: 0, error: 'already-running' }
     const browserPath = findBrowser()
     if (!browserPath) return { success: false, count: 0, error: 'no-browser' }
+    const profileDir = path.join(app.getPath('userData'), 'browser-login-profile')
+    // A silent refresh only works if the user signed in with the login browser before
+    if (options.silent && !fs.existsSync(profileDir)) return { success: false, count: 0, error: 'no-profile' }
 
     running = true
     let child: ChildProcess | null = null
     let ws: WebSocket | null = null
     try {
         const port = 49152 + Math.floor(Math.random() * 10000)
-        const profileDir = path.join(app.getPath('userData'), 'browser-login-profile')
         child = spawn(browserPath, [
             `--remote-debugging-port=${port}`,
             `--user-data-dir=${profileDir}`,
             '--no-first-run',
             '--no-default-browser-check',
             '--new-window',
+            // Silent refresh: keep the window off-screen, the profile still holds a valid Google session
+            ...(options.silent ? ['--window-position=-32000,-32000', '--window-size=800,600', '--start-minimized'] : []),
             LOGIN_URL
         ], { stdio: 'ignore' })
         let exited = false
@@ -138,7 +143,7 @@ export async function loginWithSystemBrowser(): Promise<{ success: boolean; coun
             socket.once('error', reject)
         })
 
-        const deadline = Date.now() + LOGIN_TIMEOUT_MS
+        const deadline = Date.now() + (options.silent ? SILENT_TIMEOUT_MS : LOGIN_TIMEOUT_MS)
         while (Date.now() < deadline && !exited) {
             await sleep(2000)
             let cookies: CdpCookie[]
@@ -148,6 +153,12 @@ export async function loginWithSystemBrowser(): Promise<{ success: boolean; coun
                 break
             }
             const relevant = cookies.filter(c => /(^|\.)(google|youtube)\.[a-z.]+$/.test(c.domain.replace(/^\./, '')))
+            if (options.silent) {
+                // The profile already holds (possibly stale) session cookies: only import once Google
+                // accepted them and redirected to Gemini, which also refreshes the rotating cookies
+                const targets = (await cdpCall<{ targetInfos: { type: string; url: string }[] }>(socket, 'Target.getTargets')).targetInfos
+                if (!targets.some(t => t.type === 'page' && t.url.startsWith('https://gemini.google.com'))) continue
+            }
             if (relevant.some(c => SESSION_COOKIES.includes(c.name))) {
                 // Let Google finish setting the remaining cookies after the redirect to Gemini
                 await sleep(2500)

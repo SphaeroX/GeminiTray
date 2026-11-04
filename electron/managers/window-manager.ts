@@ -17,6 +17,7 @@ export class WindowManager {
     public isQuitting = false
     public isRecordingShortcut: (() => boolean) | null = null
     public isDictating = false
+    private lastSilentLogin = 0
 
     constructor(dirname: string) {
         this.__dirname = dirname
@@ -70,6 +71,8 @@ export class WindowManager {
 
         this.win.on('resize', () => this.updateViewBounds())
         this.win.on('hide', () => this.cancelDictation())
+        // The session can expire while the app sits in the tray
+        this.win.on('show', () => this.ensureLoggedIn())
         this.win.on('maximize', () => this.updateViewBounds())
         this.win.on('unmaximize', () => this.updateViewBounds())
 
@@ -251,6 +254,7 @@ export class WindowManager {
             this.scriptInjector.injectAllScripts().then(() => {
                 console.log('[GeminiTray] All scripts injected successfully');
             }).catch(err => console.error('Failed to inject scripts:', err));
+            this.ensureLoggedIn();
             }
         });
 
@@ -287,6 +291,44 @@ export class WindowManager {
             const u = new URL(url)
             return u.hostname === 'accounts.google.com' &&
                 /\/(v\d\/)?(signin|servicelogin|interactivelogin|accountchooser)/i.test(u.pathname)
+        } catch {
+            return false
+        }
+    }
+
+    /**
+     * When Google invalidates the copied cookies, Gemini does not redirect to sign-in but renders its
+     * signed-out page with a "Sign in" button. Detect that and refresh the cookies silently from the
+     * login browser profile, which still holds a valid Google session.
+     */
+    private async ensureLoggedIn() {
+        const SILENT_LOGIN_COOLDOWN_MS = 10 * 60 * 1000
+        let loggedOut = false
+        // Gemini renders the signed-out state client-side, so give it a moment
+        for (let i = 0; i < 5 && !loggedOut; i++) {
+            if (i > 0) await new Promise(resolve => setTimeout(resolve, 2000))
+            loggedOut = await this.isGeminiSignedOut()
+        }
+        if (!loggedOut || isBrowserLoginRunning() || Date.now() - this.lastSilentLogin < SILENT_LOGIN_COOLDOWN_MS) return
+
+        this.lastSilentLogin = Date.now()
+        console.log('[GeminiTray] Signed out detected, refreshing session from login browser')
+        const result = await loginWithSystemBrowser({ silent: true })
+        if (result.success) {
+            this.view?.webContents.loadURL('https://gemini.google.com/app')
+        } else {
+            console.warn('[GeminiTray] Silent session refresh failed:', result.error)
+        }
+    }
+
+    private async isGeminiSignedOut(): Promise<boolean> {
+        const view = this.view
+        if (!view || !view.webContents.getURL().startsWith('https://gemini.google.com')) return false
+        try {
+            return await view.webContents.executeJavaScript(
+                `!!document.querySelector('a[href*="accounts.google.com/ServiceLogin" i], a[href*="accounts.google.com/v3/signin" i], a[href*="accounts.google.com/signin" i]')`,
+                true
+            )
         } catch {
             return false
         }
