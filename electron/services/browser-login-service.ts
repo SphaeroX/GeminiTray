@@ -83,7 +83,9 @@ async function importCookies(cookies: CdpCookie[]): Promise<number> {
                 httpOnly: c.httpOnly,
                 // Session cookies would be dropped on app restart (user ends up logged out), so give them a lifetime
                 expirationDate: c.expires > 0 ? c.expires : Math.floor(Date.now() / 1000) + SESSION_COOKIE_LIFETIME_S,
-                sameSite: c.sameSite === 'Strict' ? 'strict' : c.sameSite === 'Lax' ? 'lax' : 'no_restriction'
+                // Cookies without a SameSite attribute (SID, HSID, APISID, SIDCC) must stay "unspecified":
+                // SameSite=None requires Secure, so Chromium rejected them and left a stale, mismatched session
+                sameSite: c.sameSite === 'Strict' ? 'strict' : c.sameSite === 'Lax' ? 'lax' : c.sameSite === 'None' ? 'no_restriction' : 'unspecified'
             })
             count++
         } catch (e) {

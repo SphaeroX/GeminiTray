@@ -219,6 +219,7 @@ export class WindowManager {
         geminiSession.cookies.remove('https://google.com', 'GAPS').catch(() => { });
 
         this.keepSessionCookiesAlive(geminiSession);
+        this.watchSessionExpiry(geminiSession);
 
         this.view = new BrowserView({
             webPreferences: {
@@ -332,6 +333,42 @@ export class WindowManager {
             this.view?.webContents.loadURL('https://gemini.google.com/app')
         } else {
             console.warn('[GeminiTray] Silent session refresh failed:', result.error)
+        }
+    }
+
+    /**
+     * Once the copied Google session goes stale, Gemini's API calls (e.g. ProcessFile for image uploads)
+     * are redirected to google.com/sorry or the sign-in page. The page's XHR cannot follow that redirect and
+     * reports "HTTP status 0", while the already loaded page still looks signed in. Refresh the cookies silently
+     * so the next request (re-adding the image) is authenticated again.
+     */
+    private watchSessionExpiry(sess: Electron.Session) {
+        sess.webRequest.onBeforeRedirect({ urls: ['https://gemini.google.com/_/*'] }, (details) => {
+            if (!this.isSessionRejectionUrl(details.redirectURL)) return
+            console.warn('[GeminiTray] Gemini request redirected to', details.redirectURL.split('?')[0], '- refreshing session')
+            this.refreshExpiredSession()
+        })
+    }
+
+    private isSessionRejectionUrl(url: string): boolean {
+        try {
+            const u = new URL(url)
+            return (/(^|\.)google\.[a-z.]+$/.test(u.hostname) && u.pathname.startsWith('/sorry')) || this.isGoogleSignInUrl(url)
+        } catch {
+            return false
+        }
+    }
+
+    private async refreshExpiredSession() {
+        const COOLDOWN_MS = 2 * 60 * 1000
+        if (isBrowserLoginRunning() || Date.now() - this.lastSilentLogin < COOLDOWN_MS) return
+        this.lastSilentLogin = Date.now()
+        const result = await loginWithSystemBrowser({ silent: true })
+        if (result.success) {
+            this.win?.webContents.send('show-toast', 'Google-Sitzung erneuert – bitte erneut versuchen', 'success')
+        } else {
+            console.warn('[GeminiTray] Session refresh after rejected request failed:', result.error)
+            this.win?.webContents.send('show-toast', 'Google-Sitzung abgelaufen – bitte neu anmelden', 'error')
         }
     }
 
