@@ -150,61 +150,105 @@
         return false;
     }
 
+    function isVisible(el) {
+        return !!el && (el.offsetParent !== null || el.getClientRects().length > 0);
+    }
+
+    // Recording indicators are only searched inside the prompt input area. Page-wide selectors such as
+    // button[aria-pressed="true"] or the "stop" icon of the stop-generation button caused false positives,
+    // which made the mic toggle immediately stop (or never start) a recording.
+    function getInputArea() {
+        return document.querySelector('input-area-v2') ||
+            document.querySelector('.input-area-container') ||
+            document.querySelector('.input-area') ||
+            document.querySelector('[class*="input-area"]') ||
+            document;
+    }
+
+    const STOP_RECORDING_LABEL_SELECTORS = [
+        '[aria-label*="Aufnahme beenden" i]',
+        '[aria-label*="Aufnahme stoppen" i]',
+        '[aria-label*="Spracheingabe beenden" i]',
+        '[aria-label*="Spracheingabe stoppen" i]',
+        '[aria-label*="Stop recording" i]',
+        '[aria-label*="Stop listening" i]',
+        '[aria-label*="Stop dictation" i]',
+        '[aria-label*="Diktat beenden" i]'
+    ];
+
     function isVoiceRecordingActiveInDOM() {
+        const scope = getInputArea();
         const recordingSelectors = [
+            ...STOP_RECORDING_LABEL_SELECTORS,
             '[class*="waveform"]',
-            '[class*="recording"]',
             '[class*="audio-bar"]',
             '[class*="listening"]',
             '[class*="speech-indicator"]',
             '[class*="mic-active"]',
-            '[aria-label*="Aufnahme beenden" i]',
-            '[aria-label*="Stop recording" i]',
-            '[aria-label*="Spracheingabe beenden" i]',
-            '[aria-label*="Aufnahme stoppen" i]',
-            'button[aria-pressed="true"]',
-            'mat-icon[data-mat-icon-name*="mic_off" i]',
-            'mat-icon[data-mat-icon-name*="stop" i]'
+            '[class*="is-recording"]',
+            'mat-icon[data-mat-icon-name*="mic_off" i]'
         ];
 
         for (const sel of recordingSelectors) {
             try {
-                const el = document.querySelector(sel);
-                if (el && (el.offsetParent !== null || el.getClientRects().length > 0)) {
-                    return true;
-                }
+                if (isVisible(scope.querySelector(sel))) return true;
             } catch (e) {}
         }
+
+        // A pressed mic toggle also means "recording"
+        const micBtn = getMicButton();
+        if (micBtn && micBtn.getAttribute('aria-pressed') === 'true') return true;
 
         return false;
     }
 
     function getStopRecordingButton() {
+        const scope = getInputArea();
         const selectors = [
-            'button[aria-label*="Aufnahme beenden" i]',
-            'button[aria-label*="Spracheingabe beenden" i]',
-            'button[aria-label*="Stop recording" i]',
-            'button[aria-label*="Aufnahme stoppen" i]',
-            'button[aria-label*="Stop listening" i]',
-            'button mat-icon[data-mat-icon-name*="mic_off" i]',
-            'button mat-icon[data-mat-icon-name*="stop" i]',
-            'button[aria-pressed="true"]',
-            'button mat-icon[data-mat-icon-name*="mic" i]',
-            'button[aria-label*="mic" i]',
-            'button[aria-label*="sprache" i]',
-            'button[aria-label*="audio" i]',
-            'button[data-test-id*="mic" i]'
+            ...STOP_RECORDING_LABEL_SELECTORS.map(s => 'button' + s),
+            'button mat-icon[data-mat-icon-name*="mic_off" i]'
         ];
 
         for (const sel of selectors) {
             try {
-                const el = document.querySelector(sel);
-                if (el && (el.offsetParent !== null || el.getClientRects().length > 0)) {
+                const el = scope.querySelector(sel);
+                if (isVisible(el)) {
                     return el.closest('button, [role="button"]') || el;
                 }
             } catch (e) {}
         }
-        return null;
+
+        // Gemini's mic is a toggle: while recording, clicking it again stops the recording
+        return getMicButton();
+    }
+
+    // Exactly ONE click. The old code called el.click() AND dispatched a synthetic click,
+    // which toggled the mic on and immediately off again (or stopped and restarted it).
+    function clickOnce(el) {
+        if (!el) return;
+        try {
+            el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
+            el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
+        } catch (e) {}
+        el.click();
+    }
+
+    async function waitFor(predicate, timeoutMs, intervalMs = 100) {
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+            if (predicate()) return true;
+            await new Promise(r => setTimeout(r, intervalMs));
+        }
+        return predicate();
+    }
+
+    async function stopVoiceRecording() {
+        isVoiceRecording = false;
+        if (!isVoiceRecordingActiveInDOM()) return true;
+        const stopBtn = getStopRecordingButton();
+        if (!stopBtn) return false;
+        clickOnce(stopBtn);
+        return waitFor(() => !isVoiceRecordingActiveInDOM(), 1500);
     }
 
     function isStopButton(element) {
@@ -218,11 +262,13 @@
 
         const stopKeywords = [
             'spracheingabe beenden',
+            'spracheingabe stoppen',
             'aufnahme beenden',
             'aufnahme stoppen',
+            'diktat beenden',
             'stop recording',
             'stop listening',
-            'beenden'
+            'stop dictation'
         ];
         for (const kw of stopKeywords) {
             if (ariaLabel.includes(kw) || title.includes(kw) || testId.includes(kw)) {
@@ -230,9 +276,7 @@
             }
         }
 
-        if (btn.querySelector('mat-icon[data-mat-icon-name*="stop" i]') ||
-            btn.querySelector('mat-icon[data-mat-icon-name*="mic_off" i]') ||
-            btn.querySelector('svg[data-test-id*="stop" i]')) {
+        if (btn.querySelector('mat-icon[data-mat-icon-name*="mic_off" i]')) {
             return true;
         }
 
@@ -316,12 +360,24 @@
         return null;
     }
 
+    let isActivatingVoice = false;
+
     async function activateVoiceInput() {
         if (isVoiceRecordingActiveInDOM()) {
             console.log('[GeminiTray] Voice recording already active');
             return true;
         }
+        // Ignore repeated triggers while a start is in flight (they would toggle the mic off again)
+        if (isActivatingVoice) return false;
+        isActivatingVoice = true;
+        try {
+            return await activateVoiceInputInner();
+        } finally {
+            isActivatingVoice = false;
+        }
+    }
 
+    async function activateVoiceInputInner() {
         console.log('[GeminiTray] Attempting to activate voice input...');
         let attempts = 0;
         const maxAttempts = 25; // Try for ~2.5s
@@ -333,16 +389,17 @@
             }
 
             const micBtn = getMicButton();
-            if (micBtn) {
+            if (micBtn && !micBtn.disabled && micBtn.getAttribute('aria-disabled') !== 'true') {
                 console.log('[GeminiTray] Found mic button, triggering click');
                 micBtn.focus();
-                micBtn.click();
-                try {
-                    micBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
-                    micBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
-                    micBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-                } catch (e) {}
+                clickOnce(micBtn);
                 isVoiceRecording = true;
+                // Starting can take a moment (permission check, audio device). Wait so a second trigger
+                // in the meantime is not interpreted as "stop".
+                const started = await waitFor(isVoiceRecordingActiveInDOM, 3000);
+                if (!started) {
+                    console.warn('[GeminiTray] Mic button clicked, but no recording indicator detected');
+                }
                 return true;
             }
 
@@ -575,12 +632,8 @@
             // If voice recording is active, explicitly stop the voice recording first so Gemini finalizes transcription
             if (isVoiceRecording || isVoiceRecordingActiveInDOM()) {
                 console.log('[GeminiTray] Voice recording active on send. Triggering stop to obtain transcription...');
-                const stopBtn = getStopRecordingButton();
-                if (stopBtn) {
-                    stopBtn.click();
-                    try {
-                        stopBtn.dispatchEvent(new MouseEvent('click', { view: window, bubbles: true, cancelable: true }));
-                    } catch (e) {}
+                if (isVoiceRecordingActiveInDOM()) {
+                    clickOnce(getStopRecordingButton());
                 }
 
                 const maxWait = 2500;
@@ -634,12 +687,8 @@
 
             if (sendBtn) {
                 console.log('[GeminiTray] Clicking send button with updated prompt content');
-                sendBtn.click();
-                // Fallback click events
-                const events = ['mousedown', 'mouseup', 'click'];
-                for (const type of events) {
-                    sendBtn.dispatchEvent(new MouseEvent(type, { view: window, bubbles: true, cancelable: true }));
-                }
+                // A second click would hit the "stop generating" button that replaces send
+                clickOnce(sendBtn);
             } else {
                 console.warn('[GeminiTray] Send button not found or disabled, trying Enter key');
                 editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
@@ -710,7 +759,7 @@
         }
     }
 
-    async function finishDictation() {
+    async function finishDictation(userAlreadyStopped = false) {
         if (!isDictationMode || isFinishingDictation) return;
         isFinishingDictation = true;
 
@@ -725,15 +774,11 @@
 
             const editor = getEditor();
 
-            // If voice recording is still active in DOM, click the stop button
-            if (isVoiceRecordingActiveInDOM()) {
-                const stopBtn = getStopRecordingButton();
-                if (stopBtn) {
-                    stopBtn.click();
-                    try {
-                        stopBtn.dispatchEvent(new MouseEvent('click', { view: window, bubbles: true, cancelable: true }));
-                    } catch (e) {}
-                }
+            // If voice recording is still active in DOM, click the stop button. Skipped when the user
+            // clicked stop themselves: the DOM may not have updated yet, and a second click on the
+            // mic toggle would start a new recording that is never stopped.
+            if (!userAlreadyStopped && isVoiceRecordingActiveInDOM()) {
+                clickOnce(getStopRecordingButton());
             }
 
             // Wait for Gemini transcription to settle into the editor
@@ -805,9 +850,12 @@
             dictationMonitorInterval = null;
         }
         hideDictationIndicator();
+        const wasDictating = isDictationMode;
         isDictationMode = false;
         isFinishingDictation = false;
         isVoiceRecording = false;
+        // Release the microphone instead of leaving a recording running in the background
+        if (wasDictating) stopVoiceRecording();
         if (dictationResolver) {
             const resolve = dictationResolver;
             dictationResolver = null;
@@ -845,11 +893,27 @@
             // Start monitoring recording status
             let recordingHadStarted = false;
             let inactiveCount = 0;
+            const monitorStartedAt = Date.now();
+            const START_TIMEOUT_MS = 8000;
+            const MAX_DICTATION_MS = 10 * 60 * 1000;
 
             dictationMonitorInterval = setInterval(() => {
                 if (!isDictationMode || isFinishingDictation) {
                     clearInterval(dictationMonitorInterval);
                     dictationMonitorInterval = null;
+                    return;
+                }
+
+                const elapsed = Date.now() - monitorStartedAt;
+                // Watchdog: without it a recording that never started kept dictation mode active
+                // forever, and every later mic click was treated as "stop dictation".
+                if ((!recordingHadStarted && elapsed > START_TIMEOUT_MS) || elapsed > MAX_DICTATION_MS) {
+                    console.warn('[GeminiTray] Dictation watchdog fired, ending dictation');
+                    if (recordingHadStarted) {
+                        finishDictation();
+                    } else {
+                        cancelDictation();
+                    }
                     return;
                 }
 
@@ -893,26 +957,28 @@
 
     // Capture Click on Send / Mic button
     window.addEventListener('click', (e) => {
+        // Synthetic clicks issued by this script must not be re-interpreted here
+        if (!e.isTrusted) return;
+
         if (isDictationMode && !isFinishingDictation) {
             if (isStopButton(e.target)) {
                 console.log('[GeminiTray] Stop button clicked during dictation mode');
                 setTimeout(() => {
-                    finishDictation();
+                    finishDictation(true);
                 }, 50);
                 return;
             }
         }
 
-        if (!activePrompt) return;
-
-        // Detect if microphone / voice button was clicked to initiate recording
-        if (isMicButton(e.target)) {
-            if (!isVoiceRecording) {
-                console.log('[GeminiTray] Mic button clicked, voice recording initiated');
-                isVoiceRecording = true;
-                return;
-            }
+        // Mic clicks always go straight to Gemini. Previously a mic click with a stale
+        // isVoiceRecording flag fell through to the send handling below, which called
+        // preventDefault()/stopPropagation() and swallowed the click.
+        if (isMicButton(e.target) && !isSendButton(e.target)) {
+            isVoiceRecording = !isVoiceRecordingActiveInDOM();
+            return;
         }
+
+        if (!activePrompt) return;
 
         if (isSendButton(e.target)) {
             handleSendWithPrompt(e);
@@ -931,18 +997,22 @@
         }
     };
 
-    window.__GEMINI_TRAY_ACTIVATE_VOICE = function () {
+    window.__GEMINI_TRAY_ACTIVATE_VOICE = async function () {
         // Toggle: a second press stops a running recording
         if (isVoiceRecordingActiveInDOM()) {
-            const stopBtn = getStopRecordingButton();
-            if (stopBtn) {
-                console.log('[GeminiTray] Voice recording active, stopping via shortcut');
-                stopBtn.click();
-                isVoiceRecording = false;
-                return true;
-            }
+            console.log('[GeminiTray] Voice recording active, stopping via shortcut');
+            await stopVoiceRecording();
+            return true;
         }
         return activateVoiceInput();
+    };
+
+    window.__GEMINI_TRAY_STOP_VOICE = function () {
+        if (isDictationMode) {
+            cancelDictation();
+            return true;
+        }
+        return stopVoiceRecording();
     };
 
     window.__GEMINI_TRAY_START_DICTATION = function () {

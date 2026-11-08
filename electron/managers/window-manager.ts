@@ -70,7 +70,10 @@ export class WindowManager {
         this.createBrowserView()
 
         this.win.on('resize', () => this.updateViewBounds())
-        this.win.on('hide', () => this.cancelDictation())
+        this.win.on('hide', () => {
+            this.cancelDictation()
+            this.stopVoiceRecording()
+        })
         // The session can expire while the app sits in the tray
         this.win.on('show', () => this.ensureLoggedIn())
         this.win.on('maximize', () => this.updateViewBounds())
@@ -245,6 +248,17 @@ export class WindowManager {
         this.view.webContents.session.setPermissionCheckHandler((_webContents, _permission) => {
             return true;
         });
+
+        // A crashed or killed Gemini renderer leaves a dead page where no button (mic included) reacts
+        this.view.webContents.on('render-process-gone', (_event, details) => {
+            console.error('[GeminiTray] Gemini renderer gone:', details.reason)
+            if (details.reason === 'clean-exit') return
+            setTimeout(() => {
+                if (this.view && !this.view.webContents.isDestroyed()) {
+                    this.view.webContents.loadURL('https://gemini.google.com/app')
+                }
+            }, 1000)
+        })
 
         this.view.webContents.on('did-finish-load', () => {
             const currentUrl = this.view?.webContents.getURL() || '';
@@ -440,17 +454,30 @@ export class WindowManager {
         if (this.view) {
             try {
                 console.log('[GeminiTray] Activating voice input in Gemini view');
-                await this.view.webContents.executeJavaScript(`
-                    if (window.__GEMINI_TRAY_ACTIVATE_VOICE) {
-                        window.__GEMINI_TRAY_ACTIVATE_VOICE();
-                    } else {
+                const ok = await this.view.webContents.executeJavaScript(`
+                    (function () {
+                        if (window.__GEMINI_TRAY_ACTIVATE_VOICE) {
+                            return window.__GEMINI_TRAY_ACTIVATE_VOICE();
+                        }
                         console.warn('[GeminiTray] window.__GEMINI_TRAY_ACTIVATE_VOICE not available yet');
-                    }
-                `);
+                        return false;
+                    })()
+                `, true);
+                if (ok === false) {
+                    this.win?.webContents.send('show-toast', 'Mikrofon-Button nicht gefunden oder deaktiviert', 'error');
+                }
             } catch (e) {
                 console.error('Failed to trigger voice input:', e);
             }
         }
+    }
+
+    stopVoiceRecording() {
+        this.view?.webContents.executeJavaScript(`
+            if (window.__GEMINI_TRAY_STOP_VOICE) {
+                window.__GEMINI_TRAY_STOP_VOICE();
+            }
+        `).catch(() => {});
     }
 
     async handleDictation() {
