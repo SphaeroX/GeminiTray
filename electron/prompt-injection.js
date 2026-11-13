@@ -244,6 +244,7 @@
 
     async function stopVoiceRecording() {
         isVoiceRecording = false;
+        markIntentionalStop();
         if (!isVoiceRecordingActiveInDOM()) return true;
         const stopBtn = getStopRecordingButton();
         if (!stopBtn) return false;
@@ -359,6 +360,88 @@
 
         return null;
     }
+
+    // --- Microphone health watchdog ---
+    // Symptom of the "mic stuck" bug: Gemini shows "Empfangsbereit" for a moment and then aborts the
+    // recording right away, every time, until the app is restarted. The audio capture pipeline is wedged
+    // (failed getUserMedia, or a track that ends immediately). We detect this and ask the main process
+    // (via a console marker) to reset the audio service and reload the page, which is what a restart did.
+    const MIC_FAILURE_MARKER = '[GeminiTray:MIC_FAILURE]';
+    const SHORT_RECORDING_MS = 2000;
+    let recordingStartedAt = 0;
+    let lastIntentionalStopAt = 0;
+    let micFailureReported = false;
+
+    function reportMicFailure(reason) {
+        if (micFailureReported) return;
+        micFailureReported = true;
+        console.warn(MIC_FAILURE_MARKER + ' ' + reason);
+        // Allow another report later if the reset did not help in this page instance
+        setTimeout(() => { micFailureReported = false; }, 15000);
+    }
+
+    function markIntentionalStop() {
+        lastIntentionalStopAt = Date.now();
+    }
+
+    try {
+        const md = navigator.mediaDevices;
+        if (md && typeof md.getUserMedia === 'function' && !md.__geminiTrayWrapped) {
+            const originalGetUserMedia = md.getUserMedia.bind(md);
+            md.getUserMedia = async function (constraints) {
+                const wantsAudio = !!(constraints && constraints.audio);
+                const requestedAt = Date.now();
+                try {
+                    const stream = await originalGetUserMedia(constraints);
+                    if (wantsAudio) {
+                        for (const track of stream.getAudioTracks()) {
+                            if (track.readyState === 'ended') {
+                                reportMicFailure('audio track ended immediately');
+                            }
+                            track.addEventListener('ended', () => {
+                                if (Date.now() - requestedAt < SHORT_RECORDING_MS) {
+                                    reportMicFailure('audio track ended ' + (Date.now() - requestedAt) + 'ms after start');
+                                }
+                            });
+                        }
+                    }
+                    return stream;
+                } catch (err) {
+                    if (wantsAudio) {
+                        const name = err && err.name;
+                        // NotAllowedError from a user denial does not happen here (permissions are auto-granted),
+                        // so every audio capture error means the capture pipeline is broken.
+                        reportMicFailure('getUserMedia failed: ' + name + ' ' + (err && err.message));
+                    }
+                    throw err;
+                }
+            };
+            md.__geminiTrayWrapped = true;
+        }
+    } catch (e) {
+        console.warn('[GeminiTray] Could not install getUserMedia watchdog:', e);
+    }
+
+    // Watch Gemini's own recording state: a recording that ends on its own within ~2s, without the user
+    // or this script stopping it and without any transcribed text, is the stuck-mic symptom from the video.
+    setInterval(() => {
+        const active = isVoiceRecordingActiveInDOM();
+        if (active && !recordingStartedAt) {
+            recordingStartedAt = Date.now();
+        } else if (!active && recordingStartedAt) {
+            const duration = Date.now() - recordingStartedAt;
+            const startedAt = recordingStartedAt;
+            recordingStartedAt = 0;
+            const stoppedIntentionally = lastIntentionalStopAt >= startedAt;
+            if (duration < SHORT_RECORDING_MS && !stoppedIntentionally) {
+                const editor = getEditor();
+                const text = editor ? (editor.innerText || editor.textContent || '').trim() : '';
+                if (!text) {
+                    reportMicFailure('recording aborted after ' + duration + 'ms');
+                }
+            }
+        }
+    }, 100);
 
     let isActivatingVoice = false;
 
@@ -777,6 +860,7 @@
             // If voice recording is still active in DOM, click the stop button. Skipped when the user
             // clicked stop themselves: the DOM may not have updated yet, and a second click on the
             // mic toggle would start a new recording that is never stopped.
+            markIntentionalStop();
             if (!userAlreadyStopped && isVoiceRecordingActiveInDOM()) {
                 clickOnce(getStopRecordingButton());
             }
@@ -974,8 +1058,15 @@
         // isVoiceRecording flag fell through to the send handling below, which called
         // preventDefault()/stopPropagation() and swallowed the click.
         if (isMicButton(e.target) && !isSendButton(e.target)) {
-            isVoiceRecording = !isVoiceRecordingActiveInDOM();
+            const wasRecording = isVoiceRecordingActiveInDOM();
+            if (wasRecording) markIntentionalStop();
+            isVoiceRecording = !wasRecording;
             return;
+        }
+
+        // Sending (or any stop button) ends a recording on purpose
+        if (isStopButton(e.target) || isSendButton(e.target)) {
+            markIntentionalStop();
         }
 
         if (!activePrompt) return;

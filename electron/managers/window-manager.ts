@@ -28,6 +28,87 @@ export class WindowManager {
         this.isQuitting = quitting
     }
 
+    private lastMicRecovery = 0
+    private micRecoveryInProgress = false
+
+    /**
+     * Fixes the "voice input only works again after an app restart" bug without a restart.
+     * Chromium's audio service (a separate utility process) can get stuck, e.g. after the audio
+     * device changed or the system resumed from sleep; every capture then aborts immediately.
+     * Killing that process makes Chromium start a fresh one on the next capture, and reloading
+     * Gemini drops its stale MediaStream/AudioContext state.
+     */
+    async recoverMicrophone(reason: string) {
+        const now = Date.now()
+        // Avoid reload loops if the microphone is genuinely unavailable (unplugged, blocked by the OS)
+        if (this.micRecoveryInProgress || now - this.lastMicRecovery < 30000) {
+            console.warn('[GeminiTray] Microphone failure again, skipping recovery (recently attempted):', reason)
+            return
+        }
+        this.micRecoveryInProgress = true
+        this.lastMicRecovery = now
+        console.warn('[GeminiTray] Microphone failure detected, resetting audio pipeline:', reason)
+        const wasDictating = this.isDictating
+        this.win?.webContents.send('show-toast', 'Mikrofon hängt – wird zurückgesetzt…', 'info')
+
+        try {
+            for (const proc of app.getAppMetrics()) {
+                const serviceName = (proc as { serviceName?: string }).serviceName || ''
+                if (proc.type === 'Utility' && /audio/i.test(serviceName)) {
+                    try {
+                        process.kill(proc.pid)
+                        console.log('[GeminiTray] Restarted audio service process', proc.pid)
+                    } catch (e) {
+                        console.warn('[GeminiTray] Could not kill audio service:', e)
+                    }
+                }
+            }
+
+            const view = this.view
+            if (!view || view.webContents.isDestroyed()) return
+
+            // Don't throw away a half-written prompt: only reload when the input is empty
+            const hasDraft = await view.webContents.executeJavaScript(`
+                (function () {
+                    const ed = document.querySelector('rich-textarea [contenteditable="true"], [contenteditable="true"], textarea');
+                    return !!ed && ((ed.innerText || ed.value || '').trim().length > 0);
+                })()
+            `).catch(() => false)
+
+            if (hasDraft) {
+                console.log('[GeminiTray] Draft present, skipping reload after audio service reset')
+                this.win?.webContents.send('show-toast', 'Mikrofon zurückgesetzt – bitte erneut versuchen', 'info')
+                return
+            }
+
+            view.webContents.reload()
+            await new Promise<void>(resolve => {
+                const done = () => resolve()
+                view.webContents.once('did-finish-load', done)
+                setTimeout(done, 15000)
+            })
+
+            // Restart the recording the user wanted, once the injected scripts are back.
+            // A dictation session died with the reload; the user simply triggers it again.
+            if (wasDictating) {
+                this.win?.webContents.send('show-toast', 'Mikrofon zurückgesetzt – Diktat bitte erneut starten', 'info')
+            } else if (this.win?.isVisible()) {
+                for (let i = 0; i < 20; i++) {
+                    await new Promise(r => setTimeout(r, 300))
+                    if (view.webContents.isDestroyed()) return
+                    const ready = await view.webContents.executeJavaScript('!!window.__GEMINI_TRAY_ACTIVATE_VOICE').catch(() => false)
+                    if (ready) {
+                        view.webContents.focus()
+                        await view.webContents.executeJavaScript('window.__GEMINI_TRAY_ACTIVATE_VOICE()').catch(() => { })
+                        break
+                    }
+                }
+            }
+        } finally {
+            this.micRecoveryInProgress = false
+        }
+    }
+
     createWindow() {
         const opacity = store.get('opacity');
         const alwaysOnTop = store.get('alwaysOnTop');
@@ -270,6 +351,13 @@ export class WindowManager {
                 console.log('[GeminiTray] All scripts injected successfully');
             }).catch(err => console.error('Failed to inject scripts:', err));
             this.ensureLoggedIn();
+            }
+        });
+
+        // The injected script reports a wedged microphone pipeline via this console marker
+        this.view.webContents.on('console-message', (_event, _level, message) => {
+            if (typeof message === 'string' && message.startsWith('[GeminiTray:MIC_FAILURE]')) {
+                this.recoverMicrophone(message.slice('[GeminiTray:MIC_FAILURE]'.length).trim())
             }
         });
 
