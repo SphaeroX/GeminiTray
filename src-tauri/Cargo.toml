@@ -1,0 +1,42 @@
+[package]
+name = "gemini-tray"
+version = "2.0.0"
+description = "Google Gemini in the Windows system tray"
+authors = ["SphaeroX"]
+license = "MIT"
+edition = "2024"
+
+[lib]
+name = "gemini_tray_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-log = "2"
+log = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ureq = { version = "3.5.2", features = ["json"] }
+tungstenite = "0.30.0"
+url = "2.5.8"
+cookie = "0.18"
+
+[[test]]
+name = "window_toggle"
+path = "../tests/rust/window_toggle.rs"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
+
+[[test]]
+name = "login"
+path = "../tests/rust/login.rs"

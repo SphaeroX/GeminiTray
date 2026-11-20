@@ -1,0 +1,79 @@
+/* Design tokens – see Roadmap/README.md → Design (Windows 11 / Fluent). */
+:root {
+  color-scheme: light dark;
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --bg: #f3f3f3;
+  --content: #f9f9f9;
+  --card: #ffffff;
+  --card-border: #e5e5e5;
+  --border: #e0e0e0;
+  --text: #1a1a1a;
+  --muted: #5c5c5c;
+  --accent: #005fb8;
+  --accent-hover: #0067c0;
+  --on-accent: #ffffff;
+  --danger: #c42b1c;
+  --success: #0f7b0f;
+  --caution: #f7c700;
+  --nav-active: #eaeaea;
+  --nav-hover: #ededed;
+  --control: #fbfbfb;
+  --control-hover: #f6f6f6;
+  --control-border: #d1d1d1;
+  --track: #d1d1d1;
+  --surface: #ffffff;
+  --footer: #f7f7f7;
+  --divider: #ebebeb;
+  --selected: #f0f0f0;
+  --link: #005fb8;
+  --pill: rgba(32, 32, 32, 0.94);
+  --pill-border: rgba(255, 255, 255, 0.08);
+  --pill-accent: #60cdff;
+  --rec: #ff6b6b;
+  --radius-card: 6px;
+  --radius-control: 4px;
+  --radius-window: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #202020;
+    --content: #272727;
+    --card: #2d2d2d;
+    --card-border: #1d1d1d;
+    --border: #1a1a1a;
+    --text: #ffffff;
+    --muted: #c8c8c8;
+    --accent: #60cdff;
+    --accent-hover: #5ab8e6;
+    --on-accent: #000000;
+    --danger: #ff99a4;
+    --success: #6ccb5f;
+    --caution: #fce100;
+    --nav-active: #2d2d2d;
+    --nav-hover: #2a2a2a;
+    --control: #373737;
+    --control-hover: #3c3c3c;
+    --control-border: #454545;
+    --track: #454545;
+    --surface: #2c2c2c;
+    --footer: #252525;
+    --divider: #3a3a3a;
+    --selected: #383838;
+    --link: #99ebff;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--link); }
+:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }

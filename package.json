@@ -1,8 +1,8 @@
 {
   "name": "gemini-tray",
   "private": true,
-  "version": "1.0.51",
-  "description": "A desktop app that integrates Google Gemini into your workflow via system tray",
+  "version": "2.0.0",
+  "description": "Google Gemini in the Windows system tray with local voice input and Screenshot & Ask",
   "author": "SphaeroX",
   "license": "MIT",
   "repository": {
@@ -11,33 +11,30 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:console": "cross-env OPEN_DEVTOOLS=true vite",
-    "build": "vue-tsc && vite build && electron-builder",
-    "build:win": "vue-tsc && vite build && electron-builder --win",
-    "build:linux": "vue-tsc && vite build && electron-builder --linux",
-    "build:ci": "vue-tsc && vite build && electron-builder -p never",
-    "preview": "vite preview",
-    "release": "node tag-release.js"
+    "dev": "npm run build:bridge && vite",
+    "build": "npm run build:bridge && vue-tsc --noEmit && vite build",
+    "build:bridge": "vite build --config vite.bridge.config.ts",
+    "tauri": "tauri",
+    "test": "npm run test:ui && npm run test:rust",
+    "test:ui": "vitest run",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "typecheck": "vue-tsc --noEmit",
+    "version:check": "node scripts/version-check.mjs",
+    "release": "node scripts/release.mjs"
   },
   "dependencies": {
-    "electron-store": "^11.0.2",
-    "electron-updater": "^6.7.3",
-    "vue": "^3.4.21",
-    "vue-i18n": "^11.2.8",
-    "ws": "^8.22.1"
+    "@tauri-apps/api": "^2",
+    "vue": "^3.5.13",
+    "vue-i18n": "^11.2.8"
   },
   "devDependencies": {
-    "@types/ws": "^8.18.2",
-    "@vitejs/plugin-vue": "^5.0.4",
-    "cross-env": "^10.1.0",
-    "electron": "^30.0.1",
-    "electron-builder": "^24.13.3",
-    "typescript": "^5.2.2",
-    "vite": "^5.1.6",
-    "vite-plugin-electron": "^0.28.6",
-    "vite-plugin-electron-renderer": "^0.14.5",
-    "vue-tsc": "^2.0.26"
-  },
-  "main": "dist-electron/main.js"
+    "@tauri-apps/cli": "^2",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "@vue/test-utils": "^2.4.6",
+    "jsdom": "^31.0.1",
+    "typescript": "~6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^5.1.1",
+    "vue-tsc": "^3.3.5"
+  }
 }

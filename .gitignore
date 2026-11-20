@@ -24,3 +24,7 @@ dist-ssr
 *.sln
 *.sw?
 release/*
+# Tauri
+src-tauri/target/
+src-tauri/bridge/gemini-bridge.js
+coverage/

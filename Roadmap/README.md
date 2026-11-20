@@ -19,13 +19,13 @@ Gemini Tray 2.0 ist ein kompletter Neuaufbau der bisherigen Electron-App als sch
 
 ## Aktueller Status
 
-Stand: 2026-11-20 – Roadmap angelegt, noch kein Task begonnen.
+Stand: 2026-11-20 – Tasks 01–02 erledigt.
 
 | Task | Titel | Status |
 |---|---|---|
-| 01 | Durchstich: Tauri-Gerüst mit Tray und Gemini-Fenster | offen |
-| 02 | Google-Login und dauerhafte Sitzung | offen |
-| 03 | Einstellungen, Shortcuts, Autostart, i18n | offen |
+| 01 | Durchstich: Tauri-Gerüst mit Tray und Gemini-Fenster | erledigt |
+| 02 | Google-Login und dauerhafte Sitzung | erledigt |
+| 03 | Einstellungen, Shortcuts, Autostart, i18n | läuft |
 | 04 | Gemini-Brücke und „Neuer Chat“ | offen |
 | 05 | Lokale Spracherkennung (Parakeet) | offen |
 | 06 | Diktat in die Zwischenablage | offen |
@@ -55,6 +55,8 @@ Globale Informationen, Architekturentscheidungen und Wissen, das für das gesamt
   - Aufnahme-Indikator, Screenshot-Hinweisleiste: immer dunkle Pille (`rgba(32,32,32,0.94)`), unabhängig vom Farbmodus.
   - Icons: schlanke Linien-Icons (1,2–1,4 px Strich), keine Emojis.
   - Falls Mica/Acrylic über Tauri (`window-vibrancy`) sauber funktioniert, darf es den einfarbigen Fensterhintergrund ersetzen.
+- **[Task 01] Test-Befehle:** Alle Tests `npm test`; nur UI `npx vitest run` (einzeln: `npx vitest run tests/ui/<datei>`); nur Rust `cargo test --manifest-path src-tauri/Cargo.toml` (einzeln: `--test <name>`). Release-Build: `npm run tauri build` → `src-tauri/target/release/bundle/nsis/`.
+- **[Task 01] Struktur:** Vite-Root `src/`, eine HTML-Datei pro App-Fenster; Rust-Lib `gemini_tray_lib` mit einem Modul pro Feature; Hauptfenster-Label `main` (lädt gemini.google.com, keine Capabilities).
 - **[Planung] Spracherkennung:** Parakeet TDT 0.6B v3 (multilingual, DE/EN automatisch), lokal auf der CPU; Modell wird beim ersten Gebrauch heruntergeladen. Kein Cloud-STT.
 
 ## Auffälligkeiten & Details

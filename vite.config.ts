@@ -1,50 +1,27 @@
-import { defineConfig } from 'vite'
-import path from 'node:path'
-import fs from 'node:fs'
-import electron from 'vite-plugin-electron/simple'
-import vue from '@vitejs/plugin-vue'
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+import { resolve } from "node:path";
 
-// Custom plugin to copy screenshot-selection.html to dist-electron
-function copyScreenshotHtml() {
-  return {
-    name: 'copy-screenshot-html',
-    writeBundle() {
-      const src = path.join(__dirname, 'electron/screenshot-selection.html')
-      const dest = path.join(__dirname, 'dist-electron/screenshot-selection.html')
-      if (fs.existsSync(src)) {
-        fs.copyFileSync(src, dest)
-      }
-    }
-  }
-}
+const root = resolve(import.meta.dirname, "src");
 
-// https://vitejs.dev/config/
+// One HTML entry per app-owned window. The Gemini window itself loads gemini.google.com.
+export const pages = ["settings", "indicator", "prompts", "overlay", "toast"];
+
 export default defineConfig({
-  base: './',
-  plugins: [
-    vue(),
-    electron({
-      main: {
-        // Shortcut of `build.lib.entry`.
-        entry: 'electron/main.ts',
-        vite: {
-          plugins: [copyScreenshotHtml()],
-          // ws must be loaded from node_modules: bundled, its optional bufferutil lookup breaks (e.mask is not a function)
-          build: { rollupOptions: { external: ['ws'] } }
-        }
-      },
-      preload: {
-        // Shortcut of `build.rollupOptions.input`.
-        // Preload scripts may contain Web assets, so use the `build.rollupOptions.input` instead `build.lib.entry`.
-        input: path.join(__dirname, 'electron/preload.ts'),
-      },
-      // Ployfill the Electron and Node.js API for Renderer process.
-      // If you want use Node.js in Renderer process, the `nodeIntegration` needs to be enabled in the Main process.
-      // See 👉 https://github.com/electron-vite/vite-plugin-electron-renderer
-      renderer: process.env.NODE_ENV === 'test'
-        // https://github.com/electron-vite/vite-plugin-electron-renderer/issues/78#issuecomment-2053600808
-        ? undefined
-        : {},
-    }),
-  ],
-})
+  root,
+  plugins: [vue()],
+  clearScreen: false,
+  server: {
+    port: 1420,
+    strictPort: true,
+    watch: { ignored: ["**/src-tauri/**"] },
+  },
+  build: {
+    outDir: resolve(import.meta.dirname, "dist"),
+    emptyOutDir: true,
+    target: "es2022",
+    rollupOptions: {
+      input: Object.fromEntries(pages.map((p) => [p, resolve(root, `${p}.html`)])),
+    },
+  },
+});
