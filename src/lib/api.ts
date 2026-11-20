@@ -90,4 +90,8 @@ export const api = {
   voiceDismiss: () => invoke<void>("voice_dismiss"),
   openMicPrivacy: () => invoke<void>("open_mic_privacy"),
   listMicrophones: () => invoke<string[]>("list_microphones"),
+  overlayImage: (index: number) => invoke<{ dataUrl: string; width: number; height: number }>("overlay_image", { index }),
+  overlayCancel: () => invoke<void>("overlay_cancel"),
+  overlaySelect: (index: number, rect: { x: number; y: number; width: number; height: number }) =>
+    invoke<void>("overlay_select", { index, rect }),
 };

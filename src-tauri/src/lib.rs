@@ -9,6 +9,7 @@ pub mod i18n;
 pub mod login;
 pub mod notify;
 pub mod prompts;
+pub mod screenshot;
 pub mod settings;
 pub mod shortcuts;
 pub mod stt;
@@ -108,6 +109,9 @@ pub fn run() {
             voice::voice_dismiss,
             voice::open_mic_privacy,
             voice::list_microphones,
+            screenshot::overlay_image,
+            screenshot::overlay_cancel,
+            screenshot::overlay_select,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -117,6 +121,7 @@ pub fn run() {
             app.manage(toast::ToastState::default());
             app.manage(stt::service::SttState::new(&handle));
             app.manage(voice::VoiceState::default());
+            app.manage(screenshot::ScreenshotState::default());
 
             toast::create(&handle)?;
             voice::create_indicator(&handle)?;

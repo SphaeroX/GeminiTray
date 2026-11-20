@@ -166,6 +166,16 @@
         "title": "Speech recognition failed",
         "body": "{detail}"
       }
+    },
+    "screenshot": {
+      "failed": {
+        "title": "Screenshot failed",
+        "body": "{detail}"
+      },
+      "clipboard": {
+        "title": "Image in clipboard",
+        "body": "Gemini did not accept the image. Paste it into the prompt with Ctrl + V. ({detail})"
+      }
     }
   },
   "indicator": {
@@ -181,5 +191,9 @@
       "noDevice": "No microphone found",
       "device": "Microphone unavailable or disconnected"
     }
+  },
+  "overlay": {
+    "hint": "Drag to select an area",
+    "keys": "Enter to confirm · Esc to cancel"
   }
 }

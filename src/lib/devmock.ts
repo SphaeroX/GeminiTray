@@ -51,6 +51,15 @@ export async function mockInvoke(cmd: string, args?: Record<string, unknown>): P
 
 // Extended by later features (microphones, model status …).
 export const mockHandlers: Record<string, (args?: Record<string, unknown>) => unknown> = {
+  overlay_image: () => ({
+    dataUrl:
+      "data:image/svg+xml;utf8," +
+      encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><rect width="1280" height="720" fill="#3E5468"/><rect x="80" y="60" width="700" height="520" rx="8" fill="#F9F9F9"/><rect x="120" y="110" width="400" height="18" rx="4" fill="#C9CED4"/><rect x="840" y="140" width="360" height="440" rx="8" fill="#2B2B2B"/></svg>',
+      ),
+    width: 1280,
+    height: 720,
+  }),
   list_microphones: () => ["Mikrofonarray (Realtek(R) Audio)", "Headset (SteelSeries Arctis)"],
   model_status: () => ({ installed: false, downloading: true, downloaded: 412_000_000, total: 670_480_000, error: null }),
 };

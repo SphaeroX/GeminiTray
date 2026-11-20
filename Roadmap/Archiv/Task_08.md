@@ -61,23 +61,24 @@ Keine.
 
 Taskspezifische Informationen während der Arbeit hier festhalten. Taskübergreifendes gehört in `Roadmap/README.md`.
 
+- 7 Rust-Tests (Umrechnung 100 %/150 %/gemischt, Rückwärts-Ziehen, Randbeschneidung, Mindestgröße, negative Monitorkoordinaten) und 2 UI-Tests grün.
+- Echte Aufnahme (`captures_every_monitor`, `#[ignore]`): DISPLAY5 3440×1440 @ 100 % korrekt erfasst. Auf dem Testrechner ist nur ein Monitor angeschlossen – Mehrmonitor-Fall nur über die Geometrie-Tests abgedeckt.
+- Overlay im Browser gegen das Design geprüft (Abdunklung, Rahmen mit Griffen, Größenanzeige „620 × 240“, Hinweisleiste).
+- **Manuelle Prüfliste offen für den Nutzer:** Alt+Shift+S (oder Tray › Screenshot & Ask) im echten Fenster; Bild erscheint im Gemini-Eingabefeld (Drop-Upload, eingeloggt); Esc/Rechtsklick bricht ab; zwei Monitore mit unterschiedlicher Skalierung, falls vorhanden.
+
 ## Abschluss-Checkliste
 
 Reihenfolge und Details stehen in `AGENTS.md`, Abschnitt "Abschluss- und Archivierungs-Workflow".
 
-- [ ] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
-- [ ] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
-- [ ] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
-- [ ] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
+- [x] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
+- [x] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
+- [x] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
+- [x] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
 
 ## Erkenntnisse für Folge-Agenten
 
-<!-- ERKENNTNISSE-OFFEN: Vor der Archivierung ausfüllen und diese Zeile löschen. -->
-
-Vor der Archivierung vom Agenten auszufüllen. Schreibe so, dass ein Agent, der diesen Task nie gesehen hat, davon bei späteren Tasks profitiert:
-
-- **Umgesetzt (und Abweichungen vom Plan):**
-- **Learnings & Stolpersteine:**
-- **Wichtige Entscheidungen und ihre Gründe:**
-- **Auswirkungen auf Folge-Tasks:**
-- **Hinweise zu Tests und Befehlen:**
+- **Umgesetzt (und Abweichungen vom Plan):** `screenshot::{start, overlay_image, overlay_select, overlay_cancel}` + `screenshot::geometry` (reine Umrechnung). Ablauf: Gemini-Fenster verbergen → alle Monitore mit xcap aufnehmen → je Monitor ein Overlay-Fenster (`overlay-N`, physische Position/Größe) mit eingefrorenem Bild (JPEG-Data-URL nur zur Anzeige) → Auswahl in CSS-px → Zuschnitt aus dem Original-RGBA → PNG → `bridge::insert_image` (bei aktivem Prompt vorher `insert_text`). Fallback: Bild in die Zwischenablage + Toast `screenshot.clipboard`. Loslassen der Maus bestätigt direkt; Enter bestätigt, Esc/Rechtsklick bricht ab.
+- **Learnings & Stolpersteine:** Die Overlays bekommen Fokus (sonst kein Esc); das Overlay unter dem Mauszeiger wird fokussiert. Überspannen mehrerer Monitore ist bewusst nicht möglich (Auswahl immer innerhalb eines Monitors). Die Größenanzeige rechnet mit `devicePixelRatio` in physische Pixel.
+- **Wichtige Entscheidungen und ihre Gründe:** Aufnahme vor dem Öffnen der Overlays, damit sie nicht mitfotografiert werden. Das Gemini-Fenster wird vor der Aufnahme verborgen und danach wieder gezeigt.
+- **Auswirkungen auf Folge-Tasks:** Task 09: `prompts::take_active_content` wird hier schon aufgerufen.
+- **Hinweise zu Tests und Befehlen:** Overlay-Vorschau: `http://localhost:1420/overlay.html?m=0` (Mock-Bild). Echter Capture-Test: `cargo test --manifest-path src-tauri/Cargo.toml --test screenshot -- --ignored --nocapture`.
