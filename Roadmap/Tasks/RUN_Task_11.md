@@ -74,11 +74,13 @@ Taskspezifische Informationen während der Arbeit hier festhalten. Taskübergrei
 - Tests: 5 Vitest-Tests für die Versionsprüfung (inkl. echtem Repository), 1 Rust-Test Fortschritt. Gesamt: 40 UI-Tests, 78 Rust-Tests grün; 7 Hardware-/Modelltests (`--ignored`) zuvor einzeln grün.
 - Release-Build: `Gemini Tray_2.0.0_x64-setup.exe` (≈ 8,3 MB) baut; enthält die VC++-DLLs, nicht `DirectML.dll`. Rauchtest der Release-exe aus einem sauberen Ordner: startet, Shortcuts registriert, Log „Gemini bridge self-test passed“ im echten WebView2-Fenster.
 
+**Stand 2026-11-20 (spät):** Auf Wunsch des Nutzers `rework/tauri` per Fast-Forward nach `main` übernommen, Tag `v2.0.0` gepusht. Release-Workflow und CI erfolgreich: https://github.com/SphaeroX/GeminiTray/releases/tag/v2.0.0 (Installer `Gemini.Tray_2.0.0_x64-setup.exe`). Ohne Signaturschlüssel ohne Updater-Artefakte (Workflow erkennt das automatisch).
+
 **Offen – braucht den Nutzer (deshalb ist dieser Task noch nicht archiviert):**
 
 1. Updater-Schlüssel erzeugen, öffentlichen Schlüssel in `tauri.conf.json` eintragen, GitHub-Secrets setzen (Anleitung in Root-`AGENTS.md`).
 2. Gesamt-Prüfliste unten am Release-Kandidaten durchgehen.
-3. Freigabe für Merge `rework/tauri` → `main`, danach `npm run release` (Tag `v2.0.0`), Draft-Release prüfen und veröffentlichen, Update-Pfad mit `v2.0.1` testen.
+3. ~~Merge und Release v2.0.0~~ erledigt. Update-Pfad erst testbar, wenn der Schlüssel eingerichtet ist (dann mit `v2.0.1`).
 
 **Gesamt-Prüfliste für den Nutzer (aus allen Tasks gesammelt):**
 
