@@ -65,23 +65,24 @@ Der Task gilt erst als fertig, wenn alle Punkte erfüllt und durch Tests oder ei
 
 Taskspezifische Informationen während der Arbeit hier festhalten. Taskübergreifendes gehört in `Roadmap/README.md`.
 
+- Struktur der echten Seite am 2026-11-20 (abgemeldet, deutsche Oberfläche) im Browser untersucht und als Fixtures gespeichert (`tests/ui/fixtures/gemini-input-{empty,filled}.html`).
+- 13 Bridge-Tests (Vitest/jsdom) und 5 Rust-Tests grün.
+- **Live-Test auf gemini.google.com** (Bridge-Code per DevTools eingespielt): `selfTest` ok, `insertText` mehrzeilig + Anhängen erzeugt `<p>Zeile eins</p><p>Zeile zwei</p><p>Angehängt</p>`, Senden-Knopf „Nachricht senden“ gefunden und aktiv. Absenden selbst nicht ausgelöst.
+- **Nicht live prüfbar (abgemeldet):** Bild-Upload per Drop – übernommen aus der in 1.x bewährten Methode (Drop auf `[xapfileselectordropzone]`, Ctrl+V scheitert dort). **Manuelle Prüfung durch den Nutzer offen** (Task 08 nutzt es), ebenso `Alt+N` im echten Fenster.
+
 ## Abschluss-Checkliste
 
 Reihenfolge und Details stehen in `AGENTS.md`, Abschnitt "Abschluss- und Archivierungs-Workflow".
 
-- [ ] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
-- [ ] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
-- [ ] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
-- [ ] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
+- [x] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
+- [x] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
+- [x] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
+- [x] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
 
 ## Erkenntnisse für Folge-Agenten
 
-<!-- ERKENNTNISSE-OFFEN: Vor der Archivierung ausfüllen und diese Zeile löschen. -->
-
-Vor der Archivierung vom Agenten auszufüllen. Schreibe so, dass ein Agent, der diesen Task nie gesehen hat, davon bei späteren Tasks profitiert:
-
-- **Umgesetzt (und Abweichungen vom Plan):**
-- **Learnings & Stolpersteine:**
-- **Wichtige Entscheidungen und ihre Gründe:**
-- **Auswirkungen auf Folge-Tasks:**
-- **Hinweise zu Tests und Befehlen:**
+- **Umgesetzt (und Abweichungen vom Plan):** `src/bridge/{selectors,dom,index}.ts` → gebündelt nach `src-tauri/bridge/gemini-bridge.js`, per `include_str!` eingebettet und als `initialization_script` ins Hauptfenster injiziert. Operationen: `insertText(text, append)`, `insertImage(pngBase64)` (wartet auf Vorschau, sonst `not_attached`), `send()` (wartet bis 15 s, bis der Knopf aktiv ist – Upload!), `selfTest()`, `ping`. „Neuer Chat“ braucht keinen DOM-Zugriff: Navigation auf `/app` (`actions::new_chat`). Selbsttest einmal pro App-Lauf nach dem ersten Laden, Warn-Toast `bridge.page_changed`.
+- **Learnings & Stolpersteine:** Kommunikation ohne IPC-Rechte für die Google-Seite: Rust ruft `__geminiTray.start(id, op, args)` per `eval` auf und fragt `poll(id)` mit `eval_with_callback` ab (Promise-Ergebnisse kann `eval_with_callback` nicht direkt liefern). `eval_with_callback` blockiert → nur aus Hintergrund-Threads aufrufen (`bridge::call`). Gemini erzwingt Trusted Types: kein `innerHTML` im Bridge-Code. Eingabe per `execCommand('insertText'/'insertParagraph')` funktioniert mit Quill; Fallback baut `<p>`-Absätze (für jsdom). `build.rs` baut das Bundle, falls es fehlt (`npm run build:bridge`).
+- **Wichtige Entscheidungen und ihre Gründe:** Die Gemini-Seite bekommt weiterhin keine Capabilities. Einfügen hängt standardmäßig an vorhandenen Text an (keine Eingaben des Nutzers überschreiben).
+- **Auswirkungen auf Folge-Tasks:** `bridge::{insert_text, insert_image, send, wait_ready}` sind blockierend → in `std::thread::spawn` aufrufen. Vor dem Einfügen `windowing::show_main` und ggf. `bridge::wait_ready(app, 10s)`. Bei Fehlern Text/Bild in die Zwischenablage + Toast `bridge.failed` mit Detail.
+- **Hinweise zu Tests und Befehlen:** Selektoren live prüfen: gemini.google.com im Browser öffnen, `document.querySelector('rich-textarea .ql-editor[contenteditable="true"]')`. Fixtures bei Seitenänderungen neu erfassen (Kommentar in den Fixture-Dateien).

@@ -68,20 +68,57 @@
     }
   },
   "toast": {
-    "not_available": { "title": "Not available yet", "body": "This feature will follow in a later version." },
+    "not_available": {
+      "title": "Not available yet",
+      "body": "This feature will follow in a later version."
+    },
     "settings": {
-      "recovered": { "title": "Settings reset", "body": "The settings file was damaged. Defaults are used again." },
-      "saved": { "title": "Saved", "body": "" }
+      "recovered": {
+        "title": "Settings reset",
+        "body": "The settings file was damaged. Defaults are used again."
+      },
+      "saved": {
+        "title": "Saved",
+        "body": ""
+      }
     },
     "shortcut": {
-      "taken": { "title": "Shortcut in use", "body": "Used by another app: {detail}. You can change it in the settings." }
+      "taken": {
+        "title": "Shortcut in use",
+        "body": "Used by another app: {detail}. You can change it in the settings."
+      }
     },
     "login": {
-      "required": { "title": "Sign-in required", "body": "Sign in in the window. If that fails: tray menu › Sign in with browser." },
-      "browser_started": { "title": "Browser opened", "body": "Sign in to Google in the browser window. It closes automatically afterwards." },
-      "success": { "title": "Signed in", "body": "Your Google session was taken over." },
-      "failed": { "title": "Sign-in failed", "body": "{detail}" },
-      "reset": { "title": "Session reset", "body": "You are now signed out." }
+      "required": {
+        "title": "Sign-in required",
+        "body": "Sign in in the window. If that fails: tray menu › Sign in with browser."
+      },
+      "browser_started": {
+        "title": "Browser opened",
+        "body": "Sign in to Google in the browser window. It closes automatically afterwards."
+      },
+      "success": {
+        "title": "Signed in",
+        "body": "Your Google session was taken over."
+      },
+      "failed": {
+        "title": "Sign-in failed",
+        "body": "{detail}"
+      },
+      "reset": {
+        "title": "Session reset",
+        "body": "You are now signed out."
+      }
+    },
+    "bridge": {
+      "page_changed": {
+        "title": "The Gemini page has changed",
+        "body": "Inserting and sending may not work ({detail}). An update usually fixes this."
+      },
+      "failed": {
+        "title": "Not inserted into Gemini",
+        "body": "{detail}"
+      }
     }
   }
 }

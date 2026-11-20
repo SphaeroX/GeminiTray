@@ -2,6 +2,7 @@
 
 pub mod actions;
 pub mod appwindows;
+pub mod bridge;
 pub mod commands;
 pub mod i18n;
 pub mod login;
@@ -29,13 +30,18 @@ fn create_main_window(app: &tauri::AppHandle) -> tauri::Result<()> {
         .center()
         .always_on_top(always_on_top)
         .visible(false)
+        .initialization_script(bridge::SCRIPT)
         .on_page_load({
             let app = app.clone();
             move |_w, payload| {
-                if payload.event() == tauri::webview::PageLoadEvent::Finished
-                    && login::is_signin_url(payload.url().as_str())
-                {
+                if payload.event() != tauri::webview::PageLoadEvent::Finished {
+                    return;
+                }
+                let url = payload.url().as_str();
+                if login::is_signin_url(url) {
                     notify::show(&app, Level::Warning, "login.required", None);
+                } else if url.starts_with("https://gemini.google.com/") {
+                    actions::check_bridge_once(&app);
                 }
             }
         })

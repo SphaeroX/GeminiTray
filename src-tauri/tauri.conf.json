@@ -17,7 +17,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -25,13 +27,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": {
-      "bridge/gemini-bridge.js": "bridge/gemini-bridge.js"
-    },
     "windows": {
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["German", "English"]
+        "languages": [
+          "German",
+          "English"
+        ]
       }
     }
   }

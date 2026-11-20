@@ -19,15 +19,15 @@ Gemini Tray 2.0 ist ein kompletter Neuaufbau der bisherigen Electron-App als sch
 
 ## Aktueller Status
 
-Stand: 2026-11-20 – Tasks 01–03 erledigt.
+Stand: 2026-11-20 – Tasks 01–04 erledigt.
 
 | Task | Titel | Status |
 |---|---|---|
 | 01 | Durchstich: Tauri-Gerüst mit Tray und Gemini-Fenster | erledigt |
 | 02 | Google-Login und dauerhafte Sitzung | erledigt |
 | 03 | Einstellungen, Shortcuts, Autostart, i18n | erledigt |
-| 04 | Gemini-Brücke und „Neuer Chat“ | läuft |
-| 05 | Lokale Spracherkennung (Parakeet) | offen |
+| 04 | Gemini-Brücke und „Neuer Chat“ | erledigt |
+| 05 | Lokale Spracherkennung (Parakeet) | läuft |
 | 06 | Diktat in die Zwischenablage | offen |
 | 07 | Sprachnachricht an Gemini | offen |
 | 08 | Screenshot & Ask | offen |

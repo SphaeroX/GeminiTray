@@ -68,20 +68,57 @@
     }
   },
   "toast": {
-    "not_available": { "title": "Noch nicht verfügbar", "body": "Diese Funktion folgt in einer späteren Version." },
+    "not_available": {
+      "title": "Noch nicht verfügbar",
+      "body": "Diese Funktion folgt in einer späteren Version."
+    },
     "settings": {
-      "recovered": { "title": "Einstellungen zurückgesetzt", "body": "Die Einstellungsdatei war beschädigt. Es gelten wieder die Standardwerte." },
-      "saved": { "title": "Gespeichert", "body": "" }
+      "recovered": {
+        "title": "Einstellungen zurückgesetzt",
+        "body": "Die Einstellungsdatei war beschädigt. Es gelten wieder die Standardwerte."
+      },
+      "saved": {
+        "title": "Gespeichert",
+        "body": ""
+      }
     },
     "shortcut": {
-      "taken": { "title": "Shortcut belegt", "body": "Von einer anderen App verwendet: {detail}. In den Einstellungen änderbar." }
+      "taken": {
+        "title": "Shortcut belegt",
+        "body": "Von einer anderen App verwendet: {detail}. In den Einstellungen änderbar."
+      }
     },
     "login": {
-      "required": { "title": "Anmeldung nötig", "body": "Melde dich im Fenster an. Klappt das nicht: Tray-Menü › Mit Browser anmelden." },
-      "browser_started": { "title": "Browser geöffnet", "body": "Melde dich im Browserfenster bei Google an. Es schließt sich danach automatisch." },
-      "success": { "title": "Angemeldet", "body": "Die Google-Sitzung wurde übernommen." },
-      "failed": { "title": "Anmeldung fehlgeschlagen", "body": "{detail}" },
-      "reset": { "title": "Sitzung zurückgesetzt", "body": "Du bist jetzt abgemeldet." }
+      "required": {
+        "title": "Anmeldung nötig",
+        "body": "Melde dich im Fenster an. Klappt das nicht: Tray-Menü › Mit Browser anmelden."
+      },
+      "browser_started": {
+        "title": "Browser geöffnet",
+        "body": "Melde dich im Browserfenster bei Google an. Es schließt sich danach automatisch."
+      },
+      "success": {
+        "title": "Angemeldet",
+        "body": "Die Google-Sitzung wurde übernommen."
+      },
+      "failed": {
+        "title": "Anmeldung fehlgeschlagen",
+        "body": "{detail}"
+      },
+      "reset": {
+        "title": "Sitzung zurückgesetzt",
+        "body": "Du bist jetzt abgemeldet."
+      }
+    },
+    "bridge": {
+      "page_changed": {
+        "title": "Gemini-Seite hat sich geändert",
+        "body": "Einfügen und Senden funktionieren eventuell nicht ({detail}). Ein Update behebt das meist."
+      },
+      "failed": {
+        "title": "Nicht in Gemini eingefügt",
+        "body": "{detail}"
+      }
     }
   }
 }
