@@ -45,7 +45,7 @@ npm run release                   # tag the current version and push (only when 
 
 ## Releases and auto-update
 
-- `.github/workflows/release.yml` builds on tags `v*` with `tauri-action` and creates a **draft** release containing the NSIS installer, its signature and `latest.json` for the updater. `ci.yml` runs type check and tests on pushes and PRs.
+- `.github/workflows/release.yml` builds on tags `v*` with `tauri-action` and publishes a release with the NSIS installer; with the signing secret set it also adds the signature and `latest.json` for the updater. `ci.yml` runs type check and tests on pushes and PRs.
 - The updater (`src-tauri/src/updates.rs`) is only active when `plugins.updater.pubkey` in `src-tauri/tauri.conf.json` is set. One-time setup by the maintainer:
   1. `npx tauri signer generate -w %USERPROFILE%\.tauri\gemini-tray.key` (keep the private key secret and backed up – losing it means existing installs can no longer update).
   2. Put the **public** key into `plugins.updater.pubkey`.

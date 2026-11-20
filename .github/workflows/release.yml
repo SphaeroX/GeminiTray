@@ -33,6 +33,21 @@ jobs:
       - name: Tests
         run: npm test
 
+      # Updater artifacts (signature + latest.json) need the signing key; without it only the
+      # installer is published and the in-app updater stays disabled.
+      - name: Updater artifacts only with signing key
+        id: updater
+        shell: bash
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo 'args=--config {"bundle":{"createUpdaterArtifacts":true}}' >> "$GITHUB_OUTPUT"
+            echo 'json=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'json=false' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build and publish
         uses: tauri-apps/tauri-action@v0
         env:
@@ -46,7 +61,7 @@ jobs:
             See the commit history for changes.
 
             **Upgrading from 1.x:** uninstall Gemini Tray 1.x first, then run the installer below.
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
-          includeUpdaterJson: true
-          args: --config {"bundle":{"createUpdaterArtifacts":true}}
+          includeUpdaterJson: ${{ steps.updater.outputs.json == 'true' }}
+          args: ${{ steps.updater.outputs.args }}
