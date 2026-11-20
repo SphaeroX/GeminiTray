@@ -35,6 +35,12 @@
           "English"
         ]
       }
+    },
+    "resources": {
+      "runtime/msvcp140.dll": "msvcp140.dll",
+      "runtime/msvcp140_1.dll": "msvcp140_1.dll",
+      "runtime/vcruntime140.dll": "vcruntime140.dll",
+      "runtime/vcruntime140_1.dll": "vcruntime140_1.dll"
     }
   }
 }

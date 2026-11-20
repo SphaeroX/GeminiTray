@@ -19,7 +19,7 @@ Gemini Tray 2.0 ist ein kompletter Neuaufbau der bisherigen Electron-App als sch
 
 ## Aktueller Status
 
-Stand: 2026-11-20 – Tasks 01–04 erledigt.
+Stand: 2026-11-20 – Tasks 01–05 erledigt.
 
 | Task | Titel | Status |
 |---|---|---|
@@ -27,8 +27,8 @@ Stand: 2026-11-20 – Tasks 01–04 erledigt.
 | 02 | Google-Login und dauerhafte Sitzung | erledigt |
 | 03 | Einstellungen, Shortcuts, Autostart, i18n | erledigt |
 | 04 | Gemini-Brücke und „Neuer Chat“ | erledigt |
-| 05 | Lokale Spracherkennung (Parakeet) | läuft |
-| 06 | Diktat in die Zwischenablage | offen |
+| 05 | Lokale Spracherkennung (Parakeet) | erledigt |
+| 06 | Diktat in die Zwischenablage | läuft |
 | 07 | Sprachnachricht an Gemini | offen |
 | 08 | Screenshot & Ask | offen |
 | 09 | Prompt-Menü | offen |
@@ -57,6 +57,7 @@ Globale Informationen, Architekturentscheidungen und Wissen, das für das gesamt
   - Falls Mica/Acrylic über Tauri (`window-vibrancy`) sauber funktioniert, darf es den einfarbigen Fensterhintergrund ersetzen.
 - **[Task 01] Test-Befehle:** Alle Tests `npm test`; nur UI `npx vitest run` (einzeln: `npx vitest run tests/ui/<datei>`); nur Rust `cargo test --manifest-path src-tauri/Cargo.toml` (einzeln: `--test <name>`). Release-Build: `npm run tauri build` → `src-tauri/target/release/bundle/nsis/`.
 - **[Task 01] Struktur:** Vite-Root `src/`, eine HTML-Datei pro App-Fenster; Rust-Lib `gemini_tray_lib` mit einem Modul pro Feature; Hauptfenster-Label `main` (lädt gemini.google.com, keine Capabilities).
+- **[Task 05] Spracherkennung umgesetzt:** `parakeet-rs` (ONNX Runtime, CPU) mit int8-Modell von `istupakov/parakeet-tdt-0.6b-v3-onnx` (≈ 670 MB, SHA-256 gepinnt). 10 s Audio ≈ 0,45 s (Release). DirectML per Delay-Load ausgeklammert, VC++-Laufzeit wird neben die exe gelegt (`scripts/collect-runtime.mjs`).
 - **[Planung] Spracherkennung:** Parakeet TDT 0.6B v3 (multilingual, DE/EN automatisch), lokal auf der CPU; Modell wird beim ersten Gebrauch heruntergeladen. Kein Cloud-STT.
 
 ## Auffälligkeiten & Details

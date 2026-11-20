@@ -65,6 +65,23 @@
       "login_browser": "Mit Browser anmelden",
       "reset": "Sitzung zurücksetzen",
       "reset_desc": "Meldet dich ab und löscht alle Daten des Gemini-Fensters"
+    },
+    "voice": {
+      "model_title": "Spracherkennung (Parakeet, lokal)",
+      "model_desc": "Läuft offline auf diesem PC · Deutsch und Englisch werden automatisch erkannt",
+      "model_installed": "Installiert – {size} MB",
+      "model_not_installed": "Noch nicht installiert – Download ca. {size} MB",
+      "model_downloading": "Modell wird heruntergeladen – {done} MB von {total} MB ({percent} %)",
+      "download": "Herunterladen",
+      "retry": "Erneut versuchen",
+      "microphone": "Mikrofon",
+      "microphone_desc": "Wird für Sprachnachricht und Diktat verwendet",
+      "microphone_default": "Systemstandard",
+      "auto_send": "Sprachnachricht automatisch senden",
+      "auto_send_desc": "Aus: Der Text wird nur eingefügt, du sendest selbst",
+      "max_minutes": "Maximale Aufnahmedauer",
+      "max_minutes_desc": "Danach wird die Aufnahme automatisch beendet",
+      "minutes": "{n} Minuten"
     }
   },
   "toast": {
@@ -118,6 +135,20 @@
       "failed": {
         "title": "Nicht in Gemini eingefügt",
         "body": "{detail}"
+      }
+    },
+    "model": {
+      "ready": {
+        "title": "Spracherkennung bereit",
+        "body": "Das Sprachmodell ist installiert. Sprachnachricht und Diktat funktionieren jetzt offline."
+      },
+      "failed": {
+        "title": "Download fehlgeschlagen",
+        "body": "{detail}"
+      },
+      "missing": {
+        "title": "Sprachmodell fehlt",
+        "body": "Das Sprachmodell (ca. 670 MB) wird jetzt heruntergeladen. Danach erneut versuchen."
       }
     }
   }

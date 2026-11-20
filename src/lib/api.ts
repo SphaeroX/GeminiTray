@@ -47,6 +47,14 @@ export type ShortcutProblem =
 
 export type SaveError = { kind: "shortcuts"; problems: ShortcutProblem[] } | { kind: "io"; message: string };
 
+export interface ModelStatus {
+  installed: boolean;
+  downloading: boolean;
+  downloaded: number;
+  total: number;
+  error: string | null;
+}
+
 export type Level = "info" | "success" | "warning" | "error";
 export interface Notification {
   level: Level;
@@ -67,4 +75,7 @@ export const api = {
   autostartEnabled: () => invoke<boolean>("autostart_enabled"),
   toastReady: () => invoke<Notification[]>("toast_ready"),
   toastIdle: () => invoke<void>("toast_idle"),
+  modelStatus: () => invoke<ModelStatus>("model_status"),
+  modelDownload: () => invoke<void>("model_download"),
+  modelCancel: () => invoke<void>("model_cancel"),
 };

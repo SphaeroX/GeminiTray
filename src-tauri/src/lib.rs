@@ -9,6 +9,7 @@ pub mod login;
 pub mod notify;
 pub mod settings;
 pub mod shortcuts;
+pub mod stt;
 pub mod state;
 pub mod toast;
 pub mod tray;
@@ -94,6 +95,9 @@ pub fn run() {
             commands::autostart_enabled,
             toast::toast_ready,
             toast::toast_idle,
+            stt::service::model_status,
+            stt::service::model_download,
+            stt::service::model_cancel,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -101,6 +105,7 @@ pub fn run() {
             let (state, recovered) = AppState::load(config_dir.join("settings.json"));
             app.manage(state);
             app.manage(toast::ToastState::default());
+            app.manage(stt::service::SttState::new(&handle));
 
             toast::create(&handle)?;
             create_main_window(&handle)?;

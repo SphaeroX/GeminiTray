@@ -50,7 +50,9 @@ export async function mockInvoke(cmd: string, args?: Record<string, unknown>): P
 }
 
 // Extended by later features (microphones, model status …).
-export const mockHandlers: Record<string, (args?: Record<string, unknown>) => unknown> = {};
+export const mockHandlers: Record<string, (args?: Record<string, unknown>) => unknown> = {
+  model_status: () => ({ installed: false, downloading: true, downloaded: 412_000_000, total: 670_480_000, error: null }),
+};
 
 function mockExtra(cmd: string, args?: Record<string, unknown>): unknown {
   const h = mockHandlers[cmd];

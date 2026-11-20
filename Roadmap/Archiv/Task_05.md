@@ -66,23 +66,24 @@ Der Task gilt erst als fertig, wenn alle Punkte erfüllt und durch Tests oder ei
 
 Taskspezifische Informationen während der Arbeit hier festhalten. Taskübergreifendes gehört in `Roadmap/README.md`.
 
+- Spike: `parakeet-rs` 0.4.4 (ONNX Runtime, unterstützt Parakeet TDT v3 und int8-Dateien direkt) gegenüber `sherpa-onnx` geprüft → `parakeet-rs` gewählt (einfachere API, statisch gelinkte ONNX Runtime, kein eigenes Pre-/Postprocessing). `sherpa-onnx` wurde nicht weiter gebaut.
+- Modell: int8-Export von `istupakov/parakeet-tdt-0.6b-v3-onnx` (Revision `8f23f0c0`, CC-BY-4.0): `encoder-model.int8.onnx` (652 MB), `decoder_joint-model.int8.onnx` (18 MB), `vocab.txt` – zusammen ≈ 670 MB. SHA-256 aller drei Dateien gepinnt.
+- Messung (Release, Entwicklungsrechner, CPU): 10 s Audio in **0,45 s** transkribiert; Laden des Modells < 2 s. Test-WAVs (Windows-TTS, 48 kHz Stereo) DE und EN wurden wortgenau erkannt.
+- 11 Rust-Tests in `tests/rust/stt.rs` grün (3 davon `#[ignore]`, brauchen das Modell). Einstellungsseite „Sprache“ mit Modellkarte im Browser geprüft.
+
 ## Abschluss-Checkliste
 
 Reihenfolge und Details stehen in `AGENTS.md`, Abschnitt "Abschluss- und Archivierungs-Workflow".
 
-- [ ] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
-- [ ] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
-- [ ] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
-- [ ] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
+- [x] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
+- [x] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
+- [x] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
+- [x] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
 
 ## Erkenntnisse für Folge-Agenten
 
-<!-- ERKENNTNISSE-OFFEN: Vor der Archivierung ausfüllen und diese Zeile löschen. -->
-
-Vor der Archivierung vom Agenten auszufüllen. Schreibe so, dass ein Agent, der diesen Task nie gesehen hat, davon bei späteren Tasks profitiert:
-
-- **Umgesetzt (und Abweichungen vom Plan):**
-- **Learnings & Stolpersteine:**
-- **Wichtige Entscheidungen und ihre Gründe:**
-- **Auswirkungen auf Folge-Tasks:**
-- **Hinweise zu Tests und Befehlen:**
+- **Umgesetzt (und Abweichungen vom Plan):** `stt::{Engine, model, resample, service}`. `Engine::transcribe(samples, rate, channels)` resampelt selbst auf 16 kHz Mono (Mittelwert-Tiefpass + linear) und lädt das Modell beim ersten Aufruf (`preload()` kann vorab laden). Stille/zu kurz (< 0,3 s, RMS < 0,002) → leerer Text. Download mit Fortschritts-Event `model-progress`, Abbrechen, `.part`-Dateien, Prüfsummen; Befehle `model_status`, `model_download`, `model_cancel`. Einstellungsseite „Sprache“ (Modellkarte, automatisch senden, max. Dauer) bereits angelegt; Mikrofonauswahl folgt in Task 06 (Slot `microphone` vorbereitet).
+- **Learnings & Stolpersteine:** Die vorkompilierte ONNX Runtime (pyke) linkt unter Windows immer `DirectML.dll` und `MSVCP140.dll`. Lösung: `/DELAYLOAD:DirectML.dll` + `delayimp` in `build.rs` (getestet: Erkennung läuft ohne DirectML.dll), und die VC++-Laufzeit (msvcp140, msvcp140_1, vcruntime140, vcruntime140_1) wird per `scripts/collect-runtime.mjs` aus dem VS-Redist-Ordner nach `src-tauri/runtime/` kopiert und über `bundle.resources` neben die exe gelegt. Debug-Builds sind für die Erkennung deutlich langsamer – Messungen immer mit `--release`.
+- **Wichtige Entscheidungen und ihre Gründe:** int8 statt fp32 (670 MB statt 2,5 GB, Qualität für Diktat ausreichend). Modell wird nicht mitgeliefert, sondern bei Bedarf nach `%LOCALAPPDATA%\com.sphaerox.geminitray\models\parakeet-tdt-0.6b-v3-int8\` geladen.
+- **Auswirkungen auf Folge-Tasks:** Task 06/07: vor der Aufnahme `engine.preload()` in einem Thread starten; fehlt das Modell → `service::start_download` + Toast `model.missing`. `Engine` ist `Arc` in `SttState` (`app.state::<SttState>().engine`).
+- **Hinweise zu Tests und Befehlen:** Modelltests: `cargo test --manifest-path src-tauri/Cargo.toml --release --test stt -- --include-ignored --nocapture`.

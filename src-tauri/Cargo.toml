@@ -28,6 +28,8 @@ cookie = "0.18"
 tauri-plugin-autostart = "2"
 sys-locale = "0.3.2"
 base64 = "0.23.1"
+parakeet-rs = "0.4"
+sha2 = "0.11.1"
 
 [[test]]
 name = "window_toggle"
@@ -40,6 +42,9 @@ opt-level = 3
 panic = "abort"
 strip = true
 
+[dev-dependencies]
+hound = "3.5.1"
+
 [[test]]
 name = "login"
 path = "../tests/rust/login.rs"
@@ -51,3 +56,7 @@ path = "../tests/rust/settings.rs"
 [[test]]
 name = "bridge"
 path = "../tests/rust/bridge.rs"
+
+[[test]]
+name = "stt"
+path = "../tests/rust/stt.rs"
