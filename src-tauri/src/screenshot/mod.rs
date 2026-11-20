@@ -127,14 +127,14 @@ pub async fn overlay_image(app: AppHandle, index: usize) -> Result<OverlayImage,
 }
 
 #[tauri::command]
-pub fn overlay_cancel(app: AppHandle) {
+pub async fn overlay_cancel(app: AppHandle) {
     close_overlays(&app);
     app.state::<ScreenshotState>().captures.lock().unwrap().clear();
 }
 
 /// Selection confirmed in overlay `index` (CSS px of that overlay).
 #[tauri::command]
-pub fn overlay_select(app: AppHandle, index: usize, rect: CssRect) {
+pub async fn overlay_select(app: AppHandle, index: usize, rect: CssRect) {
     let cropped = {
         let state = app.state::<ScreenshotState>();
         let caps = state.captures.lock().unwrap();

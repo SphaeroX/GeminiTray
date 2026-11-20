@@ -78,8 +78,10 @@ pub fn resume_shortcuts(app: AppHandle) {
     shortcuts::resume(&app);
 }
 
+// Commands that create windows must be async: on Windows, building a window inside a synchronous
+// command blocks the main thread and the new window hangs.
 #[tauri::command]
-pub fn open_settings(app: AppHandle, category: Option<String>) {
+pub async fn open_settings(app: AppHandle, category: Option<String>) {
     appwindows::open_settings(&app, category.as_deref());
 }
 
@@ -114,8 +116,10 @@ pub fn autostart_enabled(app: AppHandle) -> bool {
 
 /// Buttons of the custom title bar in the Gemini window.
 #[tauri::command]
-pub fn titlebar_action(app: AppHandle, state: State<'_, AppState>, action: String) {
+pub async fn titlebar_action(app: AppHandle, action: String) {
     use crate::settings::ShortcutAction;
+    use tauri::Manager;
+    let state = app.state::<AppState>();
     let Some(w) = crate::windowing::main_window(&app) else { return };
     match action.as_str() {
         "newChat" => crate::actions::run(&app, ShortcutAction::NewChat),
