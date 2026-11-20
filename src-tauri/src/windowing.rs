@@ -39,15 +39,19 @@ mod runtime {
 
     pub fn hide_main(app: &AppHandle) {
         if let Some(w) = main_window(app) {
+            if w.is_visible().unwrap_or(false) {
+                crate::windowstate::remember(app, &w);
+            }
             let _ = w.hide();
         }
     }
 
-    /// Apply window-related settings (always on top; opacity follows in Task 10).
+    /// Apply window-related settings (always on top, opacity).
     pub fn apply_window_settings(app: &AppHandle) {
         let Some(w) = main_window(app) else { return };
         let s = app.state::<crate::state::AppState>().settings();
         let _ = w.set_always_on_top(s.window.always_on_top);
+        crate::windowstate::apply_opacity(&w, s.window.opacity);
     }
 
     pub fn toggle_main(app: &AppHandle) {

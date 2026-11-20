@@ -55,7 +55,14 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
             "screenshot" => crate::actions::run(app, crate::settings::ShortcutAction::Screenshot),
             "login_browser" => login::start_browser_login(app),
             "reset_session" => login::reset_session(app),
-            "quit" => app.exit(0),
+            "quit" => {
+                if let Some(w) = windowing::main_window(app) {
+                    if w.is_visible().unwrap_or(false) {
+                        crate::windowstate::remember(app, &w);
+                    }
+                }
+                app.exit(0)
+            }
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {

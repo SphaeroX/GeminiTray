@@ -4,6 +4,7 @@ import ShortcutsSection from "./ShortcutsSection.vue";
 import AccountSection from "./AccountSection.vue";
 import VoiceSection from "./VoiceSection.vue";
 import PromptsSection from "./PromptsSection.vue";
+import WindowSection from "./WindowSection.vue";
 
 export interface Section {
   id: string;
@@ -33,6 +34,11 @@ export const sections: Section[] = [
     id: "prompts",
     icon: "M3 2.5h10v11H3zM5.5 5.5h5M5.5 8h5M5.5 10.5h3",
     component: PromptsSection,
+  },
+  {
+    id: "window",
+    icon: "M3 2.5h10A1.5 1.5 0 0 1 14.5 4v8a1.5 1.5 0 0 1-1.5 1.5H3A1.5 1.5 0 0 1 1.5 12V4A1.5 1.5 0 0 1 3 2.5ZM1.5 5.5h13",
+    component: WindowSection,
   },
   {
     id: "account",

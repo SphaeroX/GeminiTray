@@ -81,3 +81,7 @@ path = "../tests/rust/screenshot.rs"
 [[test]]
 name = "prompts"
 path = "../tests/rust/prompts.rs"
+
+[[test]]
+name = "windowstate"
+path = "../tests/rust/windowstate.rs"

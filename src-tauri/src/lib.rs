@@ -19,6 +19,7 @@ pub mod tray;
 pub mod voice;
 pub mod voice_message;
 pub mod windowing;
+pub mod windowstate;
 
 use notify::Level;
 use state::AppState;
@@ -53,11 +54,16 @@ fn create_main_window(app: &tauri::AppHandle) -> tauri::Result<()> {
         })
         .build()?;
 
+    windowstate::restore(app, &window);
+    windowstate::apply_opacity(&window, app.state::<AppState>().settings().window.opacity);
+
     // Closing the window only hides it; the app keeps running in the tray.
     let handle = window.clone();
+    let app_handle = app.clone();
     window.on_window_event(move |event| {
         if let WindowEvent::CloseRequested { api, .. } = event {
             api.prevent_close();
+            windowstate::remember(&app_handle, &handle);
             let _ = handle.hide();
         }
     });

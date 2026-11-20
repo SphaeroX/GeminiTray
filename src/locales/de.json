@@ -97,6 +97,13 @@
       "name_placeholder": "z. B. Kurz erklären",
       "content_placeholder": "z. B. Erkläre das Folgende in drei Sätzen für Einsteiger:",
       "empty": "Noch keine Prompts gespeichert."
+    },
+    "window": {
+      "opacity": "Deckkraft",
+      "opacity_desc": "Durchsichtigkeit des Gemini-Fensters",
+      "always_on_top": "Immer im Vordergrund",
+      "always_on_top_desc": "Gemini-Fenster bleibt über allen anderen Fenstern",
+      "position": "Position und Größe werden beim Ausblenden gespeichert und beim nächsten Start wiederhergestellt."
     }
   },
   "toast": {

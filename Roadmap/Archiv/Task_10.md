@@ -57,23 +57,24 @@ Der Task gilt erst als fertig, wenn alle Punkte erfüllt und durch Tests oder ei
 
 Taskspezifische Informationen während der Arbeit hier festhalten. Taskübergreifendes gehört in `Roadmap/README.md`.
 
+- 7 Rust-Tests (`tests/rust/windowstate.rs`) grün: Wiederherstellung innerhalb/teilweise außerhalb/komplett außerhalb, Titelleiste über dem Bildschirm, Mindestgröße, Alpha-Umrechnung, Speichern/Laden.
+- Einstellungsseite „Fenster“ (Deckkraft-Regler 50–100 %, Immer im Vordergrund) angelegt.
+- **Nicht optisch geprüft:** Deckkraft über `SetLayeredWindowAttributes` mit WebView2-Inhalt – der Agent hat keinen Bildzugriff auf das App-Fenster. **Manuelle Prüfung durch den Nutzer offen** (Regler bewegen, Inhalt muss mit durchsichtig werden, keine schwarzen Flächen). Falls fehlerhaft: Option laut Task-Annahme streichen.
+- **Weitere manuelle Prüfung offen:** Fenster verschieben → ausblenden → App neu starten → gleiche Position; Monitor abziehen → zentriert.
+
 ## Abschluss-Checkliste
 
 Reihenfolge und Details stehen in `AGENTS.md`, Abschnitt "Abschluss- und Archivierungs-Workflow".
 
-- [ ] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
-- [ ] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
-- [ ] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
-- [ ] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
+- [x] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
+- [x] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
+- [x] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
+- [x] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
 
 ## Erkenntnisse für Folge-Agenten
 
-<!-- ERKENNTNISSE-OFFEN: Vor der Archivierung ausfüllen und diese Zeile löschen. -->
-
-Vor der Archivierung vom Agenten auszufüllen. Schreibe so, dass ein Agent, der diesen Task nie gesehen hat, davon bei späteren Tasks profitiert:
-
-- **Umgesetzt (und Abweichungen vom Plan):**
-- **Learnings & Stolpersteine:**
-- **Wichtige Entscheidungen und ihre Gründe:**
-- **Auswirkungen auf Folge-Tasks:**
-- **Hinweise zu Tests und Befehlen:**
+- **Umgesetzt (und Abweichungen vom Plan):** Eigenes Modul `windowstate` statt `tauri-plugin-window-state` (das Plugin würde auch Overlays/Toasts beeinflussen). Position/Größe in `window-state.json` (App-Config-Ordner), gespeichert beim Ausblenden, beim Schließen-Knopf und bei „Beenden“; beim Start nur wiederhergestellt, wenn die Titelleiste auf einem Monitor sichtbar ist, sonst zentriert. Deckkraft per Win32 `WS_EX_LAYERED` + `SetLayeredWindowAttributes` (eigene FFI-Deklaration, keine zusätzliche Crate); bei 100 % wird der Layered-Stil wieder entfernt.
+- **Learnings & Stolpersteine:** Mehrzeilige Bash-Heredocs mit Rust-Code brechen gelegentlich das Quoting → Änderungen über Python-Skript-Dateien oder das Write-Werkzeug.
+- **Wichtige Entscheidungen und ihre Gründe:** Standard-Deckkraft 100 % (neu, die alte App hatte 95 %), damit der Text gestochen scharf bleibt.
+- **Auswirkungen auf Folge-Tasks:** Keine.
+- **Hinweise zu Tests und Befehlen:** `cargo test --manifest-path src-tauri/Cargo.toml --test windowstate`.

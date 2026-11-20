@@ -97,6 +97,13 @@
       "name_placeholder": "e.g. Explain briefly",
       "content_placeholder": "e.g. Explain the following in three sentences for beginners:",
       "empty": "No prompts saved yet."
+    },
+    "window": {
+      "opacity": "Opacity",
+      "opacity_desc": "Transparency of the Gemini window",
+      "always_on_top": "Always on top",
+      "always_on_top_desc": "Keep the Gemini window above all other windows",
+      "position": "Position and size are saved when the window is hidden and restored on the next start."
     }
   },
   "toast": {
