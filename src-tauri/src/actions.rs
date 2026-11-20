@@ -13,13 +13,13 @@ pub fn run(app: &AppHandle, action: ShortcutAction) {
         ShortcutAction::Toggle => windowing::toggle_main(app),
         ShortcutAction::NewChat => new_chat(app),
         ShortcutAction::Screenshot => crate::screenshot::start(app),
+        ShortcutAction::Prompts => crate::prompts::open_menu(app),
         ShortcutAction::Voice => {
             crate::voice::handle(app, crate::voice::machine::Event::Toggle(crate::voice::machine::Mode::Message))
         }
         ShortcutAction::Dictation => {
             crate::voice::handle(app, crate::voice::machine::Event::Toggle(crate::voice::machine::Mode::Dictation))
         }
-        _ => notify::show(app, Level::Info, "not_available", None),
     }
 }
 

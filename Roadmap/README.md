@@ -19,7 +19,7 @@ Gemini Tray 2.0 ist ein kompletter Neuaufbau der bisherigen Electron-App als sch
 
 ## Aktueller Status
 
-Stand: 2026-11-20 – Tasks 01–08 erledigt.
+Stand: 2026-11-20 – Tasks 01–09 erledigt.
 
 | Task | Titel | Status |
 |---|---|---|
@@ -31,8 +31,8 @@ Stand: 2026-11-20 – Tasks 01–08 erledigt.
 | 06 | Diktat in die Zwischenablage | erledigt |
 | 07 | Sprachnachricht an Gemini | erledigt |
 | 08 | Screenshot & Ask | erledigt |
-| 09 | Prompt-Menü | läuft |
-| 10 | Fensterverhalten | offen |
+| 09 | Prompt-Menü | erledigt |
+| 10 | Fensterverhalten | läuft |
 | 11 | Release, Auto-Update, Umstellung | offen |
 
 Status ist `offen`, `läuft` (Datei trägt das Präfix `RUN_`) oder `erledigt` (Datei liegt in `Archiv/`). Die Tabelle wird beim Archivieren eines Tasks aktualisiert.

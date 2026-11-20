@@ -20,6 +20,7 @@ const settings: Settings = {
   prompts: [
     { id: "1", name: "Kurz erklären", content: "Erkläre das Folgende in drei Sätzen für Einsteiger:" },
     { id: "2", name: "Fehler erklären", content: "Erkläre diese Fehlermeldung und schlage eine Lösung vor:" },
+    { id: "3", name: "Text auf Englisch", content: "Übersetze ins Englische, erkläre schwierige Begriffe:" },
   ],
 };
 
@@ -51,6 +52,7 @@ export async function mockInvoke(cmd: string, args?: Record<string, unknown>): P
 
 // Extended by later features (microphones, model status …).
 export const mockHandlers: Record<string, (args?: Record<string, unknown>) => unknown> = {
+  prompts_menu_data: () => ({ prompts: settings.prompts, activeId: "2" }),
   overlay_image: () => ({
     dataUrl:
       "data:image/svg+xml;utf8," +

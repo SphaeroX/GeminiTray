@@ -77,3 +77,7 @@ path = "../tests/rust/voice_message.rs"
 [[test]]
 name = "screenshot"
 path = "../tests/rust/screenshot.rs"
+
+[[test]]
+name = "prompts"
+path = "../tests/rust/prompts.rs"

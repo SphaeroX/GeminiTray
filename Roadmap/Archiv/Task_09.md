@@ -61,23 +61,23 @@ Der Task gilt erst als fertig, wenn alle Punkte erfüllt und durch Tests oder ei
 
 Taskspezifische Informationen während der Arbeit hier festhalten. Taskübergreifendes gehört in `Roadmap/README.md`.
 
+- 3 Rust-Tests (`tests/rust/prompts.rs`) und 4 UI-Tests (Suche inkl. Umlaute, Tastaturnavigation, Umsortieren, Vorschau) grün; Schema-Upgrade (alte Datei ohne `prompts`) ist bereits in `tests/rust/settings.rs` abgedeckt.
+- Im Browser geprüft: Schnellmenü (Suche „erk“, Pfeiltasten, Markierung „aktiv“, „Auswahl aufheben“) entspricht dem Design; Prompt anlegen/speichern in den Einstellungen funktioniert. Gefundener Fehler: Nach „Prompt hinzufügen“ hatte das Namensfeld keinen Fokus → behoben.
+- **Manuelle Prüfliste offen für den Nutzer:** Alt+J im echten Fenster, Auswahl → Text erscheint im Gemini-Eingabefeld; danach Sprachnachricht/Screenshot → wird dahinter angehängt.
+
 ## Abschluss-Checkliste
 
 Reihenfolge und Details stehen in `AGENTS.md`, Abschnitt "Abschluss- und Archivierungs-Workflow".
 
-- [ ] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
-- [ ] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
-- [ ] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
-- [ ] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
+- [x] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
+- [x] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
+- [x] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
+- [x] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
 
 ## Erkenntnisse für Folge-Agenten
 
-<!-- ERKENNTNISSE-OFFEN: Vor der Archivierung ausfüllen und diese Zeile löschen. -->
-
-Vor der Archivierung vom Agenten auszufüllen. Schreibe so, dass ein Agent, der diesen Task nie gesehen hat, davon bei späteren Tasks profitiert:
-
-- **Umgesetzt (und Abweichungen vom Plan):**
-- **Learnings & Stolpersteine:**
-- **Wichtige Entscheidungen und ihre Gründe:**
-- **Auswirkungen auf Folge-Tasks:**
-- **Hinweise zu Tests und Befehlen:**
+- **Umgesetzt (und Abweichungen vom Plan):** `prompts.rs` (Menüfenster `prompts`, Befehle `prompts_menu_data`, `prompt_select`, `prompt_clear`, `prompts_close`), Menü `src/pages/prompts`, Verwaltung `PromptsSection.vue` (anlegen, bearbeiten, löschen, hoch/runter). **Abweichung:** Ein gewählter Prompt wird sofort ins Gemini-Eingabefeld vorbefüllt; Sprachnachricht/Screenshot werden dahinter angehängt. Nur wenn das Vorbefüllen scheitert, wird der Prompt beim nächsten Mal nativ vorangestellt (`Active.prefilled`). So erscheint er nie doppelt.
+- **Learnings & Stolpersteine:** Das Menüfenster braucht Fokus (Tastatureingabe) und versteckt sich bei Fokusverlust. Neue Eingabefelder per `nextTick` fokussieren.
+- **Wichtige Entscheidungen und ihre Gründe:** Der aktive Prompt gilt genau für eine Nachricht und wird danach zurückgesetzt. Kein Abfangen von Senden/Enter auf der Gemini-Seite.
+- **Auswirkungen auf Folge-Tasks:** Keine.
+- **Hinweise zu Tests und Befehlen:** Vorschau: `http://localhost:1420/prompts.html` und `settings.html#prompts`.

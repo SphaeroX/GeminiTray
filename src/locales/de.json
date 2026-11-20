@@ -84,6 +84,19 @@
       "max_minutes": "Maximale Aufnahmedauer",
       "max_minutes_desc": "Danach wird die Aufnahme automatisch beendet",
       "minutes": "{n} Minuten"
+    },
+    "prompts": {
+      "intro": "Gespeicherte Prompts erscheinen im Prompt-Menü (Alt+J). Der gewählte Prompt wird ins Eingabefeld von Gemini eingefügt; eine anschließende Sprachnachricht oder ein Screenshot wird dahinter angehängt.",
+      "add": "Prompt hinzufügen",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "up": "Nach oben",
+      "down": "Nach unten",
+      "name": "Name",
+      "content": "Inhalt",
+      "name_placeholder": "z. B. Kurz erklären",
+      "content_placeholder": "z. B. Erkläre das Folgende in drei Sätzen für Einsteiger:",
+      "empty": "Noch keine Prompts gespeichert."
     }
   },
   "toast": {
@@ -195,5 +208,17 @@
   "overlay": {
     "hint": "Bereich aufziehen",
     "keys": "Enter bestätigen · Esc abbrechen"
+  },
+  "prompts_menu": {
+    "title": "Prompt wählen",
+    "search": "Prompts durchsuchen",
+    "select": "↑ ↓ auswählen",
+    "apply": "Enter übernehmen",
+    "close": "Esc schließen",
+    "clear": "Auswahl aufheben",
+    "empty": "Noch keine Prompts gespeichert.",
+    "empty_hint": "In den Einstellungen anlegen",
+    "no_match": "Kein Prompt gefunden.",
+    "active": "aktiv"
   }
 }

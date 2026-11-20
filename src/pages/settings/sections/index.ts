@@ -3,6 +3,7 @@ import GeneralSection from "./GeneralSection.vue";
 import ShortcutsSection from "./ShortcutsSection.vue";
 import AccountSection from "./AccountSection.vue";
 import VoiceSection from "./VoiceSection.vue";
+import PromptsSection from "./PromptsSection.vue";
 
 export interface Section {
   id: string;
@@ -27,6 +28,11 @@ export const sections: Section[] = [
     id: "voice",
     icon: "M8 1.5a2.5 2.5 0 0 0-2.5 2.5v3a2.5 2.5 0 0 0 5 0V4A2.5 2.5 0 0 0 8 1.5ZM3 7.5a5 5 0 0 0 10 0M8 12.5v2",
     component: VoiceSection,
+  },
+  {
+    id: "prompts",
+    icon: "M3 2.5h10v11H3zM5.5 5.5h5M5.5 8h5M5.5 10.5h3",
+    component: PromptsSection,
   },
   {
     id: "account",

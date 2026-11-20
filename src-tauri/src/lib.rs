@@ -112,6 +112,10 @@ pub fn run() {
             screenshot::overlay_image,
             screenshot::overlay_cancel,
             screenshot::overlay_select,
+            prompts::prompts_menu_data,
+            prompts::prompt_select,
+            prompts::prompt_clear,
+            prompts::prompts_close,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -122,6 +126,7 @@ pub fn run() {
             app.manage(stt::service::SttState::new(&handle));
             app.manage(voice::VoiceState::default());
             app.manage(screenshot::ScreenshotState::default());
+            app.manage(prompts::PromptState::default());
 
             toast::create(&handle)?;
             voice::create_indicator(&handle)?;

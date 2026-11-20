@@ -84,6 +84,19 @@
       "max_minutes": "Maximum recording length",
       "max_minutes_desc": "Recording stops automatically after this time",
       "minutes": "{n} minutes"
+    },
+    "prompts": {
+      "intro": "Saved prompts appear in the prompt menu (Alt+J). The chosen prompt is inserted into Gemini's input; a following voice message or screenshot is appended after it.",
+      "add": "Add prompt",
+      "edit": "Edit",
+      "delete": "Delete",
+      "up": "Move up",
+      "down": "Move down",
+      "name": "Name",
+      "content": "Content",
+      "name_placeholder": "e.g. Explain briefly",
+      "content_placeholder": "e.g. Explain the following in three sentences for beginners:",
+      "empty": "No prompts saved yet."
     }
   },
   "toast": {
@@ -195,5 +208,17 @@
   "overlay": {
     "hint": "Drag to select an area",
     "keys": "Enter to confirm · Esc to cancel"
+  },
+  "prompts_menu": {
+    "title": "Choose a prompt",
+    "search": "Search prompts",
+    "select": "↑ ↓ select",
+    "apply": "Enter apply",
+    "close": "Esc close",
+    "clear": "Clear selection",
+    "empty": "No prompts saved yet.",
+    "empty_hint": "Add some in the settings",
+    "no_match": "No prompt found.",
+    "active": "active"
   }
 }
