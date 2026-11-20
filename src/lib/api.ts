@@ -28,7 +28,7 @@ export interface Settings {
   autostart: boolean;
   startMinimized: boolean;
   shortcuts: Shortcuts;
-  voice: { autoSend: boolean; microphone: string | null; maxMinutes: number };
+  voice: { autoSend: boolean; maxMinutes: number };
   window: { opacity: number; alwaysOnTop: boolean };
   prompts: Prompt[];
 }
@@ -47,19 +47,11 @@ export type ShortcutProblem =
 
 export type SaveError = { kind: "shortcuts"; problems: ShortcutProblem[] } | { kind: "io"; message: string };
 
-export interface ModelStatus {
-  installed: boolean;
-  downloading: boolean;
-  downloaded: number;
-  total: number;
-  error: string | null;
-}
-
 export interface IndicatorState {
   phase: "idle" | "recording" | "transcribing";
   mode?: "dictation" | "message";
   prompt: string | null;
-  error: "accessDenied" | "noDevice" | "device" | null;
+  error: "micFailed" | "notReady" | null;
 }
 
 export type UpdateStatus =
@@ -88,14 +80,10 @@ export const api = {
   autostartEnabled: () => invoke<boolean>("autostart_enabled"),
   toastReady: () => invoke<Notification[]>("toast_ready"),
   toastIdle: () => invoke<void>("toast_idle"),
-  modelStatus: () => invoke<ModelStatus>("model_status"),
-  modelDownload: () => invoke<void>("model_download"),
-  modelCancel: () => invoke<void>("model_cancel"),
   voiceFinish: () => invoke<void>("voice_finish"),
   voiceCancel: () => invoke<void>("voice_cancel"),
   voiceDismiss: () => invoke<void>("voice_dismiss"),
   openMicPrivacy: () => invoke<void>("open_mic_privacy"),
-  listMicrophones: () => invoke<string[]>("list_microphones"),
   promptsMenuData: () => invoke<{ prompts: Prompt[]; activeId: string | null }>("prompts_menu_data"),
   promptSelect: (id: string) => invoke<void>("prompt_select", { id }),
   promptClear: () => invoke<void>("prompt_clear"),

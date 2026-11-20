@@ -6,7 +6,7 @@
         <path d="M8 4.5v4M8 10.8v.2" />
       </svg>
       <span>{{ t(`indicator.error.${state.error}`) }}</span>
-      <a v-if="state.error === 'accessDenied'" href="#" class="link" @click.prevent="api.openMicPrivacy()">{{ t("indicator.open_settings") }}</a>
+      <a v-if="state.error === 'micFailed'" href="#" class="link" @click.prevent="api.openMicPrivacy()">{{ t("indicator.open_settings") }}</a>
       <button class="icon" :aria-label="t('common.close')" @click="api.voiceDismiss()">
         <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" /></svg>
       </button>
@@ -16,9 +16,6 @@
       <span class="dot"></span>
       <span>{{ state.mode === "message" ? t("indicator.message") : t("indicator.dictation") }}</span>
       <span v-if="state.prompt" class="chip">{{ t("indicator.prompt", { name: state.prompt }) }}</span>
-      <div class="bars" aria-hidden="true">
-        <span v-for="(h, i) in bars" :key="i" :style="{ height: `${h}px` }"></span>
-      </div>
       <span class="time">{{ time }}</span>
       <button class="primary" @click="api.voiceFinish()">
         {{ state.mode === "message" ? t("indicator.send") : t("indicator.done") }}
@@ -43,45 +40,34 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { api, type IndicatorState } from "../../lib/api";
 import { onEvent } from "../../lib/events";
-import { formatDuration, levelBars } from "../../lib/indicator";
+import { formatDuration } from "../../lib/indicator";
 import { isTauri } from "@tauri-apps/api/core";
 
 /** Browser preview: indicator.html#recording | #message | #transcribing | #error */
 function demo() {
   const h = location.hash.slice(1);
   if (h === "transcribing") Object.assign(state, { phase: "transcribing", mode: "dictation" });
-  else if (h === "error") Object.assign(state, { phase: "idle", error: "accessDenied" });
+  else if (h === "error") Object.assign(state, { phase: "idle", error: "micFailed" });
   else Object.assign(state, { phase: "recording", mode: h === "message" ? "message" : "dictation", prompt: h === "message" ? "Kurz erklären" : null });
-  history.value = [0.002, 0.02, 0.08, 0.03, 0.05, 0.01, 0.004];
   seconds.value = 12;
 }
 
 const { t } = useI18n();
 const state = reactive<IndicatorState>({ phase: "idle", mode: undefined, prompt: null, error: null });
-const level = ref(0);
 const seconds = ref(0);
-const history = ref<number[]>([]);
 let errorTimer: ReturnType<typeof setTimeout> | undefined;
 
-const bars = computed(() => levelBars(history.value, 7));
 const time = computed(() => formatDuration(seconds.value));
 
 onMounted(async () => {
   if (import.meta.env.DEV && !isTauri()) demo();
   await onEvent<IndicatorState>("voice-state", (s) => {
     Object.assign(state, { mode: undefined, prompt: null, error: null }, s);
-    if (s.phase === "recording" && !s.error) {
-      history.value = [];
-      seconds.value = 0;
-    }
+    if (s.phase === "recording" && !s.error) seconds.value = 0;
     clearTimeout(errorTimer);
     if (s.error) errorTimer = setTimeout(() => api.voiceDismiss(), 6000);
   });
-  await onEvent<{ level: number; seconds: number }>("voice-level", (l) => {
-    level.value = l.level;
-    seconds.value = l.seconds;
-    history.value = [...history.value.slice(-6), l.level];
-  });
+  await onEvent<{ seconds: number }>("voice-level", (l) => (seconds.value = l.seconds));
 });
 </script>
 
@@ -112,8 +98,6 @@ html, body { background: transparent !important; }
 .dot { width: 10px; height: 10px; border-radius: 5px; background: var(--rec); animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.45; } }
 .chip { height: 24px; display: flex; align-items: center; padding: 0 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.1); font-size: 12px; color: #e0e0e0; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
-.bars { display: flex; align-items: center; gap: 3px; height: 20px; }
-.bars span { width: 3px; border-radius: 2px; background: #fff; transition: height 0.08s linear; }
 .time { font-variant-numeric: tabular-nums; color: #d0d0d0; min-width: 32px; }
 .primary { height: 32px; padding: 0 12px; border-radius: 16px; border: 0; background: var(--pill-accent); color: #000; font-size: 13px; font-weight: 600; cursor: pointer; }
 .icon { width: 32px; height: 32px; border-radius: 16px; border: 0; background: rgba(255, 255, 255, 0.08); color: #fff; display: grid; place-items: center; cursor: pointer; }

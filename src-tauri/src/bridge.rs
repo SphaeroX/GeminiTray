@@ -17,6 +17,8 @@ pub enum BridgeError {
     SelectorMissing(String),
     /// The image was dropped but Gemini did not show a preview.
     NotAttached,
+    /// Gemini's microphone did not start listening (blocked, no device, page changed).
+    MicNotStarted(String),
     Timeout,
     Script(String),
 }
@@ -27,6 +29,7 @@ impl std::fmt::Display for BridgeError {
             Self::NotReady => write!(f, "Gemini page not ready"),
             Self::SelectorMissing(s) => write!(f, "element not found: {s}"),
             Self::NotAttached => write!(f, "image was not attached"),
+            Self::MicNotStarted(d) => write!(f, "Gemini's microphone did not start ({d})"),
             Self::Timeout => write!(f, "timeout"),
             Self::Script(s) => write!(f, "script error: {s}"),
         }
@@ -63,6 +66,7 @@ pub fn parse_poll(raw: &str) -> PollState {
         Ok(Polled::Err { code, detail, .. }) => PollState::Done(Err(match code.as_str() {
             "selector_missing" => BridgeError::SelectorMissing(detail),
             "not_attached" => BridgeError::NotAttached,
+            "mic_not_started" => BridgeError::MicNotStarted(detail),
             "timeout" => BridgeError::Timeout,
             _ => BridgeError::Script(format!("{code}: {detail}")),
         })),
@@ -141,6 +145,30 @@ mod runtime {
         call(app, "send", json!({}), Duration::from_secs(20)).map(|_| ())
     }
 
+    pub fn mic_start(app: &AppHandle) -> Result<(), BridgeError> {
+        call(app, "micStart", json!({}), Duration::from_secs(10)).map(|_| ())
+    }
+
+    /// Stop Gemini's microphone and wait for the final transcript; returns the prompt text.
+    pub fn mic_stop(app: &AppHandle) -> Result<String, BridgeError> {
+        call(app, "micStop", json!({}), Duration::from_secs(20)).map(|v| v.as_str().unwrap_or_default().to_string())
+    }
+
+    pub fn is_recording(app: &AppHandle) -> Result<bool, BridgeError> {
+        call(app, "isRecording", json!({}), Duration::from_secs(3)).map(|v| v.as_bool().unwrap_or(false))
+    }
+
+    /// (recording, escape pressed since last call)
+    pub fn voice_status(app: &AppHandle) -> Result<(bool, bool), BridgeError> {
+        call(app, "voiceStatus", json!({}), Duration::from_secs(3))
+            .map(|v| (v["recording"].as_bool().unwrap_or(false), v["escape"].as_bool().unwrap_or(false)))
+    }
+
+    /// Cut the whole prompt text (returned, editor left empty).
+    pub fn take_text(app: &AppHandle) -> Result<String, BridgeError> {
+        call(app, "takeText", json!({}), Duration::from_secs(5)).map(|v| v.as_str().unwrap_or_default().to_string())
+    }
+
     pub fn self_test(app: &AppHandle) -> Result<Vec<String>, BridgeError> {
         let v = call(app, "selfTest", json!({}), Duration::from_secs(5))?;
         Ok(v["missing"]
@@ -162,4 +190,6 @@ mod runtime {
     }
 }
 
-pub use runtime::{call, insert_image, insert_text, self_test, send, wait_ready};
+pub use runtime::{
+    call, insert_image, insert_text, is_recording, mic_start, mic_stop, self_test, send, take_text, voice_status, wait_ready,
+};

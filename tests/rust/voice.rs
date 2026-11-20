@@ -60,20 +60,3 @@ fn preview_is_shortened() {
     assert_eq!(preview("kurz", 10), "„kurz“");
     assert_eq!(preview("eine sehr lange Nachricht", 8), "„eine seh…“");
 }
-
-/// Needs a microphone: cargo test --manifest-path src-tauri/Cargo.toml --test voice -- --ignored --nocapture
-#[test]
-#[ignore]
-fn records_from_default_microphone() {
-    use gemini_tray_lib::audio::{input_device_names, Recorder};
-    println!("devices: {:?}", input_device_names());
-    let r = Recorder::start(None).expect("recording should start");
-    std::thread::sleep(std::time::Duration::from_millis(1200));
-    println!("stream error: {:?}", r.last_error());
-    assert!(!r.failed());
-    let (rate, ch) = (r.sample_rate, r.channels);
-    let rec = r.finish();
-    let secs = rec.samples.len() as f32 / (rate as f32 * ch as f32);
-    println!("recorded {secs:.2}s at {rate} Hz × {ch}");
-    assert!(secs > 0.8 && secs < 2.0, "unexpected length {secs}");
-}

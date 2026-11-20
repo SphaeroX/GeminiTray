@@ -82,14 +82,12 @@ impl Shortcuts {
 #[serde(default, rename_all = "camelCase")]
 pub struct VoiceSettings {
     pub auto_send: bool,
-    /// Input device name; `None` = Windows default device.
-    pub microphone: Option<String>,
     pub max_minutes: u32,
 }
 
 impl Default for VoiceSettings {
     fn default() -> Self {
-        Self { auto_send: true, microphone: None, max_minutes: 10 }
+        Self { auto_send: true, max_minutes: 10 }
     }
 }
 

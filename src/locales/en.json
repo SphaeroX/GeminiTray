@@ -70,21 +70,15 @@
       "reset_desc": "Signs you out and deletes all data of the Gemini window"
     },
     "voice": {
-      "model_title": "Speech recognition (Parakeet, local)",
-      "model_desc": "Runs offline on this PC · German and English are detected automatically",
-      "model_installed": "Installed – {size} MB",
-      "model_not_installed": "Not installed yet – download about {size} MB",
-      "model_downloading": "Downloading model – {done} MB of {total} MB ({percent} %)",
-      "download": "Download",
-      "retry": "Try again",
-      "microphone": "Microphone",
-      "microphone_desc": "Used for voice messages and dictation",
-      "microphone_default": "System default",
+      "intro": "Voice message (Alt+V) and dictation (Alt+Shift+V) use Gemini's voice input. For dictation, the recognised text is cut from the prompt and put into your clipboard.",
       "auto_send": "Send voice messages automatically",
-      "auto_send_desc": "Off: the text is only inserted, you send it yourself",
+      "auto_send_desc": "Off: the text stays in the prompt, you send it yourself",
       "max_minutes": "Maximum recording length",
       "max_minutes_desc": "Recording stops automatically after this time",
-      "minutes": "{n} minutes"
+      "minutes": "{n} minutes",
+      "privacy": "Microphone access",
+      "privacy_desc": "If voice input does not start: allow microphone access for desktop apps in Windows",
+      "privacy_open": "Open Windows settings"
     },
     "prompts": {
       "intro": "Saved prompts appear in the prompt menu (Alt+J). The chosen prompt is inserted into Gemini's input; a following voice message or screenshot is appended after it.",
@@ -173,20 +167,6 @@
         "body": "Your text is in the clipboard – paste it with Ctrl + V. ({detail})"
       }
     },
-    "model": {
-      "ready": {
-        "title": "Speech recognition ready",
-        "body": "The speech model is installed. Voice messages and dictation now work offline."
-      },
-      "failed": {
-        "title": "Download failed",
-        "body": "{detail}"
-      },
-      "missing": {
-        "title": "Speech model missing",
-        "body": "The speech model (about 670 MB) is being downloaded now. Try again afterwards."
-      }
-    },
     "voice": {
       "copied": {
         "title": "Text copied",
@@ -227,9 +207,8 @@
     "transcribing": "Recognising …",
     "open_settings": "Open settings",
     "error": {
-      "accessDenied": "Microphone access is blocked in Windows",
-      "noDevice": "No microphone found",
-      "device": "Microphone unavailable or disconnected"
+      "micFailed": "Gemini's voice input does not start – check your microphone",
+      "notReady": "Gemini is not ready yet – sign in or wait a moment"
     }
   },
   "overlay": {

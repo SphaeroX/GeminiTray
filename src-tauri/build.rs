@@ -20,21 +20,5 @@ fn main() {
         npm(&["run", "build:bridge"]);
     }
 
-    // VC++ runtime DLLs bundled next to the exe (ONNX Runtime needs msvcp140).
-    if cfg!(windows) && !Path::new("runtime/msvcp140.dll").exists() {
-        let status = Command::new("node")
-            .arg("../scripts/collect-runtime.mjs")
-            .status()
-            .expect("failed to run scripts/collect-runtime.mjs");
-        assert!(status.success(), "collect-runtime failed");
-    }
-
-    // ONNX Runtime's prebuilt Windows binaries link DirectML. We only use the CPU, so load DirectML
-    // lazily: the app starts without DirectML.dll and never touches it.
-    if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
-        println!("cargo:rustc-link-arg=/DELAYLOAD:DirectML.dll");
-        println!("cargo:rustc-link-lib=delayimp");
-    }
-
     tauri_build::build()
 }

@@ -4,7 +4,7 @@ import { SELECTORS, type SelectorName } from "./selectors";
 
 export class BridgeError extends Error {
   constructor(
-    public code: "selector_missing" | "timeout" | "not_attached",
+    public code: "selector_missing" | "timeout" | "not_attached" | "mic_not_started",
     public detail: string,
   ) {
     super(`${code}: ${detail}`);

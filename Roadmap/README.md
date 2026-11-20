@@ -60,6 +60,7 @@ Globale Informationen, Architekturentscheidungen und Wissen, das für das gesamt
 - **[Task 05] Spracherkennung umgesetzt:** `parakeet-rs` (ONNX Runtime, CPU) mit int8-Modell von `istupakov/parakeet-tdt-0.6b-v3-onnx` (≈ 670 MB, SHA-256 gepinnt). 10 s Audio ≈ 0,45 s (Release). DirectML per Delay-Load ausgeklammert, VC++-Laufzeit wird neben die exe gelegt (`scripts/collect-runtime.mjs`).
 - **[Task 04] Bridge-Protokoll:** Rust → `eval("__geminiTray.start(id, op, args)")`, Ergebnis per `eval_with_callback("__geminiTray.poll(id)")`. Die Gemini-Seite hat keine IPC-Rechte. Blockierende Aufrufe nur aus Hintergrund-Threads.
 - **[Task 11] Updates:** `tauri-plugin-updater`, aktiv nur mit `plugins.updater.pubkey` in `tauri.conf.json` (Einrichtung siehe Root-`AGENTS.md`, „Releases and auto-update“). Release-Workflow erzeugt einen Draft-Release.
+- **[Nach Task 11, 2026-11-20] Entscheidung des Nutzers: keine lokale Spracherkennung mehr.** Parakeet/ONNX Runtime wurden entfernt (Parakeet v3 lieferte bei deutscher Sprache teils Englisch; Whisper per whisper.cpp war auf CPU zu langsam). Sprachnachricht und Diktat steuern jetzt Geminis eigene Spracheingabe über die Bridge (`micStart`/`micStop`/`takeText`); Aufnahmestatus über die echten Mikrofonspuren der Seite (getUserMedia-Wrapper). Ältere Einträge zu Parakeet/Task 05 sind damit historisch.
 - **[Planung] Spracherkennung:** Parakeet TDT 0.6B v3 (multilingual, DE/EN automatisch), lokal auf der CPU; Modell wird beim ersten Gebrauch heruntergeladen. Kein Cloud-STT.
 
 ## Auffälligkeiten & Details

@@ -28,4 +28,3 @@ release/*
 src-tauri/target/
 src-tauri/bridge/gemini-bridge.js
 coverage/
-src-tauri/runtime/

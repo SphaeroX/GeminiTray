@@ -70,21 +70,15 @@
       "reset_desc": "Meldet dich ab und löscht alle Daten des Gemini-Fensters"
     },
     "voice": {
-      "model_title": "Spracherkennung (Parakeet, lokal)",
-      "model_desc": "Läuft offline auf diesem PC · Deutsch und Englisch werden automatisch erkannt",
-      "model_installed": "Installiert – {size} MB",
-      "model_not_installed": "Noch nicht installiert – Download ca. {size} MB",
-      "model_downloading": "Modell wird heruntergeladen – {done} MB von {total} MB ({percent} %)",
-      "download": "Herunterladen",
-      "retry": "Erneut versuchen",
-      "microphone": "Mikrofon",
-      "microphone_desc": "Wird für Sprachnachricht und Diktat verwendet",
-      "microphone_default": "Systemstandard",
+      "intro": "Sprachnachricht (Alt+V) und Diktat (Alt+Shift+V) nutzen die Spracheingabe von Gemini. Beim Diktat wird der erkannte Text aus dem Eingabefeld ausgeschnitten und in die Zwischenablage gelegt.",
       "auto_send": "Sprachnachricht automatisch senden",
-      "auto_send_desc": "Aus: Der Text wird nur eingefügt, du sendest selbst",
+      "auto_send_desc": "Aus: Der Text bleibt im Eingabefeld, du sendest selbst",
       "max_minutes": "Maximale Aufnahmedauer",
       "max_minutes_desc": "Danach wird die Aufnahme automatisch beendet",
-      "minutes": "{n} Minuten"
+      "minutes": "{n} Minuten",
+      "privacy": "Mikrofonzugriff",
+      "privacy_desc": "Falls die Spracheingabe nicht startet: in Windows den Mikrofonzugriff für Desktop-Apps erlauben",
+      "privacy_open": "Windows-Einstellungen öffnen"
     },
     "prompts": {
       "intro": "Gespeicherte Prompts erscheinen im Prompt-Menü (Alt+J). Der gewählte Prompt wird ins Eingabefeld von Gemini eingefügt; eine anschließende Sprachnachricht oder ein Screenshot wird dahinter angehängt.",
@@ -173,20 +167,6 @@
         "body": "Der Text liegt in der Zwischenablage – mit Strg + V einfügen. ({detail})"
       }
     },
-    "model": {
-      "ready": {
-        "title": "Spracherkennung bereit",
-        "body": "Das Sprachmodell ist installiert. Sprachnachricht und Diktat funktionieren jetzt offline."
-      },
-      "failed": {
-        "title": "Download fehlgeschlagen",
-        "body": "{detail}"
-      },
-      "missing": {
-        "title": "Sprachmodell fehlt",
-        "body": "Das Sprachmodell (ca. 670 MB) wird jetzt heruntergeladen. Danach erneut versuchen."
-      }
-    },
     "voice": {
       "copied": {
         "title": "Text kopiert",
@@ -227,9 +207,8 @@
     "transcribing": "Wird erkannt …",
     "open_settings": "Einstellungen öffnen",
     "error": {
-      "accessDenied": "Mikrofonzugriff ist in Windows gesperrt",
-      "noDevice": "Kein Mikrofon gefunden",
-      "device": "Mikrofon nicht verfügbar oder getrennt"
+      "micFailed": "Geminis Spracheingabe startet nicht – Mikrofon prüfen",
+      "notReady": "Gemini ist noch nicht bereit – bitte anmelden oder kurz warten"
     }
   },
   "overlay": {

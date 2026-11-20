@@ -2,17 +2,16 @@
 
 pub mod actions;
 pub mod appwindows;
-pub mod audio;
 pub mod bridge;
 pub mod commands;
 pub mod i18n;
 pub mod login;
 pub mod notify;
+pub mod permissions;
 pub mod prompts;
 pub mod screenshot;
 pub mod settings;
 pub mod shortcuts;
-pub mod stt;
 pub mod state;
 pub mod toast;
 pub mod tray;
@@ -77,7 +76,8 @@ fn create_main_window(app: &tauri::AppHandle) -> tauri::Result<()> {
                 }
             }
         });
-    window.add_child(gemini, LogicalPosition::new(0.0, bar), LogicalSize::new(size.width, (size.height - bar).max(1.0)))?;
+    let gemini = window.add_child(gemini, LogicalPosition::new(0.0, bar), LogicalSize::new(size.width, (size.height - bar).max(1.0)))?;
+    permissions::allow_microphone(&gemini);
 
     windowstate::restore(app, &window);
     windowstate::apply_opacity(&window, app.state::<AppState>().settings().window.opacity);
@@ -139,14 +139,10 @@ pub fn run() {
             commands::autostart_enabled,
             toast::toast_ready,
             toast::toast_idle,
-            stt::service::model_status,
-            stt::service::model_download,
-            stt::service::model_cancel,
             voice::voice_finish,
             voice::voice_cancel,
             voice::voice_dismiss,
             voice::open_mic_privacy,
-            voice::list_microphones,
             screenshot::overlay_image,
             screenshot::overlay_cancel,
             screenshot::overlay_select,
@@ -166,7 +162,6 @@ pub fn run() {
             let (state, recovered) = AppState::load(config_dir.join("settings.json"));
             app.manage(state);
             app.manage(toast::ToastState::default());
-            app.manage(stt::service::SttState::new(&handle));
             app.manage(voice::VoiceState::default());
             app.manage(screenshot::ScreenshotState::default());
             app.manage(prompts::PromptState::default());

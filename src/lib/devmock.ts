@@ -15,7 +15,7 @@ const settings: Settings = {
     newChat: "Alt+N",
     prompts: "Alt+J",
   },
-  voice: { autoSend: true, microphone: null, maxMinutes: 10 },
+  voice: { autoSend: true, maxMinutes: 10 },
   window: { opacity: 1, alwaysOnTop: true },
   prompts: [
     { id: "1", name: "Kurz erklären", content: "Erkläre das Folgende in drei Sätzen für Einsteiger:" },
@@ -64,8 +64,6 @@ export const mockHandlers: Record<string, (args?: Record<string, unknown>) => un
     width: 1280,
     height: 720,
   }),
-  list_microphones: () => ["Mikrofonarray (Realtek(R) Audio)", "Headset (SteelSeries Arctis)"],
-  model_status: () => ({ installed: false, downloading: true, downloaded: 412_000_000, total: 670_480_000, error: null }),
 };
 
 function mockExtra(cmd: string, args?: Record<string, unknown>): unknown {

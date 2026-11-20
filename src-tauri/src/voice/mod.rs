@@ -1,11 +1,16 @@
-//! Dictation (Alt+Shift+V) and voice messages (Alt+V): recording, recognition, delivery.
+//! Dictation (Alt+Shift+V) and voice messages (Alt+V) using Gemini's own voice input.
+//!
+//! Start: the prompt text that is already there (a draft or a pre-filled prompt) is cut and kept,
+//! then Gemini's microphone is switched on. Stop: the microphone is switched off, the recognised
+//! text is cut from the prompt and
+//! - dictation: copied to the clipboard; the draft is put back,
+//! - voice message: draft + recognised text are put back and (optionally) sent.
 
 pub mod machine;
 
-use crate::audio::{AudioError, Recorder};
+use crate::bridge::{self, BridgeError};
 use crate::notify::{self, Level};
 use crate::state::AppState;
-use crate::stt::service::{self, SttState};
 use crate::{appwindows, windowing};
 use machine::{next, Effect, Event, Mode, Phase};
 use serde::Serialize;
@@ -22,11 +27,12 @@ pub const INDICATOR: &str = "indicator";
 #[derive(Default)]
 pub struct VoiceState {
     phase: Mutex<Option<Phase>>,
-    recorder: Mutex<Option<Recorder>>,
     session: AtomicU64,
     started: Mutex<Option<Instant>>,
-    /// Text prefix for the next voice message (active prompt, Task 09).
-    pub prefix: Mutex<Option<String>>,
+    /// Prompt text that was in the editor before recording started.
+    pub(crate) draft: Mutex<String>,
+    /// Whether the Gemini window was visible before a dictation started (restore afterwards).
+    was_visible: Mutex<bool>,
 }
 
 impl VoiceState {
@@ -42,14 +48,12 @@ pub struct IndicatorState {
     pub phase: Phase,
     /// Name of the active prompt shown in the pill (voice message only).
     pub prompt: Option<String>,
-    /// Error pill: "accessDenied", "noDevice", "device".
+    /// Error pill: "micFailed", "notReady".
     pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Level_ {
-    level: f32,
+struct Elapsed {
     seconds: f32,
 }
 
@@ -100,19 +104,11 @@ pub fn handle(app: &AppHandle, event: Event) {
     match effect {
         Effect::None => {}
         Effect::StartRecording(mode) => start(app, mode),
-        Effect::StopAndTranscribe(mode) => stop_and_transcribe(app, mode),
-        Effect::Discard => {
-            vs.recorder.lock().unwrap().take();
-            end(app);
-        }
+        Effect::StopAndTranscribe(mode) => stop_and_deliver(app, mode),
+        Effect::Discard | Effect::IgnoreResult => discard(app),
         Effect::DiscardWithError => {
-            vs.recorder.lock().unwrap().take();
-            unregister_escape(app);
-            publish(app, Phase::Idle, Some("device"));
-        }
-        Effect::IgnoreResult => {
-            vs.session.fetch_add(1, Ordering::SeqCst);
-            end(app);
+            discard(app);
+            publish(app, Phase::Idle, Some("micFailed"));
         }
     }
 }
@@ -127,122 +123,157 @@ fn end(app: &AppHandle) {
 }
 
 fn register_escape(app: &AppHandle) {
-    let _ = app.global_shortcut().register(escape());
+    match app.global_shortcut().register(escape()) {
+        Ok(()) => log::info!("Escape registered for cancelling voice input"),
+        Err(e) => log::warn!("Escape could not be registered: {e}"),
+    }
 }
 
 fn unregister_escape(app: &AppHandle) {
     let _ = app.global_shortcut().unregister(escape());
 }
 
-fn start(app: &AppHandle, mode: Mode) {
-    let stt = app.state::<SttState>();
-    if !stt.engine.is_installed() {
-        set_idle(app);
-        service::start_download(app);
-        notify::show(app, Level::Info, "model.missing", None);
-        return;
-    }
-    let settings = app.state::<AppState>().settings();
-    let recorder = match Recorder::start(settings.voice.microphone.as_deref()) {
-        Ok(r) => r,
-        Err(e) => {
-            log::error!("could not start recording: {e}");
-            set_idle(app);
-            let kind = match e {
-                AudioError::AccessDenied(_) => "accessDenied",
-                AudioError::NoDevice => "noDevice",
-                AudioError::Stream(_) => "device",
-            };
-            publish(app, Phase::Idle, Some(kind));
-            return;
-        }
+fn fail(app: &AppHandle, err: &BridgeError) {
+    log::error!("voice input failed: {err}");
+    set_idle(app);
+    unregister_escape(app);
+    let kind = match err {
+        BridgeError::NotReady | BridgeError::Timeout => "notReady",
+        _ => "micFailed",
     };
-    if mode == Mode::Message {
-        windowing::show_main(app);
+    publish(app, Phase::Idle, Some(kind));
+}
+
+/// Put the saved draft back into the prompt (if there was one).
+fn restore_draft(app: &AppHandle) {
+    let draft = std::mem::take(&mut *app.state::<VoiceState>().draft.lock().unwrap());
+    if !draft.trim().is_empty() {
+        let _ = bridge::insert_text(app, &draft);
     }
+}
+
+fn start(app: &AppHandle, mode: Mode) {
     let vs = app.state::<VoiceState>();
-    *vs.recorder.lock().unwrap() = Some(recorder);
+    let was_visible = windowing::main_window(app).and_then(|w| w.is_visible().ok()).unwrap_or(false);
+    *vs.was_visible.lock().unwrap() = was_visible;
     *vs.started.lock().unwrap() = Some(Instant::now());
     let session = vs.session.fetch_add(1, Ordering::SeqCst) + 1;
+    windowing::show_main(app);
     register_escape(app);
     publish(app, Phase::Recording { mode }, None);
 
-    // Load the model while the user speaks.
-    let engine = stt.engine.clone();
-    std::thread::spawn(move || {
-        if let Err(e) = engine.preload() {
-            log::error!("preload failed: {e}");
-        }
-    });
-
-    // Level meter, device watchdog and maximum length.
     let app = app.clone();
-    let max = Duration::from_secs(settings.voice.max_minutes as u64 * 60);
-    std::thread::spawn(move || loop {
-        std::thread::sleep(Duration::from_millis(80));
-        let vs = app.state::<VoiceState>();
-        if vs.session.load(Ordering::SeqCst) != session || !matches!(vs.phase(), Phase::Recording { .. }) {
+    std::thread::spawn(move || {
+        let result = (|| -> Result<(), BridgeError> {
+            if !bridge::wait_ready(&app, Duration::from_secs(10)) {
+                return Err(BridgeError::NotReady);
+            }
+            let draft = bridge::take_text(&app)?;
+            *app.state::<VoiceState>().draft.lock().unwrap() = draft;
+            bridge::mic_start(&app)
+        })();
+        if let Err(e) = result {
+            restore_draft(&app);
+            fail(&app, &e);
             return;
         }
-        let (level, seconds, failed) = match vs.recorder.lock().unwrap().as_ref() {
-            Some(r) => (r.level(), r.seconds(), r.failed()),
-            None => return,
-        };
-        if failed {
-            handle(&app, Event::DeviceError);
-            return;
-        }
-        if let Some(w) = app.get_webview_window(INDICATOR) {
-            let _ = w.emit_to(INDICATOR, "voice-level", Level_ { level, seconds });
-        }
-        if Duration::from_secs_f32(seconds) >= max {
-            handle(&app, Event::MaxDuration);
-            return;
-        }
+        watch(&app, session);
     });
 }
 
-fn stop_and_transcribe(app: &AppHandle, mode: Mode) {
+/// Timer for the indicator, maximum length, and auto-finish when Gemini stops listening by itself.
+fn watch(app: &AppHandle, session: u64) {
+    let max = Duration::from_secs(app.state::<AppState>().settings().voice.max_minutes as u64 * 60);
+    let mut last_check = Instant::now();
+    let _ = bridge::voice_status(app); // clear an old Escape flag
+    loop {
+        std::thread::sleep(Duration::from_millis(200));
+        let vs = app.state::<VoiceState>();
+        if vs.session.load(Ordering::SeqCst) != session {
+            return;
+        }
+        let mode = match vs.phase() {
+            Phase::Recording { mode } => mode,
+            _ => return,
+        };
+        let elapsed = vs.started.lock().unwrap().map(|s| s.elapsed()).unwrap_or_default();
+        if let Some(w) = app.get_webview_window(INDICATOR) {
+            let _ = w.emit_to(INDICATOR, "voice-level", Elapsed { seconds: elapsed.as_secs_f32() });
+        }
+        if elapsed >= max {
+            handle(app, Event::MaxDuration);
+            return;
+        }
+        // Escape in the Gemini window cancels; Gemini ending dictation by itself after a pause
+        // finishes like a second key press.
+        if last_check.elapsed() >= Duration::from_millis(400) {
+            last_check = Instant::now();
+            match bridge::voice_status(app) {
+                Ok((_, true)) => {
+                    handle(app, Event::Cancel);
+                    return;
+                }
+                Ok((false, false)) => {
+                    log::info!("Gemini stopped listening – finishing");
+                    handle(app, Event::Toggle(mode));
+                    return;
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
+fn stop_and_deliver(app: &AppHandle, mode: Mode) {
     publish(app, Phase::Transcribing { mode }, None);
     let app = app.clone();
     std::thread::spawn(move || {
-        let vs = app.state::<VoiceState>();
-        let session = vs.session.load(Ordering::SeqCst);
-        let Some(recorder) = vs.recorder.lock().unwrap().take() else {
-            handle(&app, Event::TranscriptionFinished);
-            end(&app);
-            return;
-        };
-        let rec = recorder.finish();
-        let engine = app.state::<SttState>().engine.clone();
-        let result = engine.transcribe(&rec.samples, rec.sample_rate, rec.channels);
+        let session = app.state::<VoiceState>().session.load(Ordering::SeqCst);
+        let result = bridge::mic_stop(&app).and_then(|_| bridge::take_text(&app));
         if app.state::<VoiceState>().session.load(Ordering::SeqCst) != session {
-            log::info!("transcription result ignored (cancelled)");
-            return;
+            return; // cancelled meanwhile
         }
         handle(&app, Event::TranscriptionFinished);
         end(&app);
-        match result {
-            Ok(text) => deliver(&app, mode, &text),
+        let text = match result {
+            Ok(t) => t,
             Err(e) => {
-                log::error!("transcription failed: {e}");
+                restore_draft(&app);
                 notify::show(&app, Level::Error, "voice.failed", Some(e.to_string()));
+                return;
             }
+        };
+        match mode {
+            Mode::Dictation => deliver_dictation(&app, &text),
+            Mode::Message => crate::voice_message::deliver(&app, &text),
         }
     });
 }
 
-fn deliver(app: &AppHandle, mode: Mode, text: &str) {
-    match mode {
-        Mode::Dictation => match machine::clipboard_text(text) {
-            Some(t) => match app.clipboard().write_text(t.clone()) {
-                Ok(()) => notify::show(app, Level::Success, "voice.copied", Some(machine::preview(&t, 80))),
-                Err(e) => notify::show(app, Level::Error, "voice.failed", Some(e.to_string())),
-            },
-            None => notify::show(app, Level::Info, "voice.nothing", None),
+fn deliver_dictation(app: &AppHandle, text: &str) {
+    restore_draft(app);
+    match machine::clipboard_text(text) {
+        Some(t) => match app.clipboard().write_text(t.clone()) {
+            Ok(()) => notify::show(app, Level::Success, "voice.copied", Some(machine::preview(&t, 80))),
+            Err(e) => notify::show(app, Level::Error, "voice.failed", Some(e.to_string())),
         },
-        Mode::Message => crate::voice_message::deliver(app, text),
+        None => notify::show(app, Level::Info, "voice.nothing", None),
     }
+    if !*app.state::<VoiceState>().was_visible.lock().unwrap() {
+        windowing::hide_main(app);
+    }
+}
+
+/// Cancel: stop the microphone, throw the recognised text away, put the draft back.
+fn discard(app: &AppHandle) {
+    app.state::<VoiceState>().session.fetch_add(1, Ordering::SeqCst);
+    end(app);
+    let app = app.clone();
+    std::thread::spawn(move || {
+        let _ = bridge::mic_stop(&app);
+        let _ = bridge::take_text(&app);
+        restore_draft(&app);
+    });
 }
 
 /// "Done"/"Send" button in the indicator.
@@ -272,9 +303,4 @@ pub fn voice_dismiss(app: AppHandle) {
 #[tauri::command]
 pub fn open_mic_privacy() {
     let _ = std::process::Command::new("explorer").arg("ms-settings:privacy-microphone").spawn();
-}
-
-#[tauri::command]
-pub fn list_microphones() -> Vec<String> {
-    crate::audio::input_device_names()
 }

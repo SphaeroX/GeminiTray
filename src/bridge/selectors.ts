@@ -19,6 +19,28 @@ export const SELECTORS = {
     'button:has(mat-icon[fonticon="arrow_upward"])',
     'button:has(mat-icon[fonticon="send"])',
   ],
+  /** Gemini's microphone (voice input) button inside the input area. */
+  micButton: [
+    "speech-dictation-mic-button button",
+    'button:has(mat-icon[fonticon="mic"])',
+    'button:has(mat-icon[fonticon="mic_off"])',
+    'button[aria-label*="Spracheingabe" i]',
+    'button[aria-label*="voice" i]',
+    'button[aria-label*="Mikrofon" i]',
+    'button[aria-label*="microphone" i]',
+  ],
+  /** Visible signs that Gemini is listening (secondary signal, see bridge/mic.ts). */
+  recordingIndicator: [
+    '[aria-label*="Spracheingabe beenden" i]',
+    '[aria-label*="Spracheingabe stoppen" i]',
+    '[aria-label*="Aufnahme beenden" i]',
+    '[aria-label*="Stop recording" i]',
+    '[aria-label*="Stop listening" i]',
+    '[aria-label*="Stop dictation" i]',
+    '[class*="is-recording"]',
+    '[class*="listening"]',
+    '[class*="waveform"]',
+  ],
   /** Anything that shows an attached file inside the input area. */
   attachmentPreview: [
     "uploader-file-preview",
