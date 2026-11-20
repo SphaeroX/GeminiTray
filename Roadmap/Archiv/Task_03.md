@@ -69,23 +69,24 @@ Keine.
 
 Taskspezifische Informationen während der Arbeit hier festhalten. Taskübergreifendes gehört in `Roadmap/README.md`.
 
+- Rust: 10 Tests (`tests/rust/settings.rs`) grün; UI: 14 Vitest-Tests grün (Recorder, Übersetzungen, Toast-Texte, Komponenten).
+- Optische Prüfung im Browser-Vorschaumodus (`npx vite`, `src/lib/devmock.ts` ersetzt das Backend): Shortcuts-, Allgemein- und Konto-Seite sowie Toasts entsprechen dem Design; Recorder nimmt `Strg + Alt + K` korrekt auf. Gefundener Fehler (Hintergrund reichte nicht bis unten, `#app` ohne Höhe) behoben.
+- Echter Start (`tauri dev`): Konflikterkennung funktioniert – die laufende 1.x-App belegt Alt+Space, Alt+V, Alt+Shift+V, Alt+N, Alt+J; es erscheint der Toast „Shortcut belegt“ mit Liste.
+- **Manuelle Prüfliste offen für den Nutzer:** Shortcut ändern (sofort aktiv + nach Neustart), Autostart, Sprachumschaltung im echten Fenster.
+
 ## Abschluss-Checkliste
 
 Reihenfolge und Details stehen in `AGENTS.md`, Abschnitt "Abschluss- und Archivierungs-Workflow".
 
-- [ ] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
-- [ ] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
-- [ ] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
-- [ ] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
+- [x] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
+- [x] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
+- [x] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
+- [x] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
 
 ## Erkenntnisse für Folge-Agenten
 
-<!-- ERKENNTNISSE-OFFEN: Vor der Archivierung ausfüllen und diese Zeile löschen. -->
-
-Vor der Archivierung vom Agenten auszufüllen. Schreibe so, dass ein Agent, der diesen Task nie gesehen hat, davon bei späteren Tasks profitiert:
-
-- **Umgesetzt (und Abweichungen vom Plan):**
-- **Learnings & Stolpersteine:**
-- **Wichtige Entscheidungen und ihre Gründe:**
-- **Auswirkungen auf Folge-Tasks:**
-- **Hinweise zu Tests und Befehlen:**
+- **Umgesetzt (und Abweichungen vom Plan):** Statt `tauri-plugin-store` eine eigene `settings.json` (serde, `#[serde(default)]`, atomisches Speichern, Backup `settings.broken.json` bei Defekt) – besser testbar. Das komplette Settings-Modell (inkl. `voice`, `window`, `prompts`) existiert schon; Folge-Tasks müssen nur UI/Logik ergänzen. Einstellungen werden sofort beim Ändern gespeichert (wie Windows-Einstellungen), kein Speichern-Knopf. Toast-Fenster (`toast.rs`, `src/pages/toast`) ist hier mit umgesetzt.
+- **Learnings & Stolpersteine:** `listen()`/`invoke()` funktionieren nur in Tauri → `src/lib/events.ts` (`onEvent`) und `invoke` in `api.ts` fallen im Browser auf `src/lib/devmock.ts` zurück. So lassen sich alle Seiten mit `npx vite` im Browser prüfen (Mocks für neue Befehle in `mockHandlers` ergänzen). `#app` braucht `height: 100%`. Overlay-Fenster: `appwindows::overlay_window` (randlos, transparent, nicht fokussierbar, immer oben) und `appwindows::place(w, bottom_right|bottom_center)`.
+- **Wichtige Entscheidungen und ihre Gründe:** Shortcut-Änderung = alle abmelden, neue registrieren; schlägt eine neue fehl, wird der alte Satz wiederhergestellt und `Taken` gemeldet. Ein bereits beim Start belegter, unveränderter Shortcut blockiert das Speichern anderer Änderungen nicht. Während der Aufnahme im Recorder sind alle globalen Shortcuts pausiert (`pause_shortcuts`/`resume_shortcuts`).
+- **Auswirkungen auf Folge-Tasks:** Neue Aktionen in `actions::run` eintragen (derzeit „noch nicht verfügbar“-Toast). Neue Einstellungsseiten: Komponente in `src/pages/settings/sections/` + Eintrag in `sections/index.ts`. Meldungen über `notify::show(app, Level, "schluessel", detail)` + Texte unter `toast.<schluessel>.{title,body}` in beiden Sprachdateien (Test prüft Gleichheit der Schlüssel).
+- **Hinweise zu Tests und Befehlen:** UI-Vorschau: `.claude/launch.json` „ui-preview“ bzw. `npx vite` → `http://localhost:1420/settings.html#shortcuts`. Läuft der Vorschau-Server, nutzt `tauri dev` ihn mit (Port 1420).

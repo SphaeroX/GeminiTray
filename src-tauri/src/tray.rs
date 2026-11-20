@@ -1,19 +1,44 @@
 //! System tray icon and menu.
 
+use crate::i18n::t;
+use crate::state::AppState;
+use crate::{appwindows, login, windowing};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager, Wry};
 
-use crate::windowing;
+/// Menu entries: (id, i18n key).
+const ITEMS: &[(&str, &str)] = &[
+    ("toggle", "tray.toggle"),
+    ("settings", "tray.settings"),
+    ("login_browser", "tray.login_browser"),
+    ("reset_session", "tray.reset_session"),
+    ("quit", "tray.quit"),
+];
+
+pub struct TrayItems(pub Vec<(String, MenuItem<Wry>)>);
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
-    let toggle = MenuItem::with_id(app, "toggle", "Anzeigen / Verbergen", true, None::<&str>)?;
-    let login = MenuItem::with_id(app, "login_browser", "Mit Browser anmelden", true, None::<&str>)?;
-    let reset = MenuItem::with_id(app, "reset_session", "Sitzung zurücksetzen", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, "quit", "Beenden", true, None::<&str>)?;
+    let lang = app.state::<AppState>().language();
+    let mut items = Vec::new();
+    for (id, key) in ITEMS {
+        items.push((id.to_string(), MenuItem::with_id(app, *id, t(lang, key), true, None::<&str>)?));
+    }
+    let get = |id: &str| &items.iter().find(|(i, _)| i == id).unwrap().1;
     let sep1 = PredefinedMenuItem::separator(app)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
-    let menu = Menu::with_items(app, &[&toggle, &sep1, &login, &reset, &sep2, &quit])?;
+    let menu = Menu::with_items(
+        app,
+        &[
+            get("toggle"),
+            get("settings"),
+            &sep1,
+            get("login_browser"),
+            get("reset_session"),
+            &sep2,
+            get("quit"),
+        ],
+    )?;
 
     let mut builder = TrayIconBuilder::with_id("main")
         .tooltip("Gemini Tray")
@@ -21,8 +46,9 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
             "toggle" => windowing::toggle_main(app),
-            "login_browser" => crate::login::start_browser_login(app),
-            "reset_session" => crate::login::reset_session(app),
+            "settings" => appwindows::open_settings(app, None),
+            "login_browser" => login::start_browser_login(app),
+            "reset_session" => login::reset_session(app),
             "quit" => app.exit(0),
             _ => {}
         })
@@ -40,5 +66,18 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         builder = builder.icon(icon.clone());
     }
     builder.build(app)?;
+    app.manage(TrayItems(items));
     Ok(())
+}
+
+/// Re-translate the menu after a language change.
+pub fn refresh_labels(app: &AppHandle) {
+    let lang = app.state::<AppState>().language();
+    if let Some(items) = app.try_state::<TrayItems>() {
+        for (id, item) in &items.0 {
+            if let Some((_, key)) = ITEMS.iter().find(|(i, _)| i == id) {
+                let _ = item.set_text(t(lang, key));
+            }
+        }
+    }
 }

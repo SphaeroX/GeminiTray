@@ -1,0 +1,87 @@
+{
+  "tray": {
+    "toggle": "Show / hide",
+    "settings": "Settings",
+    "login_browser": "Sign in with browser",
+    "reset_session": "Reset session",
+    "quit": "Quit"
+  },
+  "common": {
+    "close": "Close",
+    "minimize": "Minimize",
+    "cancel": "Cancel",
+    "save": "Save",
+    "on": "On",
+    "off": "Off"
+  },
+  "settings": {
+    "window_title": "Gemini Tray – Settings",
+    "nav_label": "Categories",
+    "nav": {
+      "general": "General",
+      "shortcuts": "Shortcuts",
+      "voice": "Voice",
+      "prompts": "Prompts",
+      "window": "Window",
+      "account": "Account",
+      "updates": "Updates"
+    },
+    "general": {
+      "autostart": "Start with Windows",
+      "autostart_desc": "Gemini Tray starts in the background after you sign in to Windows",
+      "start_minimized": "Start minimized",
+      "start_minimized_desc": "Only show the tray icon on start, no window",
+      "language": "Interface language",
+      "language_desc": "Used for settings, menus and messages",
+      "language_system": "Same as Windows",
+      "language_de": "Deutsch",
+      "language_en": "English",
+      "version": "Version {version}"
+    },
+    "shortcuts": {
+      "intro": "Shortcuts work system-wide. Click a key and press the new combination; Delete removes the shortcut.",
+      "toggle": "Show / hide Gemini",
+      "toggle_desc": "Open or hide the window",
+      "voice": "Voice message to Gemini",
+      "voice_desc": "Record, recognise, insert and send",
+      "dictation": "Dictation to clipboard",
+      "dictation_desc": "Works in any app, the text lands in your clipboard",
+      "screenshot": "Screenshot & Ask",
+      "screenshot_desc": "Select an area and hand it to Gemini",
+      "newChat": "New chat",
+      "newChat_desc": "Open the window and start a new conversation",
+      "prompts": "Prompt menu",
+      "prompts_desc": "Pick a saved prompt for your next message",
+      "press_keys": "Press keys …",
+      "none": "No shortcut",
+      "taken": "Already used by another app – please choose a different combination",
+      "duplicate": "Already used for “{other}”",
+      "invalid": "This combination is not supported",
+      "needs_modifier": "Please combine with Alt, Ctrl, Shift or Win"
+    },
+    "account": {
+      "title": "Google account",
+      "desc": "Gemini Tray uses your Google account in the Gemini window. If Google refuses sign-in inside the window, sign in with Chrome or Edge – the session is taken over.",
+      "login_browser": "Sign in with browser",
+      "reset": "Reset session",
+      "reset_desc": "Signs you out and deletes all data of the Gemini window"
+    }
+  },
+  "toast": {
+    "not_available": { "title": "Not available yet", "body": "This feature will follow in a later version." },
+    "settings": {
+      "recovered": { "title": "Settings reset", "body": "The settings file was damaged. Defaults are used again." },
+      "saved": { "title": "Saved", "body": "" }
+    },
+    "shortcut": {
+      "taken": { "title": "Shortcut in use", "body": "Used by another app: {detail}. You can change it in the settings." }
+    },
+    "login": {
+      "required": { "title": "Sign-in required", "body": "Sign in in the window. If that fails: tray menu › Sign in with browser." },
+      "browser_started": { "title": "Browser opened", "body": "Sign in to Google in the browser window. It closes automatically afterwards." },
+      "success": { "title": "Signed in", "body": "Your Google session was taken over." },
+      "failed": { "title": "Sign-in failed", "body": "{detail}" },
+      "reset": { "title": "Session reset", "body": "You are now signed out." }
+    }
+  }
+}

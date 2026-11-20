@@ -66,7 +66,7 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; }
+html, body, #app { margin: 0; height: 100%; }
 body {
   font-family: var(--font);
   font-size: 14px;
@@ -77,3 +77,28 @@ body {
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: var(--link); }
 :focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+
+/* Shared controls */
+.button {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--control-border);
+  background: var(--control);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.button:hover { background: var(--control-hover); }
+.button.accent { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.button.accent:hover { background: var(--accent-hover); }
+.select {
+  height: 32px;
+  min-width: 160px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--control-border);
+  background: var(--control);
+  font-size: 13px;
+}
+.select option { background: var(--card); color: var(--text); }

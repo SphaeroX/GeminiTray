@@ -1,0 +1,87 @@
+{
+  "tray": {
+    "toggle": "Anzeigen / Verbergen",
+    "settings": "Einstellungen",
+    "login_browser": "Mit Browser anmelden",
+    "reset_session": "Sitzung zurücksetzen",
+    "quit": "Beenden"
+  },
+  "common": {
+    "close": "Schließen",
+    "minimize": "Minimieren",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "on": "Ein",
+    "off": "Aus"
+  },
+  "settings": {
+    "window_title": "Gemini Tray – Einstellungen",
+    "nav_label": "Kategorien",
+    "nav": {
+      "general": "Allgemein",
+      "shortcuts": "Shortcuts",
+      "voice": "Sprache",
+      "prompts": "Prompts",
+      "window": "Fenster",
+      "account": "Konto",
+      "updates": "Updates"
+    },
+    "general": {
+      "autostart": "Mit Windows starten",
+      "autostart_desc": "Gemini Tray startet nach der Anmeldung im Hintergrund",
+      "start_minimized": "Minimiert starten",
+      "start_minimized_desc": "Beim Start nur im Tray erscheinen, ohne Fenster",
+      "language": "Sprache der Oberfläche",
+      "language_desc": "Gilt für Einstellungen, Menüs und Meldungen",
+      "language_system": "Wie Windows",
+      "language_de": "Deutsch",
+      "language_en": "English",
+      "version": "Version {version}"
+    },
+    "shortcuts": {
+      "intro": "Shortcuts gelten systemweit. Zum Ändern auf die Taste klicken und die neue Kombination drücken; Entf löscht den Shortcut.",
+      "toggle": "Gemini ein-/ausblenden",
+      "toggle_desc": "Fenster öffnen oder verbergen",
+      "voice": "Sprachnachricht an Gemini",
+      "voice_desc": "Aufnehmen, erkennen, einfügen und senden",
+      "dictation": "Diktat in die Zwischenablage",
+      "dictation_desc": "Funktioniert in jeder App, Text landet in der Zwischenablage",
+      "screenshot": "Screenshot & Ask",
+      "screenshot_desc": "Bereich auswählen und an Gemini übergeben",
+      "newChat": "Neuer Chat",
+      "newChat_desc": "Fenster öffnen und neue Unterhaltung starten",
+      "prompts": "Prompt-Menü",
+      "prompts_desc": "Gespeicherten Prompt für die nächste Nachricht wählen",
+      "press_keys": "Tasten drücken …",
+      "none": "Kein Shortcut",
+      "taken": "Bereits von einer anderen App belegt – bitte andere Kombination wählen",
+      "duplicate": "Schon für „{other}“ verwendet",
+      "invalid": "Diese Kombination wird nicht unterstützt",
+      "needs_modifier": "Bitte mit Alt, Strg, Umschalt oder Win kombinieren"
+    },
+    "account": {
+      "title": "Google-Konto",
+      "desc": "Gemini Tray nutzt dein Google-Konto im Gemini-Fenster. Falls Google die Anmeldung im Fenster ablehnt, melde dich über Chrome oder Edge an – die Sitzung wird übernommen.",
+      "login_browser": "Mit Browser anmelden",
+      "reset": "Sitzung zurücksetzen",
+      "reset_desc": "Meldet dich ab und löscht alle Daten des Gemini-Fensters"
+    }
+  },
+  "toast": {
+    "not_available": { "title": "Noch nicht verfügbar", "body": "Diese Funktion folgt in einer späteren Version." },
+    "settings": {
+      "recovered": { "title": "Einstellungen zurückgesetzt", "body": "Die Einstellungsdatei war beschädigt. Es gelten wieder die Standardwerte." },
+      "saved": { "title": "Gespeichert", "body": "" }
+    },
+    "shortcut": {
+      "taken": { "title": "Shortcut belegt", "body": "Von einer anderen App verwendet: {detail}. In den Einstellungen änderbar." }
+    },
+    "login": {
+      "required": { "title": "Anmeldung nötig", "body": "Melde dich im Fenster an. Klappt das nicht: Tray-Menü › Mit Browser anmelden." },
+      "browser_started": { "title": "Browser geöffnet", "body": "Melde dich im Browserfenster bei Google an. Es schließt sich danach automatisch." },
+      "success": { "title": "Angemeldet", "body": "Die Google-Sitzung wurde übernommen." },
+      "failed": { "title": "Anmeldung fehlgeschlagen", "body": "{detail}" },
+      "reset": { "title": "Sitzung zurückgesetzt", "body": "Du bist jetzt abgemeldet." }
+    }
+  }
+}

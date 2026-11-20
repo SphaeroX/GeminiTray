@@ -25,6 +25,8 @@ ureq = { version = "3.5.2", features = ["json"] }
 tungstenite = "0.30.0"
 url = "2.5.8"
 cookie = "0.18"
+tauri-plugin-autostart = "2"
+sys-locale = "0.3.2"
 
 [[test]]
 name = "window_toggle"
@@ -40,3 +42,7 @@ strip = true
 [[test]]
 name = "login"
 path = "../tests/rust/login.rs"
+
+[[test]]
+name = "settings"
+path = "../tests/rust/settings.rs"
