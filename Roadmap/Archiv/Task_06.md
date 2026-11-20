@@ -65,23 +65,24 @@ Der Task gilt erst als fertig, wenn alle Punkte erfüllt und durch Tests oder ei
 
 Taskspezifische Informationen während der Arbeit hier festhalten. Taskübergreifendes gehört in `Roadmap/README.md`.
 
+- 8 Tests für den Zustandsautomaten (`tests/rust/voice.rs`) und 2 UI-Tests (Timer, Pegelbalken) grün.
+- Hardware-Test (`records_from_default_microphone`, `#[ignore]`) mit echtem Headset-Mikrofon (48 kHz Stereo) erfolgreich. Dabei gefunden: WASAPI meldet beim Start gelegentlich „buffer underrun or overrun“ – das hätte jede Aufnahme als Gerätefehler beendet. Jetzt beenden nur echte Gerätefehler die Aufnahme (`audio::is_fatal`).
+- Indikator (Diktat, Sprachnachricht mit Prompt, Fehler) im Browser gegen das Design geprüft (`indicator.html#recording|#message|#transcribing|#error` zeigt Demo-Zustände im Dev-Modus).
+- **Manuelle Prüfliste offen für den Nutzer:** Diktat DE/EN mit echter Sprache, Doppeldruck, ✕/Esc, Mikrofon abziehen, Mikrofon in Windows sperren, 20 Diktate in Folge. (Alt+Shift+V ist belegt, solange die 1.x-App läuft – alternativ Tray › „Diktat starten / beenden“.)
+
 ## Abschluss-Checkliste
 
 Reihenfolge und Details stehen in `AGENTS.md`, Abschnitt "Abschluss- und Archivierungs-Workflow".
 
-- [ ] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
-- [ ] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
-- [ ] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
-- [ ] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
+- [x] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
+- [x] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
+- [x] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
+- [x] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
 
 ## Erkenntnisse für Folge-Agenten
 
-<!-- ERKENNTNISSE-OFFEN: Vor der Archivierung ausfüllen und diese Zeile löschen. -->
-
-Vor der Archivierung vom Agenten auszufüllen. Schreibe so, dass ein Agent, der diesen Task nie gesehen hat, davon bei späteren Tasks profitiert:
-
-- **Umgesetzt (und Abweichungen vom Plan):**
-- **Learnings & Stolpersteine:**
-- **Wichtige Entscheidungen und ihre Gründe:**
-- **Auswirkungen auf Folge-Tasks:**
-- **Hinweise zu Tests und Befehlen:**
+- **Umgesetzt (und Abweichungen vom Plan):** `audio::Recorder` (cpal/WASAPI; Stream lebt in eigenem Thread, weil nicht `Send`), `voice::machine` (reiner Zustandsautomat Idle/Recording/Transcribing mit Effekten), `voice` (Steuerung, Indikator-Events `voice-state`/`voice-level`, Watchdog-Thread für Pegel, Gerätefehler und Höchstdauer, Esc als temporärer globaler Shortcut nur während Aufnahme/Erkennung). Diktat schreibt über `tauri-plugin-clipboard-manager`. Mikrofon-Auswahl in Einstellungen › Sprache. Zusätzlich: Tray-Einträge „Diktat starten / beenden“ und „Screenshot & Ask“ (Screenshot folgt in Task 08).
+- **Learnings & Stolpersteine:** cpal 0.18: Gerätename über `device.to_string()`. Xrun-Fehler sind normal und dürfen die Aufnahme nicht abbrechen. Ein Ergebnis einer abgebrochenen Erkennung wird über eine Sitzungsnummer verworfen. Der Indikator ist `focusable(false)`, Klicks funktionieren trotzdem; Esc kommt deshalb über einen globalen Shortcut.
+- **Wichtige Entscheidungen und ihre Gründe:** Das Modell wird beim Aufnahmestart parallel vorgeladen, damit die Erkennung direkt nach dem Stopp läuft. Fehlt das Modell, startet der Download und es wird nicht aufgenommen (Toast `model.missing`). Ein zweiter Druck auf den jeweils anderen Sprach-Shortcut beendet die laufende Aufnahme in ihrem eigenen Modus.
+- **Auswirkungen auf Folge-Tasks:** Task 07 implementiert nur noch `voice_message::deliver(app, text)` (Stub vorhanden) und schaltet `ShortcutAction::Voice` in `actions::run` frei. `VoiceState.prefix` bzw. `prompts::active_name` sind die Haken für Task 09.
+- **Hinweise zu Tests und Befehlen:** Mikrofontest: `cargo test --manifest-path src-tauri/Cargo.toml --test voice -- --ignored --nocapture`.

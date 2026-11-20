@@ -10,6 +10,8 @@ use tauri::{AppHandle, Manager, Wry};
 /// Menu entries: (id, i18n key).
 const ITEMS: &[(&str, &str)] = &[
     ("toggle", "tray.toggle"),
+    ("dictation", "tray.dictation"),
+    ("screenshot", "tray.screenshot"),
     ("settings", "tray.settings"),
     ("login_browser", "tray.login_browser"),
     ("reset_session", "tray.reset_session"),
@@ -31,6 +33,8 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         app,
         &[
             get("toggle"),
+            get("dictation"),
+            get("screenshot"),
             get("settings"),
             &sep1,
             get("login_browser"),
@@ -47,6 +51,8 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id.as_ref() {
             "toggle" => windowing::toggle_main(app),
             "settings" => appwindows::open_settings(app, None),
+            "dictation" => crate::actions::run(app, crate::settings::ShortcutAction::Dictation),
+            "screenshot" => crate::actions::run(app, crate::settings::ShortcutAction::Screenshot),
             "login_browser" => login::start_browser_login(app),
             "reset_session" => login::reset_session(app),
             "quit" => app.exit(0),

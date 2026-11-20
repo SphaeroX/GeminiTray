@@ -1,6 +1,8 @@
 {
   "tray": {
     "toggle": "Anzeigen / Verbergen",
+    "dictation": "Diktat starten / beenden",
+    "screenshot": "Screenshot & Ask",
     "settings": "Einstellungen",
     "login_browser": "Mit Browser anmelden",
     "reset_session": "Sitzung zurücksetzen",
@@ -150,6 +152,34 @@
         "title": "Sprachmodell fehlt",
         "body": "Das Sprachmodell (ca. 670 MB) wird jetzt heruntergeladen. Danach erneut versuchen."
       }
+    },
+    "voice": {
+      "copied": {
+        "title": "Text kopiert",
+        "body": "{detail}"
+      },
+      "nothing": {
+        "title": "Nichts erkannt",
+        "body": "Es wurde keine Sprache erkannt. Die Zwischenablage bleibt unverändert."
+      },
+      "failed": {
+        "title": "Spracherkennung fehlgeschlagen",
+        "body": "{detail}"
+      }
+    }
+  },
+  "indicator": {
+    "dictation": "Diktat",
+    "message": "An Gemini",
+    "prompt": "Prompt: {name}",
+    "done": "Fertig",
+    "send": "Senden",
+    "transcribing": "Wird erkannt …",
+    "open_settings": "Einstellungen öffnen",
+    "error": {
+      "accessDenied": "Mikrofonzugriff ist in Windows gesperrt",
+      "noDevice": "Kein Mikrofon gefunden",
+      "device": "Mikrofon nicht verfügbar oder getrennt"
     }
   }
 }

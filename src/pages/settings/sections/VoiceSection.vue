@@ -29,7 +29,17 @@
     </span>
   </div>
 
-  <slot name="microphone" />
+  <SettingRow v-if="s" :label="t('settings.voice.microphone')" :description="t('settings.voice.microphone_desc')" for-id="mic">
+    <select
+      id="mic"
+      class="select wide"
+      :value="s.voice.microphone ?? ''"
+      @change="(e) => save((x) => (x.voice.microphone = (e.target as HTMLSelectElement).value || null))"
+    >
+      <option value="">{{ t("settings.voice.microphone_default") }}</option>
+      <option v-for="m in microphones" :key="m" :value="m">{{ m }}</option>
+    </select>
+  </SettingRow>
 
   <SettingRow v-if="s" :label="t('settings.voice.auto_send')" :description="t('settings.voice.auto_send_desc')" label-id="lbl-autosend">
     <ToggleSwitch
@@ -63,6 +73,7 @@ import { save, view } from "../store";
 const { t } = useI18n();
 const s = computed(() => view.value?.settings);
 const status = ref<ModelStatus | null>(null);
+const microphones = ref<string[]>([]);
 const percent = computed(() =>
   status.value && status.value.total > 0 ? Math.floor((status.value.downloaded / status.value.total) * 100) : 0,
 );
@@ -71,6 +82,7 @@ const mb = (bytes: number) => Math.round(bytes / 1_000_000);
 let unlisten: (() => void) | null = null;
 onMounted(async () => {
   status.value = await api.modelStatus();
+  microphones.value = await api.listMicrophones();
   unlisten = await onEvent<ModelStatus>("model-progress", (p) => (status.value = p));
 });
 onUnmounted(() => unlisten?.());
@@ -90,6 +102,7 @@ onUnmounted(() => unlisten?.());
 .text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .desc { font-size: 12px; color: var(--muted); }
 .desc.error { color: var(--danger); }
+.select.wide { width: 240px; }
 .progress-wrap { display: flex; flex-direction: column; gap: 6px; }
 .track { height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
 .bar { height: 4px; border-radius: 2px; background: var(--accent); transition: width 0.2s ease; }

@@ -12,6 +12,10 @@ pub fn on_event(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
     if state != ShortcutState::Pressed {
         return;
     }
+    if crate::voice::is_escape(shortcut) {
+        crate::voice::handle(app, crate::voice::machine::Event::Cancel);
+        return;
+    }
     let action = app.state::<AppState>().shortcut_map.lock().unwrap().get(&shortcut.id()).copied();
     if let Some(action) = action {
         actions::run(app, action);

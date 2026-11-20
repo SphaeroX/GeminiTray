@@ -12,6 +12,9 @@ pub fn run(app: &AppHandle, action: ShortcutAction) {
     match action {
         ShortcutAction::Toggle => windowing::toggle_main(app),
         ShortcutAction::NewChat => new_chat(app),
+        ShortcutAction::Dictation => {
+            crate::voice::handle(app, crate::voice::machine::Event::Toggle(crate::voice::machine::Mode::Dictation))
+        }
         _ => notify::show(app, Level::Info, "not_available", None),
     }
 }

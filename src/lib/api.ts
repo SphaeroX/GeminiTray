@@ -55,6 +55,13 @@ export interface ModelStatus {
   error: string | null;
 }
 
+export interface IndicatorState {
+  phase: "idle" | "recording" | "transcribing";
+  mode?: "dictation" | "message";
+  prompt: string | null;
+  error: "accessDenied" | "noDevice" | "device" | null;
+}
+
 export type Level = "info" | "success" | "warning" | "error";
 export interface Notification {
   level: Level;
@@ -78,4 +85,9 @@ export const api = {
   modelStatus: () => invoke<ModelStatus>("model_status"),
   modelDownload: () => invoke<void>("model_download"),
   modelCancel: () => invoke<void>("model_cancel"),
+  voiceFinish: () => invoke<void>("voice_finish"),
+  voiceCancel: () => invoke<void>("voice_cancel"),
+  voiceDismiss: () => invoke<void>("voice_dismiss"),
+  openMicPrivacy: () => invoke<void>("open_mic_privacy"),
+  listMicrophones: () => invoke<string[]>("list_microphones"),
 };

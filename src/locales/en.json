@@ -1,6 +1,8 @@
 {
   "tray": {
     "toggle": "Show / hide",
+    "dictation": "Start / stop dictation",
+    "screenshot": "Screenshot & Ask",
     "settings": "Settings",
     "login_browser": "Sign in with browser",
     "reset_session": "Reset session",
@@ -150,6 +152,34 @@
         "title": "Speech model missing",
         "body": "The speech model (about 670 MB) is being downloaded now. Try again afterwards."
       }
+    },
+    "voice": {
+      "copied": {
+        "title": "Text copied",
+        "body": "{detail}"
+      },
+      "nothing": {
+        "title": "Nothing recognised",
+        "body": "No speech was detected. Your clipboard is unchanged."
+      },
+      "failed": {
+        "title": "Speech recognition failed",
+        "body": "{detail}"
+      }
+    }
+  },
+  "indicator": {
+    "dictation": "Dictation",
+    "message": "To Gemini",
+    "prompt": "Prompt: {name}",
+    "done": "Done",
+    "send": "Send",
+    "transcribing": "Recognising …",
+    "open_settings": "Open settings",
+    "error": {
+      "accessDenied": "Microphone access is blocked in Windows",
+      "noDevice": "No microphone found",
+      "device": "Microphone unavailable or disconnected"
     }
   }
 }

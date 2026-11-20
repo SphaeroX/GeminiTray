@@ -2,17 +2,21 @@
 
 pub mod actions;
 pub mod appwindows;
+pub mod audio;
 pub mod bridge;
 pub mod commands;
 pub mod i18n;
 pub mod login;
 pub mod notify;
+pub mod prompts;
 pub mod settings;
 pub mod shortcuts;
 pub mod stt;
 pub mod state;
 pub mod toast;
 pub mod tray;
+pub mod voice;
+pub mod voice_message;
 pub mod windowing;
 
 use notify::Level;
@@ -73,6 +77,7 @@ pub fn run() {
                 }))
                 .build(),
         )
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--autostart"]),
@@ -98,6 +103,11 @@ pub fn run() {
             stt::service::model_status,
             stt::service::model_download,
             stt::service::model_cancel,
+            voice::voice_finish,
+            voice::voice_cancel,
+            voice::voice_dismiss,
+            voice::open_mic_privacy,
+            voice::list_microphones,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -106,8 +116,10 @@ pub fn run() {
             app.manage(state);
             app.manage(toast::ToastState::default());
             app.manage(stt::service::SttState::new(&handle));
+            app.manage(voice::VoiceState::default());
 
             toast::create(&handle)?;
+            voice::create_indicator(&handle)?;
             create_main_window(&handle)?;
             tray::create(&handle)?;
 

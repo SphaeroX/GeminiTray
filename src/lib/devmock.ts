@@ -51,6 +51,7 @@ export async function mockInvoke(cmd: string, args?: Record<string, unknown>): P
 
 // Extended by later features (microphones, model status …).
 export const mockHandlers: Record<string, (args?: Record<string, unknown>) => unknown> = {
+  list_microphones: () => ["Mikrofonarray (Realtek(R) Audio)", "Headset (SteelSeries Arctis)"],
   model_status: () => ({ installed: false, downloading: true, downloaded: 412_000_000, total: 670_480_000, error: null }),
 };
 
