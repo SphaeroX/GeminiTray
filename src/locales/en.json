@@ -247,5 +247,13 @@
     "empty_hint": "Add some in the settings",
     "no_match": "No prompt found.",
     "active": "active"
+  },
+  "titlebar": {
+    "new_chat": "New chat",
+    "prompts": "Prompts",
+    "pin": "Keep on top",
+    "unpin": "Stop keeping on top",
+    "settings": "Settings",
+    "maximize": "Maximize"
   }
 }

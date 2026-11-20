@@ -111,3 +111,32 @@ pub fn close_window(window: tauri::WebviewWindow) {
 pub fn autostart_enabled(app: AppHandle) -> bool {
     app.autolaunch().is_enabled().unwrap_or(false)
 }
+
+/// Buttons of the custom title bar in the Gemini window.
+#[tauri::command]
+pub fn titlebar_action(app: AppHandle, state: State<'_, AppState>, action: String) {
+    use crate::settings::ShortcutAction;
+    let Some(w) = crate::windowing::main_window(&app) else { return };
+    match action.as_str() {
+        "newChat" => crate::actions::run(&app, ShortcutAction::NewChat),
+        "prompts" => crate::actions::run(&app, ShortcutAction::Prompts),
+        "settings" => appwindows::open_settings(&app, None),
+        "minimize" => {
+            let _ = w.minimize();
+        }
+        "maximize" => {
+            if w.is_maximized().unwrap_or(false) {
+                let _ = w.unmaximize();
+            } else {
+                let _ = w.maximize();
+            }
+        }
+        "close" => crate::windowing::hide_main(&app),
+        "pin" => {
+            let mut s = state.settings();
+            s.window.always_on_top = !s.window.always_on_top;
+            let _ = update_settings(app.clone(), state, s);
+        }
+        _ => {}
+    }
+}

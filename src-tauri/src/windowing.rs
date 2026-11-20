@@ -21,19 +21,51 @@ pub fn toggle_action(visible: bool, focused: bool, minimized: bool) -> ToggleAct
 
 mod runtime {
     use super::{toggle_action, ToggleAction};
-    use tauri::{AppHandle, Manager, WebviewWindow};
+    use tauri::{AppHandle, Manager, Webview, Window};
 
+    /// The main window holds two webviews: our title bar and the Gemini page.
     pub const MAIN: &str = "main";
+    pub const TITLEBAR: &str = "titlebar";
+    pub const GEMINI: &str = "gemini";
+    /// Height of the custom title bar in logical pixels.
+    pub const TITLEBAR_HEIGHT: f64 = 40.0;
 
-    pub fn main_window(app: &AppHandle) -> Option<WebviewWindow> {
-        app.get_webview_window(MAIN)
+    pub fn main_window(app: &AppHandle) -> Option<Window> {
+        app.get_window(MAIN)
+    }
+
+    /// The webview showing gemini.google.com.
+    pub fn gemini(app: &AppHandle) -> Option<Webview> {
+        app.get_webview(GEMINI)
+    }
+
+    /// Position both webviews after a resize.
+    pub fn layout(app: &AppHandle) {
+        let Some(w) = main_window(app) else { return };
+        let (Ok(size), Ok(scale)) = (w.inner_size(), w.scale_factor()) else { return };
+        let bar = (TITLEBAR_HEIGHT * scale).round() as u32;
+        let rect = |y: u32, h: u32| tauri::Rect {
+            position: tauri::PhysicalPosition::new(0, y as i32).into(),
+            size: tauri::PhysicalSize::new(size.width, h).into(),
+        };
+        if let Some(t) = app.get_webview(TITLEBAR) {
+            let _ = t.set_bounds(rect(0, bar.min(size.height)));
+        }
+        if let Some(g) = gemini(app) {
+            let _ = g.set_bounds(rect(bar.min(size.height), size.height.saturating_sub(bar)));
+        }
     }
 
     pub fn show_main(app: &AppHandle) {
         if let Some(w) = main_window(app) {
-            let _ = w.unminimize();
             let _ = w.show();
+            if w.is_minimized().unwrap_or(false) {
+                let _ = w.unminimize();
+            }
             let _ = w.set_focus();
+        }
+        if let Some(g) = gemini(app) {
+            let _ = g.set_focus();
         }
     }
 

@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 const root = resolve(import.meta.dirname, "src");
 
 // One HTML entry per app-owned window. The Gemini window itself loads gemini.google.com.
-export const pages = ["settings", "indicator", "prompts", "overlay", "toast"];
+export const pages = ["settings", "indicator", "prompts", "overlay", "toast", "titlebar"];
 
 export default defineConfig({
   root,

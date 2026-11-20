@@ -25,7 +25,7 @@ pub fn run(app: &AppHandle, action: ShortcutAction) {
 
 /// Open the window with a fresh conversation (navigating to /app starts a new chat).
 pub fn new_chat(app: &AppHandle) {
-    if let Some(w) = windowing::main_window(app) {
+    if let Some(w) = windowing::gemini(app) {
         if let Ok(url) = GEMINI_URL.parse() {
             let _ = w.navigate(url);
         }
@@ -56,7 +56,7 @@ pub fn check_bridge_once(app: &AppHandle) {
                 Err(e) => log::warn!("bridge self-test attempt failed: {e}"),
             }
             // Signed-out pages or a sign-in redirect are not a page change.
-            if let Some(w) = windowing::main_window(&app) {
+            if let Some(w) = windowing::gemini(&app) {
                 if w.url().map(|u| crate::login::is_signin_url(u.as_str())).unwrap_or(false) {
                     BRIDGE_CHECKED.store(false, Ordering::SeqCst);
                     return;

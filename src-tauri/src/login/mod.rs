@@ -32,7 +32,7 @@ mod runtime {
     }
 
     fn reload_gemini(app: &AppHandle) {
-        if let Some(w) = windowing::main_window(app) {
+        if let Some(w) = windowing::gemini(app) {
             if let Ok(url) = GEMINI_URL.parse() {
                 let _ = w.navigate(url);
             }
@@ -47,7 +47,7 @@ mod runtime {
             notify::show(&app, Level::Info, "login.browser_started", None);
             match browser::sign_in(&profile) {
                 Ok(found) => {
-                    let Some(w) = windowing::main_window(&app) else { return };
+                    let Some(w) = windowing::gemini(&app) else { return };
                     let now = SystemTime::now()
                         .duration_since(UNIX_EPOCH)
                         .map(|d| d.as_secs() as i64)
@@ -74,7 +74,7 @@ mod runtime {
 
     /// Delete all cookies/data of the Gemini webview and the login browser profile.
     pub fn reset_session(app: &AppHandle) {
-        if let Some(w) = windowing::main_window(app) {
+        if let Some(w) = windowing::gemini(app) {
             if let Err(e) = w.clear_all_browsing_data() {
                 log::error!("Could not clear browsing data: {e}");
             }

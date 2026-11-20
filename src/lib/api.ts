@@ -104,6 +104,7 @@ export const api = {
   updateCheck: () => invoke<UpdateStatus>("update_check"),
   updateInstall: () => invoke<void>("update_install"),
   openReleases: () => invoke<void>("open_releases"),
+  titlebarAction: (action: string) => invoke<void>("titlebar_action", { action }),
   overlayImage: (index: number) => invoke<{ dataUrl: string; width: number; height: number }>("overlay_image", { index }),
   overlayCancel: () => invoke<void>("overlay_cancel"),
   overlaySelect: (index: number, rect: { x: number; y: number; width: number; height: number }) =>

@@ -102,13 +102,13 @@ mod win {
 
 mod runtime {
     use super::*;
-    use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
+    use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, Window};
 
     fn path(app: &AppHandle) -> Option<std::path::PathBuf> {
         app.path().app_config_dir().ok().map(|d| d.join("window-state.json"))
     }
 
-    pub fn remember(app: &AppHandle, w: &WebviewWindow) {
+    pub fn remember(app: &AppHandle, w: &Window) {
         if w.is_minimized().unwrap_or(false) || w.is_maximized().unwrap_or(false) {
             return;
         }
@@ -116,7 +116,7 @@ mod runtime {
         save(&p, Bounds { x: pos.x, y: pos.y, width: size.width, height: size.height });
     }
 
-    pub fn restore(app: &AppHandle, w: &WebviewWindow) {
+    pub fn restore(app: &AppHandle, w: &Window) {
         let Some(saved) = path(app).and_then(|p| load(&p)) else { return };
         let areas: Vec<Area> = w
             .available_monitors()
@@ -138,7 +138,7 @@ mod runtime {
         }
     }
 
-    pub fn apply_opacity(w: &WebviewWindow, opacity: f64) {
+    pub fn apply_opacity(w: &Window, opacity: f64) {
         #[cfg(windows)]
         if let Ok(hwnd) = w.hwnd() {
             if !super::win::set_alpha(hwnd.0, alpha(opacity)) {

@@ -247,5 +247,13 @@
     "empty_hint": "In den Einstellungen anlegen",
     "no_match": "Kein Prompt gefunden.",
     "active": "aktiv"
+  },
+  "titlebar": {
+    "new_chat": "Neuer Chat",
+    "prompts": "Prompts",
+    "pin": "Immer im Vordergrund",
+    "unpin": "Nicht mehr im Vordergrund",
+    "settings": "Einstellungen",
+    "maximize": "Maximieren"
   }
 }

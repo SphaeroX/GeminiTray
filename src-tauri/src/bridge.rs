@@ -94,7 +94,7 @@ mod runtime {
     use std::sync::mpsc;
     use tauri::AppHandle;
 
-    fn eval_value(w: &tauri::WebviewWindow, script: String) -> Option<String> {
+    fn eval_value(w: &tauri::Webview, script: String) -> Option<String> {
         let (tx, rx) = mpsc::channel();
         w.eval_with_callback(script, move |res| {
             let _ = tx.send(res);
@@ -105,7 +105,7 @@ mod runtime {
 
     /// Run a bridge operation. Blocking – call from a background thread, never from the main thread.
     pub fn call(app: &AppHandle, op: &str, args: Value, timeout: Duration) -> Result<Value, BridgeError> {
-        let w = windowing::main_window(app).ok_or(BridgeError::NotReady)?;
+        let w = windowing::gemini(app).ok_or(BridgeError::NotReady)?;
         let id = format!("op{}", NEXT_ID.fetch_add(1, Ordering::Relaxed));
         // Make sure the bridge exists (pages loaded before injection or after a crash).
         let installed = eval_value(&w, "typeof window.__geminiTray".into());

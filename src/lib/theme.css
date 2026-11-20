@@ -31,6 +31,11 @@
   --pill-border: rgba(255, 255, 255, 0.08);
   --pill-accent: #60cdff;
   --rec: #ff6b6b;
+  --tb-bg: #ffffff;
+  --tb-text: #1f1f1f;
+  --tb-muted: #5f6368;
+  --tb-hover: rgba(0, 0, 0, 0.06);
+  --tb-accent: #0b57d0;
   --radius-card: 6px;
   --radius-control: 4px;
   --radius-window: 8px;
@@ -62,6 +67,11 @@
     --divider: #3a3a3a;
     --selected: #383838;
     --link: #99ebff;
+    --tb-bg: #000000;
+    --tb-text: #e3e3e3;
+    --tb-muted: #a8acb2;
+    --tb-hover: rgba(255, 255, 255, 0.08);
+    --tb-accent: #a8c7fa;
   }
 }
 

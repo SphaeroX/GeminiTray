@@ -24,7 +24,9 @@ pub mod windowstate;
 
 use notify::Level;
 use state::AppState;
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::webview::WebviewBuilder;
+use tauri::window::WindowBuilder;
+use tauri::{LogicalPosition, LogicalSize, Manager, WebviewUrl, WindowEvent};
 
 pub const GEMINI_URL: &str = "https://gemini.google.com/app";
 
@@ -41,13 +43,25 @@ async fn tokio_sleep(d: std::time::Duration) {
 fn create_main_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     let url = GEMINI_URL.parse().expect("valid Gemini URL");
     let always_on_top = app.state::<AppState>().settings().window.always_on_top;
-    let window = WebviewWindowBuilder::new(app, windowing::MAIN, WebviewUrl::External(url))
+    let window = WindowBuilder::new(app, windowing::MAIN)
         .title("Gemini Tray")
         .inner_size(520.0, 760.0)
         .min_inner_size(360.0, 480.0)
         .center()
+        .decorations(false)
+        .shadow(true)
         .always_on_top(always_on_top)
         .visible(false)
+        .build()?;
+
+    let size = window.inner_size()?.to_logical::<f64>(window.scale_factor()?);
+    let bar = windowing::TITLEBAR_HEIGHT;
+    window.add_child(
+        WebviewBuilder::new(windowing::TITLEBAR, WebviewUrl::App("titlebar.html".into())),
+        LogicalPosition::new(0.0, 0.0),
+        LogicalSize::new(size.width, bar),
+    )?;
+    let gemini = WebviewBuilder::new(windowing::GEMINI, WebviewUrl::External(url))
         .initialization_script(bridge::SCRIPT)
         .on_page_load({
             let app = app.clone();
@@ -62,8 +76,8 @@ fn create_main_window(app: &tauri::AppHandle) -> tauri::Result<()> {
                     actions::check_bridge_once(&app);
                 }
             }
-        })
-        .build()?;
+        });
+    window.add_child(gemini, LogicalPosition::new(0.0, bar), LogicalSize::new(size.width, (size.height - bar).max(1.0)))?;
 
     windowstate::restore(app, &window);
     windowstate::apply_opacity(&window, app.state::<AppState>().settings().window.opacity);
@@ -72,12 +86,17 @@ fn create_main_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     let handle = window.clone();
     let app_handle = app.clone();
     window.on_window_event(move |event| {
-        if let WindowEvent::CloseRequested { api, .. } = event {
-            api.prevent_close();
-            windowstate::remember(&app_handle, &handle);
-            let _ = handle.hide();
+        match event {
+            WindowEvent::CloseRequested { api, .. } => {
+                api.prevent_close();
+                windowstate::remember(&app_handle, &handle);
+                let _ = handle.hide();
+            }
+            WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => windowing::layout(&app_handle),
+            _ => {}
         }
     });
+    windowing::layout(app);
     Ok(())
 }
 
@@ -139,6 +158,7 @@ pub fn run() {
             updates::update_check,
             updates::update_install,
             updates::open_releases,
+            commands::titlebar_action,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
