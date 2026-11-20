@@ -66,6 +66,34 @@ Der Task gilt erst als fertig, wenn alle Punkte erfüllt und durch Tests oder ei
 
 Taskspezifische Informationen während der Arbeit hier festhalten. Taskübergreifendes gehört in `Roadmap/README.md`.
 
+**Stand 2026-11-20 (Agent):**
+
+- Erledigt: `tauri-plugin-updater` + `tauri-plugin-process` eingebunden (`src-tauri/src/updates.rs`), Einstellungsseite „Updates“, Tray „Nach Updates suchen“, Prüfung 20 s nach dem Start. Updater ist nur aktiv, wenn `plugins.updater.pubkey` gesetzt ist (sonst Status „disabled“, App läuft normal).
+- Erledigt: `.github/workflows/release.yml` (Tag `v*` → Tests → `tauri-action`, Draft-Release mit Installer, Signatur, `latest.json`; Updater-Artefakte nur im CI per `--config`), `.github/workflows/ci.yml` (Typecheck + Tests). Alte Electron-Workflows und `tag-release.*` entfernt; neue Skripte `scripts/versions.mjs`, `version-check.mjs`, `release.mjs` (nur von `main`, sauberer Baum, Tag existiert noch nicht).
+- Erledigt: Version überall 2.0.0 (`npm run version:check`). Root-`AGENTS.md` und `README.md` wurden bereits vor Task 01 neu geschrieben und hier um „Releases and auto-update“ ergänzt.
+- Tests: 5 Vitest-Tests für die Versionsprüfung (inkl. echtem Repository), 1 Rust-Test Fortschritt. Gesamt: 40 UI-Tests, 78 Rust-Tests grün; 7 Hardware-/Modelltests (`--ignored`) zuvor einzeln grün.
+- Release-Build: `Gemini Tray_2.0.0_x64-setup.exe` (≈ 8,3 MB) baut; enthält die VC++-DLLs, nicht `DirectML.dll`. Rauchtest der Release-exe aus einem sauberen Ordner: startet, Shortcuts registriert, Log „Gemini bridge self-test passed“ im echten WebView2-Fenster.
+
+**Offen – braucht den Nutzer (deshalb ist dieser Task noch nicht archiviert):**
+
+1. Updater-Schlüssel erzeugen, öffentlichen Schlüssel in `tauri.conf.json` eintragen, GitHub-Secrets setzen (Anleitung in Root-`AGENTS.md`).
+2. Gesamt-Prüfliste unten am Release-Kandidaten durchgehen.
+3. Freigabe für Merge `rework/tauri` → `main`, danach `npm run release` (Tag `v2.0.0`), Draft-Release prüfen und veröffentlichen, Update-Pfad mit `v2.0.1` testen.
+
+**Gesamt-Prüfliste für den Nutzer (aus allen Tasks gesammelt):**
+
+- [ ] Alte 1.x-App beenden/deinstallieren, Installer ausführen, App startet im Tray (T01)
+- [ ] Alt+Space blendet ein/aus; Schließen-Knopf versteckt nur; Tray „Beenden“; Doppelstart holt Fenster nach vorn (T01)
+- [ ] Google-Anmeldung im Fenster – klappt das direkt? Sonst Tray › „Mit Browser anmelden“; nach Neustart weiterhin angemeldet; „Sitzung zurücksetzen“ (T02)
+- [ ] Shortcut in den Einstellungen ändern → sofort aktiv und nach Neustart; belegter Shortcut wird abgelehnt; Autostart; Sprache umschalten (T03)
+- [ ] Alt+N öffnet neuen Chat (T04)
+- [ ] Einstellungen › Sprache: Modell-Download (≈ 670 MB) mit Fortschritt; auf dem Testrechner ist es bereits vorhanden (T05)
+- [ ] Alt+Shift+V: Diktat DE/EN → Zwischenablage; ✕/Esc bricht ab; Mikrofon abziehen; Mikrofon in Windows sperren → Hinweis (T06)
+- [ ] Alt+V: Sprachnachricht wird eingefügt und gesendet; mit „automatisch senden“ aus nur eingefügt (T07)
+- [ ] Alt+Shift+S: Bereich wählen → Bild erscheint im Gemini-Eingabefeld (Drop-Upload, nur eingeloggt prüfbar); Esc/Rechtsklick bricht ab (T08)
+- [ ] Alt+J: Prompt wählen → steht im Eingabefeld; anschließende Sprachnachricht wird angehängt (T09)
+- [ ] Deckkraft-Regler: Gemini-Inhalt wird mit durchsichtig, keine schwarzen Flächen; Position nach Neustart wiederhergestellt (T10)
+
 ## Abschluss-Checkliste
 
 Reihenfolge und Details stehen in `AGENTS.md`, Abschnitt "Abschluss- und Archivierungs-Workflow".

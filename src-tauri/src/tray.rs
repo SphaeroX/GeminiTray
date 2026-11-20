@@ -13,6 +13,7 @@ const ITEMS: &[(&str, &str)] = &[
     ("dictation", "tray.dictation"),
     ("screenshot", "tray.screenshot"),
     ("settings", "tray.settings"),
+    ("updates", "tray.updates"),
     ("login_browser", "tray.login_browser"),
     ("reset_session", "tray.reset_session"),
     ("quit", "tray.quit"),
@@ -36,6 +37,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
             get("dictation"),
             get("screenshot"),
             get("settings"),
+            get("updates"),
             &sep1,
             get("login_browser"),
             get("reset_session"),
@@ -51,6 +53,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id.as_ref() {
             "toggle" => windowing::toggle_main(app),
             "settings" => appwindows::open_settings(app, None),
+            "updates" => appwindows::open_settings(app, Some("updates")),
             "dictation" => crate::actions::run(app, crate::settings::ShortcutAction::Dictation),
             "screenshot" => crate::actions::run(app, crate::settings::ShortcutAction::Screenshot),
             "login_browser" => login::start_browser_login(app),

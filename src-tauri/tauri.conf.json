@@ -42,5 +42,16 @@
       "runtime/vcruntime140.dll": "vcruntime140.dll",
       "runtime/vcruntime140_1.dll": "vcruntime140_1.dll"
     }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": [
+        "https://github.com/SphaeroX/GeminiTray/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

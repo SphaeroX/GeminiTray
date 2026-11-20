@@ -62,6 +62,12 @@ export interface IndicatorState {
   error: "accessDenied" | "noDevice" | "device" | null;
 }
 
+export type UpdateStatus =
+  | { state: "disabled" | "idle" | "checking" | "upToDate" }
+  | { state: "available"; version: string; notes: string | null }
+  | { state: "downloading"; percent: number }
+  | { state: "error"; message: string };
+
 export type Level = "info" | "success" | "warning" | "error";
 export interface Notification {
   level: Level;
@@ -94,6 +100,10 @@ export const api = {
   promptSelect: (id: string) => invoke<void>("prompt_select", { id }),
   promptClear: () => invoke<void>("prompt_clear"),
   promptsClose: () => invoke<void>("prompts_close"),
+  updateStatus: () => invoke<UpdateStatus>("update_status"),
+  updateCheck: () => invoke<UpdateStatus>("update_check"),
+  updateInstall: () => invoke<void>("update_install"),
+  openReleases: () => invoke<void>("open_releases"),
   overlayImage: (index: number) => invoke<{ dataUrl: string; width: number; height: number }>("overlay_image", { index }),
   overlayCancel: () => invoke<void>("overlay_cancel"),
   overlaySelect: (index: number, rect: { x: number; y: number; width: number; height: number }) =>

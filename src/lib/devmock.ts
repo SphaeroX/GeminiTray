@@ -52,6 +52,8 @@ export async function mockInvoke(cmd: string, args?: Record<string, unknown>): P
 
 // Extended by later features (microphones, model status …).
 export const mockHandlers: Record<string, (args?: Record<string, unknown>) => unknown> = {
+  update_status: () => ({ state: "available", version: "2.0.1", notes: null }),
+  update_check: () => ({ state: "upToDate" }),
   prompts_menu_data: () => ({ prompts: settings.prompts, activeId: "2" }),
   overlay_image: () => ({
     dataUrl:

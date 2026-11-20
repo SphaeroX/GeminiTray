@@ -67,6 +67,7 @@ function close() {
 
 onMounted(async () => {
   go(location.hash.slice(1));
+  window.addEventListener("hashchange", () => go(location.hash.slice(1)));
   await load();
   await onEvent<string>("settings-navigate", go);
 });

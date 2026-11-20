@@ -6,7 +6,8 @@
     "settings": "Settings",
     "login_browser": "Sign in with browser",
     "reset_session": "Reset session",
-    "quit": "Quit"
+    "quit": "Quit",
+    "updates": "Check for updates"
   },
   "common": {
     "close": "Close",
@@ -104,6 +105,19 @@
       "always_on_top": "Always on top",
       "always_on_top_desc": "Keep the Gemini window above all other windows",
       "position": "Position and size are saved when the window is hidden and restored on the next start."
+    },
+    "updates": {
+      "current": "Installed version: {version}",
+      "check": "Check for updates",
+      "install": "Install now",
+      "disabled": "Automatic updates are not set up in this build. New versions are available on GitHub.",
+      "idle": "Not checked yet.",
+      "checking": "Checking for updates …",
+      "up_to_date": "Gemini Tray is up to date.",
+      "available": "Version {version} is available.",
+      "downloading": "Downloading update – {percent} %",
+      "error": "Update failed: {message}",
+      "releases": "Release notes on GitHub"
     }
   },
   "toast": {
@@ -195,6 +209,12 @@
       "clipboard": {
         "title": "Image in clipboard",
         "body": "Gemini did not accept the image. Paste it into the prompt with Ctrl + V. ({detail})"
+      }
+    },
+    "update": {
+      "available": {
+        "title": "Update available",
+        "body": "Version {detail} can be installed under Settings › Updates."
       }
     }
   },

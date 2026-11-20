@@ -16,6 +16,7 @@ pub mod stt;
 pub mod state;
 pub mod toast;
 pub mod tray;
+pub mod updates;
 pub mod voice;
 pub mod voice_message;
 pub mod windowing;
@@ -26,6 +27,16 @@ use state::AppState;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 pub const GEMINI_URL: &str = "https://gemini.google.com/app";
+
+async fn tokio_sleep(d: std::time::Duration) {
+    let (tx, rx) = tauri::async_runtime::channel::<()>(1);
+    std::thread::spawn(move || {
+        std::thread::sleep(d);
+        let _ = tx.blocking_send(());
+    });
+    let mut rx = rx;
+    let _ = rx.recv().await;
+}
 
 fn create_main_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     let url = GEMINI_URL.parse().expect("valid Gemini URL");
@@ -85,6 +96,8 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--autostart"]),
@@ -122,6 +135,10 @@ pub fn run() {
             prompts::prompt_select,
             prompts::prompt_clear,
             prompts::prompts_close,
+            updates::update_status,
+            updates::update_check,
+            updates::update_install,
+            updates::open_releases,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -133,6 +150,7 @@ pub fn run() {
             app.manage(voice::VoiceState::default());
             app.manage(screenshot::ScreenshotState::default());
             app.manage(prompts::PromptState::default());
+            app.manage(updates::UpdateState::new(&handle));
 
             toast::create(&handle)?;
             voice::create_indicator(&handle)?;
@@ -152,6 +170,12 @@ pub fn run() {
             if !handle.state::<AppState>().settings().start_minimized {
                 windowing::show_main(&handle);
             }
+            // Look for updates a little after start (not blocking the start-up).
+            let update_handle = handle.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio_sleep(std::time::Duration::from_secs(20)).await;
+                updates::check(update_handle, true).await;
+            });
             Ok(())
         })
         .run(tauri::generate_context!())

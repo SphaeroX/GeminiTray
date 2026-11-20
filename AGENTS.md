@@ -44,6 +44,15 @@ npm run release                   # tag the current version and push (only when 
 - Roadmap tasks: follow `Roadmap/AGENTS.md`; current tasks are in `Roadmap/Tasks/`.
 - User-facing text exists in German and English; add both whenever you add a string.
 
+## Releases and auto-update
+
+- `.github/workflows/release.yml` builds on tags `v*` with `tauri-action` and creates a **draft** release containing the NSIS installer, its signature and `latest.json` for the updater. `ci.yml` runs type check and tests on pushes and PRs.
+- The updater (`src-tauri/src/updates.rs`) is only active when `plugins.updater.pubkey` in `src-tauri/tauri.conf.json` is set. One-time setup by the maintainer:
+  1. `npx tauri signer generate -w %USERPROFILE%\.tauri\gemini-tray.key` (keep the private key secret and backed up – losing it means existing installs can no longer update).
+  2. Put the **public** key into `plugins.updater.pubkey`.
+  3. Add the GitHub secrets `TAURI_SIGNING_PRIVATE_KEY` (content of the private key file) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+- Local `npm run tauri build` does not create updater artifacts and needs no key.
+
 ## Gotchas
 
 - Google may refuse sign-in inside embedded browsers. The fallback is `login::browser` (system Chrome/Edge with its own profile, cookies copied via CDP into WebView2). Never add user-agent spoofing or "stealth" flags without asking the user.

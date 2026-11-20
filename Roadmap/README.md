@@ -19,7 +19,7 @@ Gemini Tray 2.0 ist ein kompletter Neuaufbau der bisherigen Electron-App als sch
 
 ## Aktueller Status
 
-Stand: 2026-11-20 – Tasks 01–10 erledigt.
+Stand: 2026-11-20 – Tasks 01–10 erledigt, Task 11 technisch umgesetzt; offen: Updater-Schlüssel, Nutzertest, Merge und Release (brauchen den Nutzer).
 
 | Task | Titel | Status |
 |---|---|---|
@@ -58,6 +58,8 @@ Globale Informationen, Architekturentscheidungen und Wissen, das für das gesamt
 - **[Task 01] Test-Befehle:** Alle Tests `npm test`; nur UI `npx vitest run` (einzeln: `npx vitest run tests/ui/<datei>`); nur Rust `cargo test --manifest-path src-tauri/Cargo.toml` (einzeln: `--test <name>`). Release-Build: `npm run tauri build` → `src-tauri/target/release/bundle/nsis/`.
 - **[Task 01] Struktur:** Vite-Root `src/`, eine HTML-Datei pro App-Fenster; Rust-Lib `gemini_tray_lib` mit einem Modul pro Feature; Hauptfenster-Label `main` (lädt gemini.google.com, keine Capabilities).
 - **[Task 05] Spracherkennung umgesetzt:** `parakeet-rs` (ONNX Runtime, CPU) mit int8-Modell von `istupakov/parakeet-tdt-0.6b-v3-onnx` (≈ 670 MB, SHA-256 gepinnt). 10 s Audio ≈ 0,45 s (Release). DirectML per Delay-Load ausgeklammert, VC++-Laufzeit wird neben die exe gelegt (`scripts/collect-runtime.mjs`).
+- **[Task 04] Bridge-Protokoll:** Rust → `eval("__geminiTray.start(id, op, args)")`, Ergebnis per `eval_with_callback("__geminiTray.poll(id)")`. Die Gemini-Seite hat keine IPC-Rechte. Blockierende Aufrufe nur aus Hintergrund-Threads.
+- **[Task 11] Updates:** `tauri-plugin-updater`, aktiv nur mit `plugins.updater.pubkey` in `tauri.conf.json` (Einrichtung siehe Root-`AGENTS.md`, „Releases and auto-update“). Release-Workflow erzeugt einen Draft-Release.
 - **[Planung] Spracherkennung:** Parakeet TDT 0.6B v3 (multilingual, DE/EN automatisch), lokal auf der CPU; Modell wird beim ersten Gebrauch heruntergeladen. Kein Cloud-STT.
 
 ## Auffälligkeiten & Details
