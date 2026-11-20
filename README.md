@@ -1,105 +1,64 @@
-# Gemini Tray 
+# Gemini Tray
 
-**Bring the power of Google Gemini directly to your desktop workflow.**
+**Google Gemini one shortcut away – with local voice input and Screenshot & Ask, right from the Windows system tray.**
 
-Gemini Tray is a lightweight, system-tray application that wraps the Google Gemini web interface, making it instantly accessible via global shortcuts. It bridges the gap on the desktop where a dedicated app is missing, providing a seamless experience similar to Spotlight or native AI tools.
+Gemini Tray is a small Windows tray app that shows the real Gemini web app (gemini.google.com) in a pop-up window. You use your own Google account and subscription – no API key, no extra costs. Everything that the web page cannot do well (voice input, dictation, screen capture) runs natively and locally on your PC.
 
-![Gemini Tray App](images/screenshot_1.png)
+> **Version 2.0 is a complete rewrite** (Tauri instead of Electron). Version 1.x is not updated automatically: uninstall 1.x and install 2.x once.
 
-##  Why Gemini Tray?
+## Features
 
-Unlike ChatGPT, Google currently does not offer a standalone desktop application for Gemini. Users are forced to keep a browser tab open, which can get lost or cluttered. 
+| Shortcut (default) | Feature |
+|---|---|
+| `Alt+Space` | Show / hide the Gemini window |
+| `Alt+V` | **Voice message** – speak, the text is recognised locally, inserted into Gemini and (optionally) sent |
+| `Alt+Shift+V` | **Dictation** – speak anywhere, the text lands in your clipboard |
+| `Alt+Shift+S` | **Screenshot & Ask** – select a screen area, the image is attached to your Gemini prompt |
+| `Alt+N` | New chat |
+| `Alt+J` | Prompt menu – pick a saved prompt for your next message |
 
-**Gemini Tray solves this by:**
-*   Running quietly in the background (System Tray).
-*   Being "Always On Top" when you need it.
-*   Integrating directly with `gemini.google.com` (no API keys required, supports Advanced accounts).
-*   **Essential Feature**: Providing a dedicated "Screenshot & Ask" workflow to quickly analyze screen content.
+All shortcuts can be changed in the settings.
 
-## Vibe Coded
-This project is 100% vibe coded.
-Built with Google Antigravity and Gemini 3.
+- **Local speech recognition**: [NVIDIA Parakeet TDT 0.6B v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) runs offline on your CPU (German, English and other European languages, detected automatically). The model is downloaded once on first use.
+- **Full Gemini web experience**: Gems, history, Canvas, Deep Research, image generation – everything the web app offers.
+- **Robust by design**: The app only touches the Gemini page through a tiny bridge (insert text, insert image, send, new chat). If Google changes the page, you get a clear message instead of silent failures – and your dictated text is never lost (it falls back to the clipboard).
+- Settings in German and English, light and dark mode (follows Windows), autostart, start minimized, opacity, always on top, automatic updates.
 
+## Installation
 
-## 🎬 Demo
+Download the latest `Gemini Tray_x.y.z_x64-setup.exe` from the [Releases](https://github.com/SphaeroX/GeminiTray/releases) page and run it. Requirements: Windows 10 or 11 (64-bit). Updates are installed from within the app.
 
-![Gemini Tray Demo](demo.gif)
+On first start, sign in to your Google account in the Gemini window. If Google refuses the sign-in inside the app, use **Tray menu → Sign in with browser**: Gemini Tray opens Chrome or Edge, you sign in there, and the session is taken over.
 
-### Quick Start with Shortcuts & Prompts
+## Privacy
 
-Here's how to use GeminiTray most effectively:
+- Audio never leaves your PC; speech recognition is fully local.
+- Screenshots are only sent to Gemini when you confirm a selection.
+- The app has no telemetry. Your Google session is stored in the app's own WebView2 profile in `%LOCALAPPDATA%`.
 
-1. **Open the app**: Press `Alt+Space` (or your custom shortcut) – the app instantly appears on top of all windows.
+## Building from source
 
-2. **Screenshot Analysis** (the killer feature): 
-   - Press `Alt+Shift+S` → Select screen area → Image is instantly attached to a new Gemini prompt.
-   - Examples:
-     - **Error messages**: Take screenshot + prompt: *"What does this error mean?"*
-     - **Code analysis**: Code screenshot + prompt: *"Explain this code to me"*
-     - **UI Design**: Design screenshot + prompt: *"How do I build this component in React?"*
+Prerequisites: [Rust](https://rustup.rs/) (stable, MSVC), [Node.js](https://nodejs.org/) 20+, Visual Studio Build Tools with the "Desktop development with C++" workload, WebView2 runtime (preinstalled on Windows 11).
 
-3. **Quick Prompts**:
-   - `Ctrl+N` → Start new chat
-   - `Esc` → Minimize window (keeps running in tray)
+```powershell
+git clone https://github.com/SphaeroX/GeminiTray.git
+cd GeminiTray
+npm install
+npm run tauri dev      # run in development mode
+npm test               # run all tests (Vitest + cargo test)
+npm run tauri build    # build the installer (src-tauri/target/release/bundle/nsis)
+```
 
-**Pro Tip**: Use the "Always on Top" feature for continuous assistance while working.
+## Project structure
 
-##  Key Features
+```
+src/            Vue 3 UI for the app's own windows (settings, indicator, prompt menu, overlay, toasts)
+src/bridge/     The Gemini bridge – the only code that touches gemini.google.com
+src-tauri/      Rust core: tray, shortcuts, settings, login, audio, speech recognition, screenshot, updater
+tests/          Test suite (tests/ui: Vitest, tests/rust: cargo integration tests)
+Roadmap/        Task-based development roadmap for AI agents
+```
 
-- **Instant Access**: Open the chat anytime with a global shortcut (Default: `Alt+Space` or similar, configurable).
-- **Screenshot & Ask**: The "Killer Feature". Trigger a snipping tool, capture any part of your screen (or full screen), and it's practically instantly attached to a fresh Gemini prompt. Perfect for questions like *"What does this error mean?"* or *"Explain this code snippet."*
-- **Full Web Experience**: Uses the official web interface, so you get all features (image generation, extensions, history) without API cost or limitations.
-- **Configurable**: Settings to customize shortcuts, "Always on Top" behavior, opacity, and more.
+## License
 
-![Gemini Tray Settings](images/screenshot_2.png)
-
-##  Installation & Updates
-
-### Download
-You can download the latest version from the **[GitHub Releases](https://github.com/YourUsername/gemini-tray/releases)** page.
-
-The application is built and published automatically via **GitHub Actions** whenever a new version is tagged.
-
-###  Note on Updates
-**This application does NOT have an auto-update mechanism.** 
-New features are not pushed to you automatically. You have full control over when to upgrade by simply downloading a newer installer from the Releases page.
-
-##  Manual Build Instructions
-
-If you prefer to build the application from source yourself, follow these steps:
-
-### Prerequisites
-*   [Node.js](https://nodejs.org/) installed on your machine.
-*   Git.
-
-### Steps
-
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/YourUsername/gemini-tray.git
-    cd gemini-tray
-    ```
-
-2.  **Install dependencies**:
-    ```bash
-    npm install
-    ```
-
-3.  **Build the application**:
-    
-    For Windows:
-    ```bash
-    npm run build:win
-    ```
-    
-    For Linux:
-    ```bash
-    npm run build:linux
-    ```
-
-4.  **Locate the executable**:
-    The installer/executable will be generated in the `dist` or `release` folder (depending on configuration).
-
----
-
-*Note: This is an unofficial community project and is not affiliated with Google. Its just a Electron web Browser wrapper for the Gemini Web Interface.*
+MIT – see [LICENSE](LICENSE).

@@ -1,68 +1,51 @@
-# Gemini Tray - Agent Directives & Project Documentation
+# Gemini Tray 2.0 – Agent Guide
 
-Gemini Tray ist eine Desktop-Anwendung, die das Google Gemini Webinterface in den System-Tray integriert. Sie ermöglicht den schnellen Zugriff auf Gemini über globale Tastenkombinationen und bietet spezialisierte Funktionen wie "Screenshot & Ask".
+Gemini Tray is a Windows tray app (Tauri 2, Rust core, Vue 3 UI) that shows the real Gemini web app (gemini.google.com) in a pop-up window and adds native features around it: local voice input (Parakeet), dictation to clipboard, Screenshot & Ask, a prompt menu, configurable global shortcuts. No Gemini API key is used; the user's Google session in WebView2 is the only access path.
 
----
+## Ground rules
 
-## 🤖 Agent Directives & Workflow Guidelines
+1. **Native first.** Everything the app can do itself is done in Rust: audio, speech recognition, screen capture, clipboard, shortcuts, settings. Never click Gemini's own microphone or model buttons and never read state from Gemini's DOM.
+2. **One bridge.** The only code allowed to touch the Gemini page is `src/bridge/` (bundled to `src-tauri/bridge/gemini-bridge.js`). It offers exactly: `insertText`, `insertImage`, `send`, `newChat`, `selfTest`. All selectors live in `src/bridge/selectors.ts`. Adding a new operation needs a good reason and a test against fixtures in `tests/ui/fixtures/`.
+3. **Never lose user input.** If the bridge fails, dictated text or a screenshot goes to the clipboard and the user is told so.
+4. **Windows only.** No Linux/macOS code paths are required. Use `#[cfg(windows)]` where Win32/WebView2 APIs are called so that pure logic stays testable.
+5. **Testable logic stays out of the Tauri runtime.** Put state machines, parsers, coordinate math, settings validation etc. in plain modules that do not need an `AppHandle`, and test them.
 
-Whenever an AI agent makes code changes or fixes bugs in this repository, follow these guidelines strictly:
+## Stack and layout
 
-1. **Version Bumping**: Increment the `version` field in `package.json` by `0.001` on every code change.
-2. **Build Validation**: Always execute `npm run build` to validate the TypeScript compilation and Electron build after any modifications.
-3. **Git Commit**: Commit all changes with Conventional Commit messages in English.
-4. **Automatic Release**: Immediately following a successful `git commit`, automatically execute `npm run release` (runs `./tag-release.ps1`) to create the version tag (`vX.Y.Z`) and push both commits and tags to GitHub (`git push origin main --tags`) to trigger the GitHub Actions release workflow.
+| Area | Location | Notes |
+|---|---|---|
+| Rust core | `src-tauri/src/` | `lib.rs` wires plugins and modules; one module per feature (`tray`, `shortcuts`, `settings`, `login`, `bridge`, `audio`, `stt`, `voice`, `screenshot`, `prompts`, `windowing`, `toast`) |
+| UI windows | `src/` | Vite multi-page app: `settings.html`, `indicator.html`, `prompts.html`, `overlay.html`, `toast.html`. Shared code in `src/lib/`, i18n in `src/locales/{de,en}.json` |
+| Gemini bridge | `src/bridge/` | Built separately (`npm run build:bridge`) as an IIFE and injected as initialization script into the Gemini webview |
+| Tests | `tests/ui/` (Vitest + jsdom), `tests/rust/` (cargo integration tests, registered via `[[test]] path = "../tests/rust/<name>.rs"` in `src-tauri/Cargo.toml`) | |
+| Design | `Roadmap/README.md` → "Design" | Windows 11 / Fluent look; tokens in `src/lib/theme.css` |
 
----
+The Rust crate is a library (`gemini_tray_lib`) plus a thin binary, so integration tests can import modules directly.
 
-## 🗺️ Rework-Roadmap (Gemini Tray 2.0)
+## Commands
 
-Arbeit an Roadmap-Tasks richtet sich nach `Roadmap/AGENTS.md`; aktuelle Task-Dateien liegen in `Roadmap/Tasks/`. Für Roadmap-Tasks (Branch `rework/tauri`) gelten die obigen Regeln zu Versionssprung und Release nicht.
+```powershell
+npm install                       # once
+npm run tauri dev                 # run the app (builds bridge + UI automatically)
+npm test                          # all tests: Vitest + cargo test
+npx vitest run tests/ui           # UI tests only
+cargo test --manifest-path src-tauri/Cargo.toml            # Rust tests only
+cargo test --manifest-path src-tauri/Cargo.toml --test stt -- --ignored   # tests that need the speech model
+npm run tauri build               # release build + NSIS installer
+npm run release                   # tag the current version and push (only when the user asks for a release)
+```
 
----
+## Workflow
 
-## 🏗️ Architektur & Technologien
+- Work happens in small, tested steps. Run `npm test` and make sure `npm run tauri build` (or at least `cargo check` + `vue-tsc --noEmit`) passes before committing.
+- Commits: Conventional Commits in English (`feat(voice): …`, `fix(bridge): …`).
+- **Versioning:** Semantic versioning. Do not bump the version on every change. Bump it (in `package.json`, `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml` together – `npm run version:check` verifies they match) only when the user asks for a release.
+- **Releases:** Only on explicit request. `npm run release` creates the tag `vX.Y.Z` and pushes it; GitHub Actions builds the signed installer and the updater manifest.
+- Roadmap tasks: follow `Roadmap/AGENTS.md`; current tasks are in `Roadmap/Tasks/`.
+- User-facing text exists in German and English; add both whenever you add a string.
 
-- **Framework:** Electron mit Vue 3 (Renderer-Prozess)
-- **Build-Tool:** Vite
-- **Sprache:** TypeScript
-- **Styling:** CSS (Scoped in Vue-Komponenten)
-- **Zentrale Komponenten:**
-    - **Main Process (`electron/`):**
-        - `WindowManager`: Verwaltet das Hauptfenster (`BrowserWindow`) und die Gemini-Ansicht (`BrowserView`).
-        - `TrayManager`: Erstellt das Tray-Icon und das zugehörige Menü.
-        - `ShortcutManager`: Registriert globale Hotkeys (Standard: `Alt+Space` für Sichtbarkeit, `Alt+Shift+S` für Screenshots).
-        - `IpcManager`: Kommunikationsbrücke zwischen Renderer und Main Process.
-        - `prompt-injection.js`: Skript, das in die Gemini-Webseite injiziert wird, um Prompts voranzustellen und UI-Indikatoren anzuzeigen.
-    - **Renderer Process (`src/`):**
-        - `App.vue`: Hauptlayout mit Overlay-Management für Einstellungen und Prompts.
-        - `SettingsView.vue`: Konfiguration von Shortcuts, Erscheinungsbild und vordefinierten Prompts.
-        - `PromptsMenu.vue`: Auswahlmenü für Schnellsuch-Prompts.
+## Gotchas
 
----
-
-## 🛠️ Wichtige Befehle
-
-- **Entwicklung:**
-    - `npm run dev`: Startet die Anwendung im Entwicklungsmodus mit Vite.
-    - `npm run dev:console`: Startet im Entwicklungsmodus mit automatisch geöffneten DevTools.
-- **Build:**
-    - `npm run build`: Erstellt die Anwendung für das aktuelle Betriebssystem.
-    - `npm run build:win`: Erstellt die Anwendung spezifisch für Windows.
-    - `npm run build:linux`: Erstellt die Anwendung spezifisch für Linux.
-- **Vorschau:**
-    - `npm run preview`: Startet die gebaute Anwendung zur Vorschau.
-- **Release:**
-    - `npm run release`: Erstellt das Git-Tag und pusht Commits & Tags auf GitHub.
-
----
-
-## 📋 Entwicklungskonventionen & Besonderheiten
-
-- **Struktur:** Logik für den Hauptprozess liegt in `electron/`, die UI-Logik in `src/`.
-- **IPC-Kommunikation:** Alle Interaktionen zwischen UI und System (z. B. Einstellungen speichern, Screenshots auslösen) erfolgen über definierte IPC-Handler in `electron/managers/ipc-manager.ts`.
-- **Skript-Injektion:** Änderungen am Verhalten der Gemini-Webseite müssen über `electron/prompt-injection.js` oder den `ScriptInjector` implementiert werden.
-- **Einstellungen:** Werden über `electron-store` persistiert (siehe `electron/utils/store.ts`).
-- **Screenshot & Ask:** Nutzt den `desktopCapturer` von Electron, um den Bildschirm zu erfassen. Ein transparentes Fenster (`screenshot-selection.html`) ermöglicht die Auswahl des Bereichs.
-- **Automatisierung:** Die Anwendung versucht automatisch, das in den Einstellungen gewählte Gemini-Modell (Fast, Pro, Thinking) per JavaScript-Klick zu aktivieren.
-- **Stealth-Modus:** Verschiedene Browser-Flags werden gesetzt, um "AutomationControlled" zu deaktivieren und Google-Logins zu ermöglichen.
+- Google may refuse sign-in inside embedded browsers. The fallback is `login::browser` (system Chrome/Edge with its own profile, cookies copied via CDP into WebView2). Never add user-agent spoofing or "stealth" flags without asking the user.
+- Global shortcuts can already be taken by other apps (the official Gemini app also uses `Alt+Space`). Registration errors must be shown to the user.
+- The speech model is not bundled; it is downloaded to `%LOCALAPPDATA%\com.sphaerox.geminitray\models\` on first use and verified by SHA-256.

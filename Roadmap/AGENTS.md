@@ -70,4 +70,4 @@ Danach kann der nächste Task begonnen werden (Abschnitt 3). Liegt in `Roadmap/T
 
 ## 7. Zusammenspiel mit dem restlichen Projekt
 
-Die Root-`AGENTS.md` beschreibt noch die Electron-App 1.x. Ihre Workflow-Regeln (Versionssprung um 0.001 pro Änderung, `npm run build`, `npm run release` nach jedem Commit) gelten für Roadmap-Tasks **nicht**: Gearbeitet wird auf dem Branch `rework/tauri`, ohne Releases, bis Task 11 die Root-`AGENTS.md` für den neuen Stack neu schreibt. Commits weiterhin als Conventional Commits auf Englisch. Bei jedem anderen Widerspruch zwischen der Root-`AGENTS.md` und diesem Regelwerk: anhalten und beim Nutzer nachfragen.
+Die Root-`AGENTS.md` (Stack, Layout, Grundregeln, Befehle) gilt zusätzlich. Gearbeitet wird auf dem Branch `rework/tauri`; Versionssprünge und Releases nur auf ausdrücklichen Wunsch des Nutzers. Commits als Conventional Commits auf Englisch. Bei Widerspruch zwischen der Root-`AGENTS.md` und diesem Regelwerk: anhalten und beim Nutzer nachfragen.
