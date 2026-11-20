@@ -48,7 +48,7 @@ function demo() {
   const h = location.hash.slice(1);
   if (h === "transcribing") Object.assign(state, { phase: "transcribing", mode: "dictation" });
   else if (h === "error") Object.assign(state, { phase: "idle", error: "micFailed" });
-  else Object.assign(state, { phase: "recording", mode: h === "message" ? "message" : "dictation", prompt: h === "message" ? "Kurz erklären" : null });
+  else Object.assign(state, { phase: "recording", mode: h === "message" ? "message" : "dictation", prompt: h === "message" ? (navigator.language.startsWith("de") ? "Kurz erklären" : "Explain briefly") : null });
   seconds.value = 12;
 }
 

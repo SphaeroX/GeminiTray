@@ -1,0 +1,90 @@
+name: Screenshots & website
+
+# Renders fresh screenshots of the app's windows, refreshes the gallery in README.md and publishes the
+# landing page (site/) to GitHub Pages.
+#
+# One-time setup: Settings → Pages → Source: "GitHub Actions".
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "src/**"
+      - "site/**"
+      - "scripts/screenshots.mjs"
+      - "scripts/build-site.mjs"
+      - "package.json"
+      - ".github/workflows/docs.yml"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: docs
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    # Windows for the real fonts (Segoe UI) and Edge, the same engine as WebView2.
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Capture screenshots and update README
+        run: npm run screenshots
+
+      - name: Commit changes
+        shell: bash
+        run: |
+          git add images/screenshots README.md
+          if git diff --cached --quiet; then
+            echo "Screenshots unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs: update screenshots [skip ci]"
+          git push
+
+  pages:
+    needs: screenshots
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # main again, so the screenshots committed by the previous job are included.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build site
+        run: node scripts/build-site.mjs
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

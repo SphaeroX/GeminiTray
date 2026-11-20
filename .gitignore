@@ -28,3 +28,9 @@ release/*
 src-tauri/target/
 src-tauri/bridge/gemini-bridge.js
 coverage/
+
+# GitHub Pages build output (scripts/build-site.mjs)
+_site/
+
+# /brag video work files (final video lives in site/media/)
+brag-output*/

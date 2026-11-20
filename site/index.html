@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gemini Tray – Gemini one shortcut away on Windows</title>
+  <meta name="description" content="A small Windows tray app that opens the real Gemini web app with Alt+Space. Voice messages, dictation to clipboard, Screenshot & Ask and saved prompts. Free and open source, no API key." />
+  <meta property="og:title" content="Gemini Tray" />
+  <meta property="og:description" content="Gemini one shortcut away on Windows: voice messages, dictation, Screenshot & Ask." />
+  <meta property="og:image" content="images/screenshots/hero-dark.png" />
+  <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#16181d" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" href="images/app-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f7f9;
+      --surface: #ffffff;
+      --ink: #15171c;
+      --muted: #5b616e;
+      --line: #e2e5ea;
+      --accent: #0b57d0;
+      --on-accent: #ffffff;
+      --key: #ffffff;
+      --key-edge: #c9ced6;
+      --key-shadow: 0 1px 0 #c9ced6, 0 6px 0 #dfe3e9, 0 10px 18px rgba(21, 23, 28, 0.12);
+      --shot-shadow: 0 24px 48px rgba(21, 23, 28, 0.14);
+      --font: "Schibsted Grotesk", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+      --measure: 62ch;
+      --wrap: 1140px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #16181d;
+        --surface: #1e2127;
+        --ink: #eef0f3;
+        --muted: #a3a9b4;
+        --line: #2c3038;
+        --accent: #8ab4ff;
+        --on-accent: #0b1a33;
+        --key: #2a2e36;
+        --key-edge: #3b404a;
+        --key-shadow: 0 1px 0 #3b404a, 0 6px 0 #0f1115, 0 10px 18px rgba(0, 0, 0, 0.4);
+        --shot-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: 18px;
+      line-height: 1.55;
+    }
+    img, video { display: block; max-width: 100%; height: auto; }
+    a { color: var(--accent); text-underline-offset: 3px; }
+    a:focus-visible, button:focus-visible, video:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+    .wrap { width: min(var(--wrap), 100% - 32px); margin-inline: auto; }
+
+    /* Top bar */
+    .top { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; color: var(--ink); text-decoration: none; }
+    .top nav { display: flex; gap: 22px; font-size: 16px; }
+    .top nav a { color: var(--muted); text-decoration: none; }
+    .top nav a:hover { color: var(--ink); }
+
+    /* Hero */
+    .hero { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 56px; align-items: center; padding: 48px 0 88px; }
+    .hero h1 { font-size: clamp(44px, 6.2vw, 80px); line-height: 0.98; letter-spacing: -0.035em; font-weight: 800; margin: 0 0 28px; }
+    .lede { font-size: 20px; color: var(--muted); max-width: 34ch; margin: 0 0 34px; }
+    .keys { display: flex; align-items: center; gap: 14px; margin: 0 0 40px; }
+    kbd {
+      font-family: var(--font);
+      display: inline-grid;
+      place-items: center;
+      background: var(--key);
+      border: 1px solid var(--key-edge);
+      border-radius: 10px;
+      box-shadow: var(--key-shadow);
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .keys kbd { height: 76px; min-width: 96px; padding: 0 26px; font-size: 26px; border-radius: 14px; }
+    .keys kbd.space { min-width: 220px; justify-items: start; }
+    .keys .plus { font-size: 28px; color: var(--muted); }
+    @media (prefers-reduced-motion: no-preference) {
+      .keys kbd { animation: press 3.2s ease-in-out 0.8s infinite; }
+      .keys kbd.space { animation-delay: 0.95s; }
+      @keyframes press {
+        0%, 12%, 100% { transform: translateY(0); }
+        4%, 8% { transform: translateY(5px); box-shadow: 0 1px 0 var(--key-edge), 0 1px 0 var(--key-edge), 0 4px 8px rgba(0, 0, 0, 0.12); }
+      }
+    }
+    .cta { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+    .button {
+      display: inline-flex; align-items: center; gap: 10px;
+      height: 52px; padding: 0 24px; border-radius: 26px;
+      background: var(--accent); color: var(--on-accent);
+      font-weight: 600; font-size: 17px; text-decoration: none;
+    }
+    .button:hover { filter: brightness(1.08); }
+    .button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    .fine { font-size: 15px; color: var(--muted); margin: 16px 0 0; }
+    .hero .shot { border-radius: 14px; box-shadow: var(--shot-shadow); }
+
+    /* Video */
+    .film { padding: 0 0 96px; }
+    .film video { width: 100%; border-radius: 16px; box-shadow: var(--shot-shadow); background: #000; aspect-ratio: 16 / 9; }
+    .film p { color: var(--muted); font-size: 15px; margin: 14px 0 0; }
+
+    /* Section headings */
+    h2 { font-size: clamp(32px, 4vw, 48px); line-height: 1.05; letter-spacing: -0.025em; margin: 0 0 18px; font-weight: 800; }
+    .intro { color: var(--muted); max-width: var(--measure); margin: 0 0 56px; font-size: 19px; }
+
+    /* Features: one row per shortcut */
+    .features { padding: 32px 0 64px; border-top: 1px solid var(--line); }
+    .features > .wrap > h2 { margin-top: 64px; }
+    .feature { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: 56px; align-items: center; padding: 56px 0; border-top: 1px solid var(--line); }
+    .feature:first-of-type { border-top: 0; padding-top: 0; }
+    .feature .combo { display: flex; gap: 8px; align-items: center; margin: 0 0 18px; color: var(--muted); }
+    .feature .combo kbd { height: 40px; min-width: 48px; padding: 0 12px; font-size: 16px; border-radius: 8px; box-shadow: 0 1px 0 var(--key-edge), 0 4px 0 var(--key-edge); }
+    .feature h3 { font-size: 28px; line-height: 1.15; letter-spacing: -0.015em; margin: 0 0 12px; }
+    .feature p { color: var(--muted); margin: 0; max-width: 44ch; }
+    .feature figure { margin: 0; }
+    .feature figure img { border-radius: 12px; }
+    .feature figure.framed img { box-shadow: var(--shot-shadow); }
+    .feature figure.floating { display: grid; place-items: center; padding: 40px 24px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+
+    /* More list */
+    .more { padding: 72px 0; border-top: 1px solid var(--line); }
+    .more ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px 48px; }
+    .more li strong { display: block; font-size: 19px; margin-bottom: 6px; }
+    .more li span { color: var(--muted); font-size: 16px; }
+
+    /* Install: a real sequence */
+    .install { padding: 72px 0 88px; border-top: 1px solid var(--line); }
+    .install ol { margin: 0; padding: 0; list-style: none; counter-reset: step; display: grid; gap: 28px; max-width: var(--measure); }
+    .install li { counter-increment: step; display: grid; grid-template-columns: 44px 1fr; gap: 16px; align-items: baseline; }
+    .install li::before { content: counter(step); font-weight: 800; font-size: 28px; color: var(--accent); }
+    .install li p { margin: 0; }
+    .install li p + p { color: var(--muted); font-size: 16px; margin-top: 4px; }
+    .install kbd { height: 28px; padding: 0 8px; font-size: 14px; border-radius: 6px; box-shadow: 0 2px 0 var(--key-edge); display: inline-grid; vertical-align: 1px; }
+
+    footer { border-top: 1px solid var(--line); padding: 32px 0 48px; color: var(--muted); font-size: 15px; }
+    footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; }
+    footer a { color: var(--muted); }
+
+    @media (max-width: 900px) {
+      .hero, .feature { grid-template-columns: 1fr; gap: 36px; }
+      .hero { padding-top: 24px; }
+      .more ul { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      body { font-size: 17px; }
+      .top nav a:not(.gh) { display: none; }
+      .keys { gap: 8px; }
+      .keys kbd { height: 60px; min-width: 72px; padding: 0 16px; font-size: 20px; }
+      .keys kbd.space { min-width: 150px; }
+      .more ul { grid-template-columns: 1fr; }
+      .feature figure.floating { padding: 24px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="wrap top">
+    <a class="brand" href="./" aria-label="Gemini Tray home">
+      <svg width="22" height="22" viewBox="0 0 16 16" aria-hidden="true">
+        <defs>
+          <linearGradient id="spark" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#4f8cff" /><stop offset="0.55" stop-color="#9b72ff" /><stop offset="1" stop-color="#ff7aa8" />
+          </linearGradient>
+        </defs>
+        <path d="M8 1.5c.6 3.4 3.1 5.9 6.5 6.5-3.4.6-5.9 3.1-6.5 6.5-.6-3.4-3.1-5.9-6.5-6.5 3.4-.6 5.9-3.1 6.5-6.5Z" fill="url(#spark)" />
+      </svg>
+      Gemini Tray
+    </a>
+    <nav aria-label="Page">
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a class="gh" href="https://github.com/SphaeroX/GeminiTray">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="wrap hero">
+      <div>
+        <h1>Gemini, one shortcut away.</h1>
+        <div class="keys" aria-label="Shortcut Alt plus Space">
+          <kbd>Alt</kbd><span class="plus" aria-hidden="true">+</span><kbd class="space">Space</kbd>
+        </div>
+        <p class="lede">A small Windows tray app that opens the real Gemini web app over whatever you're doing – and adds voice messages, dictation and Screenshot&nbsp;&amp;&nbsp;Ask.</p>
+        <div class="cta">
+          <a class="button" href="https://github.com/SphaeroX/GeminiTray/releases/latest">Download for Windows</a>
+          <a class="button ghost" href="https://github.com/SphaeroX/GeminiTray">Source code</a>
+        </div>
+        <p class="fine">Version {{VERSION}} for Windows 10 and 11. Free, open source, no API key – you use your own Google account.</p>
+      </div>
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/hero-dark.png" />
+        <img class="shot" src="images/screenshots/hero-light.png" width="1280" height="800" alt="The Gemini Tray window next to the prompt menu and the voice message indicator" />
+      </picture>
+    </section>
+
+    <section class="wrap film" id="video" aria-label="Video">
+      <video controls preload="metadata" playsinline poster="media/gemini-tray.jpg" width="1920" height="1080">
+        <source src="media/gemini-tray.mp4" type="video/mp4" />
+      </video>
+      <p>20 seconds of Gemini Tray. Music: Sascha Ende, ende.app (CC BY 4.0).</p>
+    </section>
+
+    <section class="features" id="features">
+      <div class="wrap">
+        <h2>Everything starts with a key.</h2>
+        <p class="intro">Gemini Tray lives in the system tray. Each feature has a global shortcut, so you never have to look for a browser tab. All shortcuts can be changed.</p>
+
+        <article class="feature">
+          <div>
+            <div class="combo"><kbd>Alt</kbd>+<kbd>V</kbd></div>
+            <h3>Voice message</h3>
+            <p>Press, speak, done. Gemini's own speech recognition writes your message into the prompt, and it is sent – or left for you to check first.</p>
+          </div>
+          <figure class="floating">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/indicator-dark.png" />
+              <img src="images/screenshots/indicator-light.png" width="461" height="76" alt="Recording indicator: To Gemini, 0:12, Send" />
+            </picture>
+          </figure>
+        </article>
+
+        <article class="feature">
+          <div>
+            <div class="combo"><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd></div>
+            <h3>Dictation to your clipboard</h3>
+            <p>Speak in any app. The recognised text lands in your clipboard, ready for Ctrl&nbsp;+&nbsp;V in an email, a chat or a document.</p>
+          </div>
+          <figure class="floating">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/toast-dark.png" />
+              <img src="images/screenshots/toast-light.png" width="400" height="102" alt="Notification: Text copied" />
+            </picture>
+          </figure>
+        </article>
+
+        <article class="feature">
+          <div>
+            <div class="combo"><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></div>
+            <h3>Screenshot &amp; Ask</h3>
+            <p>Drag a frame around an error message, a chart or a paragraph. The image is attached to your Gemini prompt – just type your question.</p>
+          </div>
+          <figure class="framed">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/overlay-dark.png" />
+              <img src="images/screenshots/overlay-light.png" width="1280" height="720" alt="Selecting an error message on screen with Screenshot and Ask" loading="lazy" />
+            </picture>
+          </figure>
+        </article>
+
+        <article class="feature">
+          <div>
+            <div class="combo"><kbd>Alt</kbd>+<kbd>J</kbd></div>
+            <h3>Saved prompts</h3>
+            <p>Keep the instructions you use every day – “explain briefly”, “fix my grammar” – and put one in front of your next message, typed or spoken.</p>
+          </div>
+          <figure class="floating">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/prompts-dark.png" />
+              <img src="images/screenshots/prompts-light.png" width="560" height="317" alt="Prompt menu with three saved prompts" loading="lazy" />
+            </picture>
+          </figure>
+        </article>
+
+        <article class="feature">
+          <div>
+            <div class="combo"><kbd>Alt</kbd>+<kbd>N</kbd></div>
+            <h3>Your shortcuts, your way</h3>
+            <p>New chat, show and hide, every feature – change any combination in the settings. If another app already uses a key, Gemini Tray tells you instead of failing silently.</p>
+          </div>
+          <figure class="framed">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="images/screenshots/settings-shortcuts-dark.png" />
+              <img src="images/screenshots/settings-shortcuts-light.png" width="880" height="600" alt="Shortcut settings" loading="lazy" />
+            </picture>
+          </figure>
+        </article>
+      </div>
+    </section>
+
+    <section class="more">
+      <div class="wrap">
+        <h2>The whole Gemini, not a cut-down copy.</h2>
+        <p class="intro">The window shows gemini.google.com itself, so Gems, history, Canvas, Deep Research and image generation work exactly as in your browser.</p>
+        <ul>
+          <li><strong>No API key, no extra cost</strong><span>You sign in with your Google account and use your own plan.</span></li>
+          <li><strong>Nothing gets lost</strong><span>If inserting into Gemini fails, your text or image goes to the clipboard and you're told so.</span></li>
+          <li><strong>No telemetry</strong><span>Screenshots are only sent when you confirm a selection. Your session stays on your PC.</span></li>
+          <li><strong>Fits into Windows 11</strong><span>Light and dark mode follow Windows. Pin the window on top, set its opacity.</span></li>
+          <li><strong>Starts with Windows</strong><span>Optional autostart, minimized to the tray, ready when you press the key.</span></li>
+          <li><strong>Updates itself</strong><span>New versions install from inside the app. Interface in English and German.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="install" id="install">
+      <div class="wrap">
+        <h2>Set up in a minute.</h2>
+        <p class="intro">Requirements: Windows 10 or 11, 64-bit.</p>
+        <ol>
+          <li><div><p><a href="https://github.com/SphaeroX/GeminiTray/releases/latest">Download the installer</a> from the latest release and run it.</p><p>Windows SmartScreen may ask once – choose “More info”, then “Run anyway”.</p></div></li>
+          <li><div><p>Sign in to your Google account in the Gemini window.</p><p>If Google refuses the sign-in there, use “Sign in with browser” in the tray menu.</p></div></li>
+          <li><div><p>Press <kbd>Alt</kbd> + <kbd>Space</kbd>.</p><p>That's it. The tray icon has everything else, including the settings.</p></div></li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Gemini Tray is an independent open-source project, not affiliated with Google. MIT license.</span>
+      <span><a href="https://github.com/SphaeroX/GeminiTray/issues">Report a problem</a></span>
+    </div>
+  </footer>
+</body>
+</html>

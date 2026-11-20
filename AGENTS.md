@@ -32,6 +32,8 @@ npx vitest run tests/ui           # UI tests only
 cargo test --manifest-path src-tauri/Cargo.toml            # Rust tests only
 npm run tauri build               # release build + NSIS installer
 npm run release                   # tag the current version and push (only when the user asks for a release)
+npm run screenshots               # re-capture images/screenshots + README gallery (dev mock, Edge via Playwright)
+npm run site                      # build the GitHub Pages site (site/ + screenshots) into _site/
 ```
 
 ## Workflow
@@ -45,6 +47,7 @@ npm run release                   # tag the current version and push (only when 
 
 ## Releases and auto-update
 
+- `.github/workflows/docs.yml` runs on pushes to `main` (UI, site or script changes), on releases and manually: it captures screenshots with `scripts/screenshots.mjs` (pages rendered in a browser with `src/lib/devmock.ts`, `?shot` mode), commits changed images and the README gallery (between `<!-- screenshots:start/end -->`) and deploys `site/` to GitHub Pages. When you change a window's look or add one, check `SHOTS`/`GALLERY` in the scripts.
 - `.github/workflows/release.yml` builds on tags `v*` with `tauri-action` and publishes a release with the NSIS installer; with the signing secret set it also adds the signature and `latest.json` for the updater. `ci.yml` runs type check and tests on pushes and PRs.
 - The updater (`src-tauri/src/updates.rs`) is only active when `plugins.updater.pubkey` in `src-tauri/tauri.conf.json` is set. One-time setup by the maintainer:
   1. `npx tauri signer generate -w %USERPROFILE%\.tauri\gemini-tray.key` (keep the private key secret and backed up – losing it means existing installs can no longer update).
