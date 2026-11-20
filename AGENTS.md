@@ -15,6 +15,12 @@ Whenever an AI agent makes code changes or fixes bugs in this repository, follow
 
 ---
 
+## 🗺️ Rework-Roadmap (Gemini Tray 2.0)
+
+Arbeit an Roadmap-Tasks richtet sich nach `Roadmap/AGENTS.md`; aktuelle Task-Dateien liegen in `Roadmap/Tasks/`. Für Roadmap-Tasks (Branch `rework/tauri`) gelten die obigen Regeln zu Versionssprung und Release nicht.
+
+---
+
 ## 🏗️ Architektur & Technologien
 
 - **Framework:** Electron mit Vue 3 (Renderer-Prozess)
