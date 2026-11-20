@@ -12,7 +12,7 @@ Mit `Alt+V` nimmt der Nutzer eine Sprachnachricht auf; der erkannte Text wird ü
 ## Kontext & Abhängigkeiten
 
 - **Voraussetzung:** Task_04 und Task_06 archiviert.
-- **Relevantes Vorwissen:** Wiederverwendung: Aufnahme, Zustandsautomat und Indikator aus Task 06, Brücke (`insertText`, `send`) aus Task 04.
+- **Relevantes Vorwissen:** Wiederverwendung: Aufnahme, Zustandsautomat und Indikator aus Task 06, Brücke (`insertText`, `send`) aus Task 04. **Design:** Artboards „Aufnahme-Indikator“ (Sprachnachricht mit aktivem Prompt), „Einstellungen – Sprache“ (automatisch senden) und „Toasts“ („Nicht in Gemini eingefügt“) im Entwurf [Gemini Tray 2.0 Design](https://claude.ai/artifact/EFmpNF1rhtFanULbzfBguk); Farben, Schrift und Maße siehe `Roadmap/README.md` → Design.
 
 ## Umfang
 

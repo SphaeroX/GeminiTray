@@ -12,7 +12,7 @@ Es gibt ein eigenes Einstellungsfenster auf Deutsch und Englisch, in dem Shortcu
 ## Kontext & Abhängigkeiten
 
 - **Voraussetzung:** Task_01 archiviert.
-- **Relevantes Vorwissen:** Gestaltung und Kategorien der alten Einstellungen als Referenz: `git show main:src/components/SettingsView.vue`, Texte: `git show main:src/locales/en.json`. Standard-Shortcuts: `Alt+Space` (Ein-/Ausblenden), `Alt+Shift+S` (Screenshot), `Alt+V` (Sprachnachricht), `Alt+Shift+V` (Diktat), `Alt+N` (Neuer Chat), `Alt+J` (Prompt-Menü).
+- **Relevantes Vorwissen:** Gestaltung und Kategorien der alten Einstellungen als Referenz: `git show main:src/components/SettingsView.vue`, Texte: `git show main:src/locales/en.json`. Standard-Shortcuts: `Alt+Space` (Ein-/Ausblenden), `Alt+Shift+S` (Screenshot), `Alt+V` (Sprachnachricht), `Alt+Shift+V` (Diktat), `Alt+N` (Neuer Chat), `Alt+J` (Prompt-Menü). **Design:** Artboards „Einstellungen – Shortcuts“ (Navigation, Karten, Shortcut-Recorder mit Konflikt- und Aufnahmezustand) und „Toasts“ im Entwurf [Gemini Tray 2.0 Design](https://claude.ai/artifact/EFmpNF1rhtFanULbzfBguk); Farben, Schrift und Maße siehe `Roadmap/README.md` → Design.
 
 ## Umfang
 

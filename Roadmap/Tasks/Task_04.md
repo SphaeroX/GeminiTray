@@ -12,7 +12,7 @@ Alle Eingriffe in die Gemini-Seite laufen über eine kleine, gekapselte Brücke 
 ## Kontext & Abhängigkeiten
 
 - **Voraussetzung:** Task_01 und Task_03 archiviert.
-- **Relevantes Vorwissen:** Die alte App scheiterte an genau diesem Punkt (`git show main:electron/prompt-injection.js`, ~1.100 Zeilen DOM-Logik). Das Leitprinzip in `Roadmap/README.md` gilt strikt: Diese Brücke ist der einzige Ort mit DOM-Zugriff auf gemini.google.com.
+- **Relevantes Vorwissen:** Die alte App scheiterte an genau diesem Punkt (`git show main:electron/prompt-injection.js`, ~1.100 Zeilen DOM-Logik). Das Leitprinzip in `Roadmap/README.md` gilt strikt: Diese Brücke ist der einzige Ort mit DOM-Zugriff auf gemini.google.com. **Design:** Artboard „Toasts“ (Meldung „Gemini-Seite hat sich geändert“) im Entwurf [Gemini Tray 2.0 Design](https://claude.ai/artifact/EFmpNF1rhtFanULbzfBguk); Farben, Schrift und Maße siehe `Roadmap/README.md` → Design.
 
 ## Umfang
 

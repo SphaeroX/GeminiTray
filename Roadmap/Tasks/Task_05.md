@@ -12,7 +12,7 @@ Ein Rust-Modul wandelt Audio lokal und offline in Text um (Deutsch und Englisch,
 ## Kontext & Abhängigkeiten
 
 - **Voraussetzung:** Task_01 archiviert (Task_03 ist hilfreich für die Fortschrittsanzeige, aber nicht zwingend).
-- **Relevantes Vorwissen:** Entscheidung aus dem Interview: lokal, Parakeet, DE/EN automatisch, kein Cloud-STT. Kandidaten für die Laufzeit: `sherpa-onnx` (Rust-Bindings, unterstützt Parakeet-TDT-ONNX) oder `ort` (ONNX Runtime) mit eigener Vor-/Nachverarbeitung.
+- **Relevantes Vorwissen:** Entscheidung aus dem Interview: lokal, Parakeet, DE/EN automatisch, kein Cloud-STT. Kandidaten für die Laufzeit: `sherpa-onnx` (Rust-Bindings, unterstützt Parakeet-TDT-ONNX) oder `ort` (ONNX Runtime) mit eigener Vor-/Nachverarbeitung. **Design:** Artboard „Einstellungen – Sprache“ (Download-Fortschritt des Modells) im Entwurf [Gemini Tray 2.0 Design](https://claude.ai/artifact/EFmpNF1rhtFanULbzfBguk); Farben, Schrift und Maße siehe `Roadmap/README.md` → Design.
 
 ## Umfang
 

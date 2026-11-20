@@ -12,7 +12,7 @@ Mit `Alt+Shift+S` wählt der Nutzer einen Bildschirmbereich aus; das Bild landet
 ## Kontext & Abhängigkeiten
 
 - **Voraussetzung:** Task_04 archiviert.
-- **Relevantes Vorwissen:** Alte Umsetzung als Referenz für die Auswahl-Oberfläche: `git show main:electron/screenshot-selection.html`, `git show main:electron/services/screenshot-service.ts`. Neu: Aufnahme nativ mit `xcap`, Bild-Einfügen über die Brücke (`insertImage`).
+- **Relevantes Vorwissen:** Alte Umsetzung als Referenz für die Auswahl-Oberfläche: `git show main:electron/screenshot-selection.html`, `git show main:electron/services/screenshot-service.ts`. Neu: Aufnahme nativ mit `xcap`, Bild-Einfügen über die Brücke (`insertImage`). **Design:** Artboard „Screenshot-Overlay“ (Abdunklung, Auswahlrahmen mit Größenanzeige, Hinweisleiste) im Entwurf [Gemini Tray 2.0 Design](https://claude.ai/artifact/EFmpNF1rhtFanULbzfBguk); Farben, Schrift und Maße siehe `Roadmap/README.md` → Design.
 
 ## Umfang
 

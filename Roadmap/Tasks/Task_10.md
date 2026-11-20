@@ -12,7 +12,7 @@ Das Gemini-Fenster verhält sich wie gewohnt: Deckkraft und „Immer im Vordergr
 ## Kontext & Abhängigkeiten
 
 - **Voraussetzung:** Task_03 archiviert.
-- **Relevantes Vorwissen:** Alte Standardwerte: Deckkraft 0,95, „Immer im Vordergrund“ an. Einstellungen werden im Settings-Modell aus Task 03 ergänzt.
+- **Relevantes Vorwissen:** Alte Standardwerte: Deckkraft 0,95, „Immer im Vordergrund“ an. Einstellungen werden im Settings-Modell aus Task 03 ergänzt. **Design:** Einstellungsseite „Fenster“ im Stil der Artboards „Einstellungen – …“ im Entwurf [Gemini Tray 2.0 Design](https://claude.ai/artifact/EFmpNF1rhtFanULbzfBguk); Farben, Schrift und Maße siehe `Roadmap/README.md` → Design.
 
 ## Umfang
 

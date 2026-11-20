@@ -46,6 +46,15 @@ Globale Informationen, Architekturentscheidungen und Wissen, das für das gesamt
 - **[Planung] Branch:** Die gesamte Roadmap wird auf dem Branch `rework/tauri` umgesetzt. `main` bleibt bis Task 11 die lauffähige Electron-Version 1.x. Erst Task 11 merged nach `main`.
 - **[Planung] Versionierung/Release:** Während der Roadmap gibt es keine Versionssprünge pro Änderung und kein `npm run release` (abweichend von der Root-`AGENTS.md`, siehe `Roadmap/AGENTS.md` Abschnitt 7). Die neue App startet mit Version 2.0.0 (Task 11).
 - **[Planung] Tests:** Vue/TypeScript-Tests mit Vitest unter `tests/ui/`; Rust-Integrationstests unter `tests/rust/`, eingebunden über `[[test]] path = "../tests/rust/<name>.rs"` in `src-tauri/Cargo.toml`. Reine Rust-Unit-Tests im Modul (`#[cfg(test)]`) sind zusätzlich erlaubt. Testbare Logik gehört in Module ohne Tauri-Laufzeitabhängigkeit. Die Zusammenarbeit mit der echten Gemini-Seite wird je Task über eine manuelle Prüfliste bestätigt (keine E2E-Tests gegen gemini.google.com).
+- **[Planung] Design:** Verbindlicher Entwurf: [Gemini Tray 2.0 Design](https://claude.ai/artifact/EFmpNF1rhtFanULbzfBguk) (Artboards: Einstellungen – Shortcuts, Einstellungen – Sprache, Aufnahme-Indikator, Prompt-Schnellmenü, Toasts, Screenshot-Overlay). Stil: Windows 11 / Fluent, kein externes Design-System. Eckwerte:
+  - Schrift: `'Segoe UI Variable Text', 'Segoe UI', system-ui` (Überschriften `Segoe UI Variable Display`, 28 px / 600); Fließtext 14 px, Beschreibungen 12 px.
+  - Hell: Fensterhintergrund `#F3F3F3`, Inhaltsfläche `#F9F9F9`, Karte `#FFFFFF` mit Rand `#E5E5E5`, Text `#1A1A1A`, sekundär `#5C5C5C`, Akzent `#005FB8`, Fehler `#C42B1C`, Erfolg `#0F7B0F`.
+  - Dunkel: `#202020` / `#272727` / Karte `#2D2D2D`, Text `#FFFFFF`, sekundär `#C8C8C8`, Akzent `#60CDFF`, Fehler `#FF99A4`, Erfolg `#6CCB5F`.
+  - Hell/Dunkel folgt dem Windows-Farbmodus. Radien: Karten 6 px, Steuerelemente 4 px, Fenster/Dialoge 8 px, Pillen voll gerundet. Setting-Zeilen mindestens 64 px hoch, Knöpfe 32 px.
+  - Einstellungsfenster: Seitennavigation 220 px (Allgemein, Shortcuts, Sprache, Prompts, Fenster, Konto, Updates) mit Akzent-Balken am aktiven Eintrag; eine Karte pro Einstellung.
+  - Aufnahme-Indikator, Screenshot-Hinweisleiste: immer dunkle Pille (`rgba(32,32,32,0.94)`), unabhängig vom Farbmodus.
+  - Icons: schlanke Linien-Icons (1,2–1,4 px Strich), keine Emojis.
+  - Falls Mica/Acrylic über Tauri (`window-vibrancy`) sauber funktioniert, darf es den einfarbigen Fensterhintergrund ersetzen.
 - **[Planung] Spracherkennung:** Parakeet TDT 0.6B v3 (multilingual, DE/EN automatisch), lokal auf der CPU; Modell wird beim ersten Gebrauch heruntergeladen. Kein Cloud-STT.
 
 ## Auffälligkeiten & Details

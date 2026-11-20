@@ -12,7 +12,7 @@ Mit `Alt+Shift+V` startet und stoppt der Nutzer eine Aufnahme von überall aus; 
 ## Kontext & Abhängigkeiten
 
 - **Voraussetzung:** Task_03 und Task_05 archiviert.
-- **Relevantes Vorwissen:** Die alte App klickte dafür den Mikrofon-Button der Webseite und war dadurch instabil. Jetzt: Mikrofon nativ (z. B. `cpal`), Transkription über das `stt`-Modul aus Task 05.
+- **Relevantes Vorwissen:** Die alte App klickte dafür den Mikrofon-Button der Webseite und war dadurch instabil. Jetzt: Mikrofon nativ (z. B. `cpal`), Transkription über das `stt`-Modul aus Task 05. **Design:** Artboards „Aufnahme-Indikator“ (Zustände Diktat, Wird erkannt, Fehler) und „Toasts“ („Text kopiert“); Mikrofon-Auswahl im Artboard „Einstellungen – Sprache“ im Entwurf [Gemini Tray 2.0 Design](https://claude.ai/artifact/EFmpNF1rhtFanULbzfBguk); Farben, Schrift und Maße siehe `Roadmap/README.md` → Design.
 
 ## Umfang
 

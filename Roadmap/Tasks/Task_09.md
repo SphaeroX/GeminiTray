@@ -12,7 +12,7 @@ Der Nutzer verwaltet gespeicherte Prompts in den Einstellungen und wählt sie pe
 ## Kontext & Abhängigkeiten
 
 - **Voraussetzung:** Task_04, Task_07 und Task_08 archiviert.
-- **Relevantes Vorwissen:** Alte Oberfläche als Referenz: `git show main:src/components/PromptsMenu.vue`. Präfix-Haken aus Task 07 und Task 08.
+- **Relevantes Vorwissen:** Alte Oberfläche als Referenz: `git show main:src/components/PromptsMenu.vue`. Präfix-Haken aus Task 07 und Task 08. **Design:** Artboard „Prompt-Schnellmenü“ im Entwurf [Gemini Tray 2.0 Design](https://claude.ai/artifact/EFmpNF1rhtFanULbzfBguk); Farben, Schrift und Maße siehe `Roadmap/README.md` → Design.
 
 ## Umfang
 
