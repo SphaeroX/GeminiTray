@@ -136,7 +136,7 @@
       },
       "failed": {
         "title": "Nicht in Gemini eingefügt",
-        "body": "{detail}"
+        "body": "Der Text liegt in der Zwischenablage – mit Strg + V einfügen. ({detail})"
       }
     },
     "model": {

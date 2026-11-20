@@ -66,3 +66,7 @@ path = "../tests/rust/stt.rs"
 [[test]]
 name = "voice"
 path = "../tests/rust/voice.rs"
+
+[[test]]
+name = "voice_message"
+path = "../tests/rust/voice_message.rs"

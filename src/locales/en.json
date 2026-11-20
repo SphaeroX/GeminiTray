@@ -136,7 +136,7 @@
       },
       "failed": {
         "title": "Not inserted into Gemini",
-        "body": "{detail}"
+        "body": "Your text is in the clipboard – paste it with Ctrl + V. ({detail})"
       }
     },
     "model": {

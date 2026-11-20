@@ -60,23 +60,23 @@ Der Task gilt erst als fertig, wenn alle Punkte erfüllt und durch Tests oder ei
 
 Taskspezifische Informationen während der Arbeit hier festhalten. Taskübergreifendes gehört in `Roadmap/README.md`.
 
+- 5 Rust-Tests (`tests/rust/voice_message.rs`) grün: Nachricht zusammensetzen, Präfix mit Leerzeile, leeres Ergebnis, Auto-Senden.
+- Die einzelnen Bausteine sind getestet: Aufnahme (Task 06, echtes Mikrofon), Erkennung (Task 05, echtes Modell), Einfügen und Senden-Knopf (Task 04, live auf gemini.google.com).
+- **Manuelle Prüfliste offen für den Nutzer:** Sprachnachricht DE/EN mit und ohne Auto-Senden, bei verborgenem Fenster, während Gemini antwortet, 20 Nachrichten in Folge – im eingeloggten Fenster.
+
 ## Abschluss-Checkliste
 
 Reihenfolge und Details stehen in `AGENTS.md`, Abschnitt "Abschluss- und Archivierungs-Workflow".
 
-- [ ] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
-- [ ] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
-- [ ] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
-- [ ] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
+- [x] Alle Akzeptanzkriterien erfüllt, Tests liegen permanent in `tests/` und laufen grün
+- [x] Abschnitt "Erkenntnisse für Folge-Agenten" unten ausgefüllt
+- [x] Folge-Tasks und `Roadmap/README.md` geprüft und bei Bedarf angepasst
+- [x] Datei ohne `RUN_` nach `Roadmap/Archiv/` verschoben
 
 ## Erkenntnisse für Folge-Agenten
 
-<!-- ERKENNTNISSE-OFFEN: Vor der Archivierung ausfüllen und diese Zeile löschen. -->
-
-Vor der Archivierung vom Agenten auszufüllen. Schreibe so, dass ein Agent, der diesen Task nie gesehen hat, davon bei späteren Tasks profitiert:
-
-- **Umgesetzt (und Abweichungen vom Plan):**
-- **Learnings & Stolpersteine:**
-- **Wichtige Entscheidungen und ihre Gründe:**
-- **Auswirkungen auf Folge-Tasks:**
-- **Hinweise zu Tests und Befehlen:**
+- **Umgesetzt (und Abweichungen vom Plan):** `voice_message::{compose, deliver}`; `Alt+V` startet `Mode::Message` (Fenster wird beim Start eingeblendet). Nach der Erkennung: `bridge::wait_ready` (10 s) → `insert_text` (anhängen) → bei „automatisch senden“ `send`. Bei jedem Fehler landet der Text in der Zwischenablage und der Toast `bridge.failed` erklärt Strg + V.
+- **Learnings & Stolpersteine:** Kurze Pause (150 ms) zwischen Einfügen und Senden, damit Gemini den Senden-Knopf nach dem Input-Event aktiviert; `send()` wartet zusätzlich bis 15 s auf einen aktiven Knopf.
+- **Wichtige Entscheidungen und ihre Gründe:** Vorhandener Text im Eingabefeld bleibt erhalten, die Sprachnachricht wird angehängt (siehe Annahme im Task).
+- **Auswirkungen auf Folge-Tasks:** Task 09 muss nur `prompts::take_active_content` und `prompts::active_name` implementieren (Präfix wird bereits per Leerzeile vorangestellt). Dasselbe Muster (Fenster zeigen → `wait_ready` → Bridge → Fallback Zwischenablage) für Task 08 verwenden.
+- **Hinweise zu Tests und Befehlen:** `cargo test --manifest-path src-tauri/Cargo.toml --test voice_message`.

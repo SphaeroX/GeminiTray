@@ -12,6 +12,9 @@ pub fn run(app: &AppHandle, action: ShortcutAction) {
     match action {
         ShortcutAction::Toggle => windowing::toggle_main(app),
         ShortcutAction::NewChat => new_chat(app),
+        ShortcutAction::Voice => {
+            crate::voice::handle(app, crate::voice::machine::Event::Toggle(crate::voice::machine::Mode::Message))
+        }
         ShortcutAction::Dictation => {
             crate::voice::handle(app, crate::voice::machine::Event::Toggle(crate::voice::machine::Mode::Dictation))
         }
