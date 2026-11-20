@@ -3,7 +3,7 @@
 //
 // Protocol (no IPC permissions needed): Rust calls `__geminiTray.start(id, op, args)` via eval and
 // then polls `__geminiTray.poll(id)` with eval_with_callback until it returns a result.
-import { BridgeError, insertImage, insertText, selfTest, send } from "./dom";
+import { attachmentCount, BridgeError, insertImage, insertText, selfTest, send } from "./dom";
 import { installEscapeWatch, installMicTracker, isRecording, micStart, micStop, takeText, voiceStatus } from "./mic";
 
 type Result = { ok: true; value: unknown } | { ok: false; code: string; detail: string };
@@ -20,7 +20,7 @@ declare global {
   }
 }
 
-const VERSION = 2;
+const VERSION = 3;
 
 function install() {
   if (window.top !== window || window.__geminiTray?.version === VERSION) return;
@@ -32,6 +32,7 @@ function install() {
     insertText: (a) => insertText(document, String(a.text ?? ""), a.append !== false),
     insertImage: (a) => insertImage(document, String(a.png ?? ""), a.name ? String(a.name) : undefined),
     send: () => send(document),
+    attachmentCount: () => attachmentCount(document),
     selfTest: () => selfTest(document),
     micStart: () => micStart(document),
     micStop: () => micStop(document),

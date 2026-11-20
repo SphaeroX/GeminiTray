@@ -93,7 +93,12 @@ export const api = {
   updateInstall: () => invoke<void>("update_install"),
   openReleases: () => invoke<void>("open_releases"),
   titlebarAction: (action: string) => invoke<void>("titlebar_action", { action }),
-  overlayImage: (index: number) => invoke<{ dataUrl: string; width: number; height: number }>("overlay_image", { index }),
+  /** URL of the frozen screen for overlay `index` (Rust sends raw JPEG bytes; the dev mock a data URL). */
+  overlayImage: async (index: number): Promise<string> => {
+    const r = await invoke<ArrayBuffer | { dataUrl: string }>("overlay_image", { index });
+    return "dataUrl" in r ? r.dataUrl : URL.createObjectURL(new Blob([r], { type: "image/jpeg" }));
+  },
+  overlayShown: (index: number) => invoke<void>("overlay_shown", { index }),
   overlayCancel: () => invoke<void>("overlay_cancel"),
   overlaySelect: (index: number, rect: { x: number; y: number; width: number; height: number }) =>
     invoke<void>("overlay_select", { index, rect }),

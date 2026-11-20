@@ -145,6 +145,7 @@ pub fn run() {
             voice::open_mic_privacy,
             screenshot::overlay_image,
             screenshot::overlay_cancel,
+            screenshot::overlay_shown,
             screenshot::overlay_select,
             prompts::prompts_menu_data,
             prompts::prompt_select,

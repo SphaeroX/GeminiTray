@@ -7,7 +7,7 @@
     @mouseup.left="up"
     @contextmenu.prevent="cancel"
   >
-    <img v-if="src" :src="src" class="frozen" alt="" draggable="false" />
+    <img v-if="src" :src="src" class="frozen" alt="" draggable="false" @load="shown" @error="shown" />
     <div v-if="!rect" class="dim"></div>
     <div v-if="rect" class="selection" :style="selectionStyle">
       <span class="handle tl"></span><span class="handle tr"></span><span class="handle bl"></span><span class="handle br"></span>
@@ -74,9 +74,16 @@ function onKey(e: KeyboardEvent) {
 
 onMounted(async () => {
   window.addEventListener("keydown", onKey);
-  const img = await api.overlayImage(index);
-  src.value = img.dataUrl;
+  try {
+    src.value = await api.overlayImage(index);
+  } catch {
+    shown();
+  }
 });
+function shown() {
+  // Show the window only once the frozen screen is painted (no black flash).
+  requestAnimationFrame(() => api.overlayShown(index));
+}
 onUnmounted(() => window.removeEventListener("keydown", onKey));
 </script>
 

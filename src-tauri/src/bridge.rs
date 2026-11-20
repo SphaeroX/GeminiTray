@@ -119,7 +119,7 @@ mod runtime {
         w.eval(start_script(&id, op, &args)).map_err(|e| BridgeError::Script(e.to_string()))?;
         let started = Instant::now();
         loop {
-            std::thread::sleep(Duration::from_millis(80));
+            std::thread::sleep(Duration::from_millis(30));
             match eval_value(&w, poll_script(&id)).map(|r| parse_poll(&r)) {
                 Some(PollState::Done(r)) => return r,
                 Some(PollState::Missing) => return Err(BridgeError::NotReady),
@@ -139,6 +139,11 @@ mod runtime {
         use base64::Engine;
         let b64 = base64::engine::general_purpose::STANDARD.encode(png);
         call(app, "insertImage", json!({ "png": b64 }), Duration::from_secs(15)).map(|_| ())
+    }
+
+    /// Number of attachment previews in Gemini's input area.
+    pub fn attachment_count(app: &AppHandle) -> Result<u64, BridgeError> {
+        call(app, "attachmentCount", json!({}), Duration::from_secs(3)).map(|v| v.as_u64().unwrap_or(0))
     }
 
     pub fn send(app: &AppHandle) -> Result<(), BridgeError> {
@@ -191,5 +196,5 @@ mod runtime {
 }
 
 pub use runtime::{
-    call, insert_image, insert_text, is_recording, mic_start, mic_stop, self_test, send, take_text, voice_status, wait_ready,
+    attachment_count, call, insert_image, insert_text, is_recording, mic_start, mic_stop, self_test, send, take_text, voice_status, wait_ready,
 };

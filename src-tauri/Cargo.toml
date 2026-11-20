@@ -35,6 +35,9 @@ image = { version = "0.25.10", default-features = false, features = ["png", "jpe
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
 
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = ["Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }
+
 [[test]]
 name = "window_toggle"
 path = "../tests/rust/window_toggle.rs"
@@ -45,6 +48,20 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
+# Image capture/encoding is far too slow unoptimized; keep `tauri dev` snappy.
+[profile.dev.package.image]
+opt-level = 3
+[profile.dev.package.png]
+opt-level = 3
+[profile.dev.package.fdeflate]
+opt-level = 3
+[profile.dev.package.miniz_oxide]
+opt-level = 3
+[profile.dev.package.crc32fast]
+opt-level = 3
+[profile.dev.package.xcap]
+opt-level = 3
 
 [dev-dependencies]
 xcap = "0.9.10"

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { find, insertImage, insertText, selfTest, send } from "../../src/bridge/dom";
+import { attachmentCount, find, insertImage, insertText, selfTest, send } from "../../src/bridge/dom";
 
 const fixture = (name: string) => readFileSync(resolve(import.meta.dirname, "fixtures", name), "utf-8");
 
@@ -13,6 +13,13 @@ function load(name: string) {
 class FakeDataTransfer {
   files: File[] = [];
   items = { add: (f: File) => this.files.push(f) };
+}
+class FakeClipboardEvent extends Event {
+  clipboardData: FakeDataTransfer;
+  constructor(type: string, init: EventInit & { clipboardData: FakeDataTransfer }) {
+    super(type, init);
+    this.clipboardData = init.clipboardData;
+  }
 }
 class FakeDragEvent extends Event {
   dataTransfer: FakeDataTransfer;
@@ -111,7 +118,7 @@ describe("send", () => {
 describe("insertImage", () => {
   beforeEach(() => {
     load("gemini-input-empty.html");
-    Object.assign(window, { DataTransfer: FakeDataTransfer, DragEvent: FakeDragEvent });
+    Object.assign(window, { DataTransfer: FakeDataTransfer, DragEvent: FakeDragEvent, ClipboardEvent: FakeClipboardEvent });
   });
 
   it("drops a PNG file on the drop zone and resolves once a preview appears", async () => {
@@ -126,6 +133,26 @@ describe("insertImage", () => {
     expect(dropped).toHaveLength(1);
     expect(dropped[0].type).toBe("image/png");
     expect(dropped[0].name).toBe("shot.png");
+  });
+
+  it("falls back to a paste event on the editor when the drop shows no preview", async () => {
+    const editor = find(document, "editor")!;
+    const zone = find(document, "dropZone")!;
+    const pasted: File[] = [];
+    editor.addEventListener("paste", (e) => {
+      pasted.push(...(e as unknown as FakeClipboardEvent).clipboardData.files);
+      zone.prepend(document.createElement("uploader-file-preview"));
+    });
+    await insertImage(document, PNG_1PX, "shot.png", 200);
+    expect(pasted).toHaveLength(1);
+    expect(pasted[0].type).toBe("image/png");
+    expect(attachmentCount(document)).toBe(1);
+  });
+
+  it("counts attachment previews in the input area", () => {
+    expect(attachmentCount(document)).toBe(0);
+    find(document, "dropZone")!.prepend(document.createElement("uploader-file-preview"));
+    expect(attachmentCount(document)).toBe(1);
   });
 
   it("reports not_attached when Gemini shows no preview", async () => {

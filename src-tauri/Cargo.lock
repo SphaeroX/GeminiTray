@@ -1697,6 +1697,7 @@ dependencies = [
  "ureq",
  "url",
  "webview2-com",
+ "windows",
  "xcap",
 ]
 

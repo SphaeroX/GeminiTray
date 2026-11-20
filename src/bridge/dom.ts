@@ -121,33 +121,60 @@ function countPreviews(root: ParentNode): number {
   return found.size;
 }
 
+/** Number of attachment previews currently shown in the input area. */
+export function attachmentCount(doc: Document): number {
+  const zone = find(doc, "dropZone");
+  if (!zone) return 0;
+  return countPreviews(zone.closest("fieldset") ?? zone.parentElement ?? zone);
+}
+
+function dispatchDrop(view: Window & typeof globalThis, zone: HTMLElement, file: File): boolean {
+  const DT = view.DataTransfer;
+  if (!DT) return false;
+  const dt = new DT();
+  dt.items.add(file);
+  for (const type of ["dragenter", "dragover", "drop"]) {
+    const ev = new (view.DragEvent ?? Event)(type, { bubbles: true, cancelable: true, composed: true, dataTransfer: dt } as DragEventInit);
+    zone.dispatchEvent(ev);
+  }
+  return true;
+}
+
+function dispatchPaste(view: Window & typeof globalThis, editor: HTMLElement, file: File): boolean {
+  const DT = view.DataTransfer;
+  const CE = view.ClipboardEvent;
+  if (!DT || !CE) return false;
+  const dt = new DT();
+  dt.items.add(file);
+  editor.dispatchEvent(new CE("paste", { bubbles: true, cancelable: true, composed: true, clipboardData: dt } as ClipboardEventInit));
+  return true;
+}
+
 /**
- * Attach a PNG to the prompt by dispatching a file drop on Gemini's drop zone (the same code path
- * as the "+" upload; a synthetic Ctrl+V makes Gemini's upload fail). Resolves when a preview
- * appears; throws `not_attached` otherwise.
+ * Attach a PNG to the prompt. First as a file drop on Gemini's drop zone (the same code path as the
+ * "+" upload), then as a paste event with the file on the editor. Resolves as soon as a preview
+ * appears; throws `not_attached` otherwise (the native side then falls back to a real Ctrl+V).
  */
 export async function insertImage(
   doc: Document,
   pngBase64: string,
   fileName = `screenshot-${Date.now()}.png`,
-  confirmTimeoutMs = 4000,
+  confirmTimeoutMs = 1500,
 ): Promise<void> {
   const zone = require(doc, "dropZone");
+  const editor = find(doc, "editor");
+  editor?.focus();
   const area = zone.closest("fieldset") ?? zone.parentElement ?? zone;
   const before = countPreviews(area);
+  const attached = () => countPreviews(area) > before;
   const bytes = base64ToBytes(pngBase64);
   const file = new File([bytes as BlobPart], fileName, { type: "image/png", lastModified: Date.now() });
   const view = doc.defaultView as (Window & typeof globalThis) | null;
-  const DT = view?.DataTransfer;
-  if (!DT) throw new BridgeError("not_attached", "DataTransfer unavailable");
-  const dt = new DT();
-  dt.items.add(file);
-  for (const type of ["dragenter", "dragover", "drop"]) {
-    const ev = new (view!.DragEvent ?? Event)(type, { bubbles: true, cancelable: true, composed: true, dataTransfer: dt } as DragEventInit);
-    zone.dispatchEvent(ev);
-  }
-  const attached = await waitFor(() => countPreviews(area) > before, confirmTimeoutMs);
-  if (!attached) throw new BridgeError("not_attached", "no preview appeared");
+  if (!view) throw new BridgeError("not_attached", "no window");
+
+  if (dispatchDrop(view, zone, file) && (await waitFor(attached, confirmTimeoutMs, 30))) return;
+  if (editor && dispatchPaste(view, editor, file) && (await waitFor(attached, confirmTimeoutMs, 30))) return;
+  throw new BridgeError("not_attached", "no preview appeared");
 }
 
 function isEnabled(b: HTMLElement): boolean {
