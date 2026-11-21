@@ -5,6 +5,7 @@ pub mod appwindows;
 pub mod bridge;
 pub mod commands;
 pub mod i18n;
+pub mod links;
 pub mod login;
 pub mod notify;
 pub mod permissions;
@@ -62,6 +63,15 @@ fn create_main_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     )?;
     let gemini = WebviewBuilder::new(windowing::GEMINI, WebviewUrl::External(url))
         .initialization_script(bridge::SCRIPT)
+        // Links with target=_blank (and "Open link in new window") would otherwise be dropped.
+        .on_new_window(|url, _features| match links::classify(url.as_str()) {
+            links::LinkTarget::InApp => tauri::webview::NewWindowResponse::Allow,
+            links::LinkTarget::External => {
+                links::open_external(url.as_str());
+                tauri::webview::NewWindowResponse::Deny
+            }
+            links::LinkTarget::Ignore => tauri::webview::NewWindowResponse::Deny,
+        })
         .on_page_load({
             let app = app.clone();
             move |_w, payload| {
