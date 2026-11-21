@@ -1,6 +1,6 @@
 [package]
 name = "gemini-tray"
-version = "2.2.0"
+version = "2.3.0"
 description = "Google Gemini in the Windows system tray"
 authors = ["SphaeroX"]
 license = "MIT"
