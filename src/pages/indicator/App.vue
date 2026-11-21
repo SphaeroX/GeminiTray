@@ -12,12 +12,9 @@
       </button>
     </div>
 
-    <div v-else-if="state.phase === 'starting'" class="pill" role="status">
-      <svg class="spin" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <circle cx="8" cy="8" r="6" stroke="rgba(255,255,255,0.2)" stroke-width="2" />
-        <path d="M8 2a6 6 0 0 1 6 6" stroke="var(--pill-accent)" stroke-width="2" stroke-linecap="round" />
-      </svg>
-      <span>{{ t("indicator.starting") }}</span>
+    <div v-else-if="state.phase === 'starting'" class="pill starting" role="status" :title="t('indicator.starting')" :aria-label="t('indicator.starting')">
+      <span class="dot preparing"></span>
+      <span>{{ state.mode === "message" ? t("indicator.preparing_message") : t("indicator.preparing_dictation") }}</span>
       <span v-if="state.prompt" class="chip">{{ t("indicator.prompt", { name: state.prompt }) }}</span>
       <button class="icon" :aria-label="t('common.cancel')" @click="api.voiceCancel()">
         <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" /></svg>
@@ -28,6 +25,9 @@
       <span class="dot"></span>
       <span>{{ state.mode === "message" ? t("indicator.message") : t("indicator.dictation") }}</span>
       <span v-if="state.prompt" class="chip">{{ t("indicator.prompt", { name: state.prompt }) }}</span>
+      <span class="bars" aria-hidden="true">
+        <span v-for="(l, i) in bars" :key="i" class="bar" :style="{ height: `${4 + l * 22}px` }"></span>
+      </span>
       <span class="time">{{ time }}</span>
       <button class="primary" @click="api.voiceFinish()">
         {{ state.mode === "message" ? t("indicator.send") : t("indicator.done") }}
@@ -52,7 +52,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { api, type IndicatorState } from "../../lib/api";
 import { onEvent } from "../../lib/events";
-import { formatDuration } from "../../lib/indicator";
+import { BAR_COUNT, formatDuration, pushLevel } from "../../lib/indicator";
 import { isTauri } from "@tauri-apps/api/core";
 
 /** Browser preview: indicator.html#recording | #message | #starting | #transcribing | #error */
@@ -63,11 +63,15 @@ function demo() {
   else if (h === "error") Object.assign(state, { phase: "idle", error: "micFailed" });
   else Object.assign(state, { phase: "recording", mode: h === "message" ? "message" : "dictation", prompt: h === "message" ? (navigator.language.startsWith("de") ? "Kurz erklären" : "Explain briefly") : null });
   seconds.value = 12;
+  levels.value = [0.1, 0.3, 0.6, 0.9, 0.7, 0.4, 0.8, 1, 0.6, 0.3, 0.5, 0.2, 0.4, 0.15];
 }
 
 const { t } = useI18n();
 const state = reactive<IndicatorState>({ phase: "idle", mode: undefined, prompt: null, error: null });
 const seconds = ref(0);
+const levels = ref<number[]>([]);
+/** Always BAR_COUNT bars; silent ones on the left until enough levels have come in. */
+const bars = computed(() => [...Array(BAR_COUNT - levels.value.length).fill(0), ...levels.value]);
 let errorTimer: ReturnType<typeof setTimeout> | undefined;
 
 const time = computed(() => formatDuration(seconds.value));
@@ -76,11 +80,15 @@ onMounted(async () => {
   if (import.meta.env.DEV && !isTauri()) demo();
   await onEvent<IndicatorState>("voice-state", (s) => {
     Object.assign(state, { mode: undefined, prompt: null, error: null }, s);
-    if (s.phase === "recording" && !s.error) seconds.value = 0;
+    if (s.phase === "recording" && !s.error) {
+      seconds.value = 0;
+      levels.value = [];
+    }
     clearTimeout(errorTimer);
     if (s.error) errorTimer = setTimeout(() => api.voiceDismiss(), 6000);
   });
   await onEvent<{ seconds: number }>("voice-level", (l) => (seconds.value = l.seconds));
+  await onEvent<{ level: number }>("voice-mic", (m) => (levels.value = pushLevel(levels.value, m.level)));
 });
 </script>
 
@@ -110,6 +118,12 @@ html, body { background: transparent !important; }
 .pill.compact { padding: 0 20px 0 16px; }
 .dot { width: 10px; height: 10px; border-radius: 5px; background: var(--rec); animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.45; } }
+/* About as wide as the recording pill, so it does not jump when Gemini starts listening. */
+.pill.starting { min-width: 320px; }
+.pill.starting .icon { margin-left: auto; }
+.dot.preparing { background: var(--prep); animation-duration: 0.7s; }
+.bars { display: flex; align-items: center; gap: 2px; height: 26px; }
+.bar { width: 3px; min-height: 4px; border-radius: 2px; background: var(--pill-accent); transition: height 60ms linear; }
 .chip { height: 24px; display: flex; align-items: center; padding: 0 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.1); font-size: 12px; color: #e0e0e0; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
 .time { font-variant-numeric: tabular-nums; color: #d0d0d0; min-width: 32px; }
 .primary { height: 32px; padding: 0 12px; border-radius: 16px; border: 0; background: var(--pill-accent); color: #000; font-size: 13px; font-weight: 600; cursor: pointer; }

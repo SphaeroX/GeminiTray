@@ -1,3 +1,4 @@
+use gemini_tray_lib::voice::levels::{level, smooth};
 use gemini_tray_lib::voice::machine::{clipboard_text, next, preview, shows_window, Effect, Event, Mode, Phase};
 
 const D: Mode = Mode::Dictation;
@@ -85,4 +86,23 @@ fn mic_ready_only_matters_while_starting() {
     assert_eq!(next(r, Event::MicReady), (r, Effect::None));
     let t = Phase::Transcribing { mode: D };
     assert_eq!(next(t, Event::MicReady), (t, Effect::None));
+}
+
+#[test]
+fn mic_level_uses_a_db_scale() {
+    assert_eq!(level(0.0), 0.0);
+    assert_eq!(level(f32::NAN), 0.0);
+    assert_eq!(level(0.001), 0.0); // -60 dB: room noise stays flat
+    assert_eq!(level(1.0), 1.0);
+    let quiet = level(0.01); // -40 dB
+    let loud = level(0.1); // -20 dB
+    assert!(0.0 < quiet && quiet < loud && loud < 1.0);
+}
+
+#[test]
+fn bars_rise_fast_and_fall_slowly() {
+    assert_eq!(smooth(0.2, 0.8), 0.8);
+    let falling = smooth(0.8, 0.0);
+    assert!(falling > 0.0 && falling < 0.8);
+    assert_eq!(smooth(0.8, 0.7), 0.7_f32.max(0.8 * 0.7));
 }

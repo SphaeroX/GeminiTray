@@ -6,7 +6,9 @@
 //! - dictation: copied to the clipboard; the draft is put back,
 //! - voice message: draft + recognised text are put back and (optionally) sent.
 
+pub mod levels;
 pub mod machine;
+mod meter;
 
 use crate::bridge::{self, BridgeError};
 use crate::notify::{self, Level};
@@ -55,6 +57,11 @@ pub struct IndicatorState {
 #[derive(Debug, Clone, Serialize)]
 struct Elapsed {
     seconds: f32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct MicLevel {
+    level: f32,
 }
 
 pub fn create_indicator(app: &AppHandle) -> tauri::Result<()> {
@@ -198,7 +205,27 @@ fn start(app: &AppHandle, mode: Mode) {
         *app.state::<VoiceState>().started.lock().unwrap() = Some(Instant::now());
         handle(&app, Event::MicReady);
         publish(&app, Phase::Recording { mode }, None);
+        meter_loop(&app, session);
         watch(&app, session);
+    });
+}
+
+/// Microphone level for the bars in the indicator, about 20 times a second while recording.
+/// Runs on its own thread so slow bridge calls in `watch` don't make the bars stutter.
+fn meter_loop(app: &AppHandle, session: u64) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        let meter = meter::Meter::open();
+        let mut shown = 0.0_f32;
+        loop {
+            std::thread::sleep(Duration::from_millis(50));
+            let vs = app.state::<VoiceState>();
+            if vs.session.load(Ordering::SeqCst) != session || !matches!(vs.phase(), Phase::Recording { .. }) {
+                return;
+            }
+            shown = levels::smooth(shown, levels::level(meter.peak()));
+            let _ = app.emit_to(INDICATOR, "voice-mic", MicLevel { level: shown });
+        }
     });
 }
 
