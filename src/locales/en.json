@@ -204,6 +204,7 @@
     "prompt": "Prompt: {name}",
     "done": "Done",
     "send": "Send",
+    "starting": "Gemini is starting – don't speak yet …",
     "transcribing": "Recognising …",
     "open_settings": "Open settings",
     "error": {

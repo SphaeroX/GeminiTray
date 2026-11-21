@@ -83,7 +83,10 @@ fn show_indicator(app: &AppHandle, state: IndicatorState) {
 }
 
 fn publish(app: &AppHandle, phase: Phase, error: Option<&str>) {
-    let prompt = if matches!(phase, Phase::Recording { mode: Mode::Message } | Phase::Transcribing { mode: Mode::Message }) {
+    let prompt = if matches!(
+        phase,
+        Phase::Starting { mode: Mode::Message } | Phase::Recording { mode: Mode::Message } | Phase::Transcribing { mode: Mode::Message }
+    ) {
         crate::prompts::active_name(app)
     } else {
         None
@@ -164,7 +167,8 @@ fn start(app: &AppHandle, mode: Mode) {
         windowing::show_main(app);
     }
     register_escape(app);
-    publish(app, Phase::Recording { mode }, None);
+    // "Starting …" until Gemini really listens, so nobody talks into a microphone that is not on yet.
+    publish(app, Phase::Starting { mode }, None);
 
     let app = app.clone();
     std::thread::spawn(move || {
@@ -176,11 +180,24 @@ fn start(app: &AppHandle, mode: Mode) {
             *app.state::<VoiceState>().draft.lock().unwrap() = draft;
             bridge::mic_start(&app)
         })();
+        let cancelled = app.state::<VoiceState>().session.load(Ordering::SeqCst) != session;
+        if cancelled {
+            // Stopped or cancelled while Gemini was still starting: switch the mic off again.
+            if result.is_ok() {
+                let _ = bridge::mic_stop(&app);
+                let _ = bridge::take_text(&app);
+            }
+            restore_draft(&app);
+            return;
+        }
         if let Err(e) = result {
             restore_draft(&app);
             fail(&app, &e);
             return;
         }
+        *app.state::<VoiceState>().started.lock().unwrap() = Some(Instant::now());
+        handle(&app, Event::MicReady);
+        publish(&app, Phase::Recording { mode }, None);
         watch(&app, session);
     });
 }
@@ -284,7 +301,7 @@ fn discard(app: &AppHandle) {
 #[tauri::command]
 pub fn voice_finish(app: AppHandle) {
     let mode = match app.state::<VoiceState>().phase() {
-        Phase::Recording { mode } => mode,
+        Phase::Starting { mode } | Phase::Recording { mode } => mode,
         _ => return,
     };
     handle(&app, Event::Toggle(mode));

@@ -6,7 +6,9 @@ const M: Mode = Mode::Message;
 #[test]
 fn start_stop_dictation() {
     let (p, e) = next(Phase::Idle, Event::Toggle(D));
-    assert_eq!((p, e), (Phase::Recording { mode: D }, Effect::StartRecording(D)));
+    assert_eq!((p, e), (Phase::Starting { mode: D }, Effect::StartRecording(D)));
+    let (p, e) = next(p, Event::MicReady);
+    assert_eq!((p, e), (Phase::Recording { mode: D }, Effect::None));
     let (p, e) = next(p, Event::Toggle(D));
     assert_eq!((p, e), (Phase::Transcribing { mode: D }, Effect::StopAndTranscribe(D)));
     let (p, e) = next(p, Event::TranscriptionFinished);
@@ -65,4 +67,22 @@ fn preview_is_shortened() {
 fn dictation_stays_in_the_background() {
     assert!(!shows_window(Mode::Dictation));
     assert!(shows_window(Mode::Message));
+}
+
+#[test]
+fn stopping_before_gemini_listens_discards() {
+    let p = Phase::Starting { mode: M };
+    assert_eq!(next(p, Event::Toggle(M)), (Phase::Idle, Effect::Discard));
+    assert_eq!(next(p, Event::Cancel), (Phase::Idle, Effect::Discard));
+    assert_eq!(next(p, Event::DeviceError), (Phase::Idle, Effect::DiscardWithError));
+    assert_eq!(next(p, Event::MaxDuration), (p, Effect::None));
+}
+
+#[test]
+fn mic_ready_only_matters_while_starting() {
+    assert_eq!(next(Phase::Idle, Event::MicReady), (Phase::Idle, Effect::None));
+    let r = Phase::Recording { mode: D };
+    assert_eq!(next(r, Event::MicReady), (r, Effect::None));
+    let t = Phase::Transcribing { mode: D };
+    assert_eq!(next(t, Event::MicReady), (t, Effect::None));
 }

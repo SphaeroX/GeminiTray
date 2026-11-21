@@ -48,7 +48,7 @@ export type ShortcutProblem =
 export type SaveError = { kind: "shortcuts"; problems: ShortcutProblem[] } | { kind: "io"; message: string };
 
 export interface IndicatorState {
-  phase: "idle" | "recording" | "transcribing";
+  phase: "idle" | "starting" | "recording" | "transcribing";
   mode?: "dictation" | "message";
   prompt: string | null;
   error: "micFailed" | "notReady" | null;

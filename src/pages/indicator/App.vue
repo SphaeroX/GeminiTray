@@ -12,6 +12,18 @@
       </button>
     </div>
 
+    <div v-else-if="state.phase === 'starting'" class="pill" role="status">
+      <svg class="spin" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="8" cy="8" r="6" stroke="rgba(255,255,255,0.2)" stroke-width="2" />
+        <path d="M8 2a6 6 0 0 1 6 6" stroke="var(--pill-accent)" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <span>{{ t("indicator.starting") }}</span>
+      <span v-if="state.prompt" class="chip">{{ t("indicator.prompt", { name: state.prompt }) }}</span>
+      <button class="icon" :aria-label="t('common.cancel')" @click="api.voiceCancel()">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" /></svg>
+      </button>
+    </div>
+
     <div v-else-if="state.phase === 'recording'" class="pill" role="status">
       <span class="dot"></span>
       <span>{{ state.mode === "message" ? t("indicator.message") : t("indicator.dictation") }}</span>
@@ -43,10 +55,11 @@ import { onEvent } from "../../lib/events";
 import { formatDuration } from "../../lib/indicator";
 import { isTauri } from "@tauri-apps/api/core";
 
-/** Browser preview: indicator.html#recording | #message | #transcribing | #error */
+/** Browser preview: indicator.html#recording | #message | #starting | #transcribing | #error */
 function demo() {
   const h = location.hash.slice(1);
-  if (h === "transcribing") Object.assign(state, { phase: "transcribing", mode: "dictation" });
+  if (h === "starting") Object.assign(state, { phase: "starting", mode: "dictation" });
+  else if (h === "transcribing") Object.assign(state, { phase: "transcribing", mode: "dictation" });
   else if (h === "error") Object.assign(state, { phase: "idle", error: "micFailed" });
   else Object.assign(state, { phase: "recording", mode: h === "message" ? "message" : "dictation", prompt: h === "message" ? (navigator.language.startsWith("de") ? "Kurz erklären" : "Explain briefly") : null });
   seconds.value = 12;

@@ -15,6 +15,8 @@ pub enum Mode {
 #[serde(tag = "phase", rename_all = "camelCase")]
 pub enum Phase {
     Idle,
+    /// Gemini's microphone is being switched on; speaking now would be lost.
+    Starting { mode: Mode },
     Recording { mode: Mode },
     Transcribing { mode: Mode },
 }
@@ -23,6 +25,8 @@ pub enum Phase {
 pub enum Event {
     /// Shortcut pressed (or "Done"/"Send" in the indicator) for a mode.
     Toggle(Mode),
+    /// Gemini is really listening (its microphone track is live).
+    MicReady,
     /// Escape / ✕ in the indicator.
     Cancel,
     /// Microphone failed or was unplugged during recording.
@@ -50,8 +54,16 @@ pub fn next(phase: Phase, event: Event) -> (Phase, Effect) {
     use Effect as E;
     use Phase as P;
     match (phase, event) {
-        (P::Idle, Event::Toggle(m)) => (P::Recording { mode: m }, E::StartRecording(m)),
+        (P::Idle, Event::Toggle(m)) => (P::Starting { mode: m }, E::StartRecording(m)),
         (P::Idle, _) => (P::Idle, E::None),
+
+        // Nothing has been recorded yet: stopping or cancelling just throws the start away.
+        (P::Starting { mode }, Event::MicReady) => (P::Recording { mode }, E::None),
+        (P::Starting { .. }, Event::Toggle(_)) | (P::Starting { .. }, Event::Cancel) => (P::Idle, E::Discard),
+        (P::Starting { .. }, Event::DeviceError) => (P::Idle, E::DiscardWithError),
+        (P::Starting { mode }, Event::MaxDuration) | (P::Starting { mode }, Event::TranscriptionFinished) => {
+            (P::Starting { mode }, E::None)
+        }
 
         // A second press of either voice shortcut stops; the mode of the running recording wins.
         (P::Recording { mode }, Event::Toggle(_)) | (P::Recording { mode }, Event::MaxDuration) => {
@@ -59,12 +71,15 @@ pub fn next(phase: Phase, event: Event) -> (Phase, Effect) {
         }
         (P::Recording { .. }, Event::Cancel) => (P::Idle, E::Discard),
         (P::Recording { .. }, Event::DeviceError) => (P::Idle, E::DiscardWithError),
-        (P::Recording { mode }, Event::TranscriptionFinished) => (P::Recording { mode }, E::None),
+        (P::Recording { mode }, Event::TranscriptionFinished) | (P::Recording { mode }, Event::MicReady) => {
+            (P::Recording { mode }, E::None)
+        }
 
         // While recognising, further presses are ignored (no new recording on top).
         (P::Transcribing { mode }, Event::Toggle(_))
         | (P::Transcribing { mode }, Event::MaxDuration)
-        | (P::Transcribing { mode }, Event::DeviceError) => (P::Transcribing { mode }, E::None),
+        | (P::Transcribing { mode }, Event::DeviceError)
+        | (P::Transcribing { mode }, Event::MicReady) => (P::Transcribing { mode }, E::None),
         (P::Transcribing { .. }, Event::Cancel) => (P::Idle, E::IgnoreResult),
         (P::Transcribing { .. }, Event::TranscriptionFinished) => (P::Idle, E::None),
     }
