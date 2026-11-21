@@ -1,4 +1,4 @@
-use gemini_tray_lib::voice::machine::{clipboard_text, next, preview, Effect, Event, Mode, Phase};
+use gemini_tray_lib::voice::machine::{clipboard_text, next, preview, shows_window, Effect, Event, Mode, Phase};
 
 const D: Mode = Mode::Dictation;
 const M: Mode = Mode::Message;
@@ -59,4 +59,10 @@ fn empty_transcript_does_not_touch_clipboard() {
 fn preview_is_shortened() {
     assert_eq!(preview("kurz", 10), "„kurz“");
     assert_eq!(preview("eine sehr lange Nachricht", 8), "„eine seh…“");
+}
+
+#[test]
+fn dictation_stays_in_the_background() {
+    assert!(!shows_window(Mode::Dictation));
+    assert!(shows_window(Mode::Message));
 }

@@ -158,7 +158,11 @@ fn start(app: &AppHandle, mode: Mode) {
     *vs.was_visible.lock().unwrap() = was_visible;
     *vs.started.lock().unwrap() = Some(Instant::now());
     let session = vs.session.fetch_add(1, Ordering::SeqCst) + 1;
-    windowing::show_main(app);
+    // Dictation runs in the background: the indicator pill is enough, the text goes to the
+    // clipboard. A voice message ends up in the chat, so the Gemini window is shown for it.
+    if machine::shows_window(mode) {
+        windowing::show_main(app);
+    }
     register_escape(app);
     publish(app, Phase::Recording { mode }, None);
 

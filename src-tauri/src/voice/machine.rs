@@ -70,6 +70,12 @@ pub fn next(phase: Phase, event: Event) -> (Phase, Effect) {
     }
 }
 
+/// Whether the Gemini window is brought to the front when recording starts. Dictation runs in
+/// the background (only the indicator pill is shown); a voice message ends up in the chat.
+pub fn shows_window(mode: Mode) -> bool {
+    matches!(mode, Mode::Message)
+}
+
 /// Text to put into the clipboard after dictation: `None` when nothing was recognised, so the
 /// clipboard is not overwritten with an empty string.
 pub fn clipboard_text(transcript: &str) -> Option<String> {
