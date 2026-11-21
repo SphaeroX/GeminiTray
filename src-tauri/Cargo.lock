@@ -1675,7 +1675,7 @@ dependencies = [
 
 [[package]]
 name = "gemini-tray"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "base64 0.23.1",
  "cookie",
