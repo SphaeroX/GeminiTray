@@ -18,7 +18,7 @@ Gemini Tray is a Windows tray app (Tauri 2, Rust core, Vue 3 UI) that shows the 
 | UI windows | `src/` | Vite multi-page app: `settings.html`, `indicator.html`, `prompts.html`, `overlay.html`, `toast.html`, `titlebar.html`. Shared code in `src/lib/`, i18n in `src/locales/{de,en}.json` |
 | Gemini bridge | `src/bridge/` | Built separately (`npm run build:bridge`) as an IIFE and injected as initialization script into the Gemini webview |
 | Tests | `tests/ui/` (Vitest + jsdom), `tests/rust/` (cargo integration tests, registered via `[[test]] path = "../tests/rust/<name>.rs"` in `src-tauri/Cargo.toml`) | |
-| Design | `Roadmap/README.md` → "Design" | Windows 11 / Fluent look; tokens in `src/lib/theme.css` |
+| Design | `Roadmap/README.md` → "Design" | Windows 11 / Fluent look; tokens in `src/lib/theme.css`. Logo sources: `images/brand/logo.svg` (app icon) and `tray.svg` (16–32 px mark, also `src/lib/AppMark.vue`) |
 
 The Rust crate is a library (`gemini_tray_lib`) plus a thin binary, so integration tests can import modules directly.
 
@@ -34,6 +34,7 @@ npm run tauri build               # release build + NSIS installer
 npm run release                   # tag the current version and push (only when the user asks for a release)
 npm run screenshots               # re-capture images/screenshots + README gallery (dev mock, Edge via Playwright)
 npm run site                      # build the GitHub Pages site (site/ + screenshots) into _site/
+npm run brand                     # re-render logo, app/tray icons, wordmarks, social preview from images/brand/*.svg
 ```
 
 ## Workflow

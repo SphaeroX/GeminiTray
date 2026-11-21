@@ -78,8 +78,14 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
                 windowing::toggle_main(tray.app_handle());
             }
         });
-    if let Some(icon) = app.default_window_icon() {
-        builder = builder.icon(icon.clone());
+    // Simplified mark drawn for 16–32 px (rendered by `npm run brand`); falls back to the app icon.
+    match tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png")) {
+        Ok(icon) => builder = builder.icon(icon),
+        Err(_) => {
+            if let Some(icon) = app.default_window_icon() {
+                builder = builder.icon(icon.clone());
+            }
+        }
     }
     builder.build(app)?;
     app.manage(TrayItems(items));

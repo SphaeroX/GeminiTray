@@ -1,4 +1,4 @@
-# Gemini Tray
+<h1 align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="images/brand/wordmark-dark.png"><img src="images/brand/wordmark-light.png" alt="Gemini Tray" height="88"></picture></h1>
 
 **Google Gemini one shortcut away – with voice input, dictation and Screenshot & Ask, right from the Windows system tray.**
 

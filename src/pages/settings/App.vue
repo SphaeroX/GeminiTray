@@ -1,9 +1,7 @@
 <template>
   <div class="window">
     <header class="titlebar" data-tauri-drag-region>
-      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" data-tauri-drag-region>
-        <path d="M8 1.5c.6 3.4 3.1 5.9 6.5 6.5-3.4.6-5.9 3.1-6.5 6.5-.6-3.4-3.1-5.9-6.5-6.5 3.4-.6 5.9-3.1 6.5-6.5Z" fill="var(--accent)" />
-      </svg>
+      <AppMark data-tauri-drag-region />
       <span class="title" data-tauri-drag-region>{{ t("settings.window_title") }}</span>
       <button class="caption" :aria-label="t('common.minimize')" @click="minimize">
         <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5h10" stroke="currentColor" /></svg>
@@ -40,6 +38,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import AppMark from "../../lib/AppMark.vue";
 import { onEvent } from "../../lib/events";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { api } from "../../lib/api";

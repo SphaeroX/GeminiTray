@@ -1,16 +1,7 @@
 <template>
   <header class="bar" data-tauri-drag-region @dblclick="act('maximize')">
     <div class="brand" data-tauri-drag-region>
-      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" data-tauri-drag-region>
-        <defs>
-          <linearGradient id="spark" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#4f8cff" />
-            <stop offset="0.55" stop-color="#9b72ff" />
-            <stop offset="1" stop-color="#ff7aa8" />
-          </linearGradient>
-        </defs>
-        <path d="M8 1.5c.6 3.4 3.1 5.9 6.5 6.5-3.4.6-5.9 3.1-6.5 6.5-.6-3.4-3.1-5.9-6.5-6.5 3.4-.6 5.9-3.1 6.5-6.5Z" fill="url(#spark)" />
-      </svg>
+      <AppMark data-tauri-drag-region />
       <span data-tauri-drag-region>Gemini Tray</span>
     </div>
 
@@ -66,6 +57,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import AppMark from "../../lib/AppMark.vue";
 import { api, type SettingsView } from "../../lib/api";
 import { onEvent } from "../../lib/events";
 import { setLanguage } from "../../lib/i18n";

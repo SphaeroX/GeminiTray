@@ -7,10 +7,12 @@
   <meta name="description" content="A small Windows tray app that opens the real Gemini web app with Alt+Space. Voice messages, dictation to clipboard, Screenshot & Ask and saved prompts. Free and open source, no API key." />
   <meta property="og:title" content="Gemini Tray" />
   <meta property="og:description" content="Gemini one shortcut away on Windows: voice messages, dictation, Screenshot & Ask." />
-  <meta property="og:image" content="images/screenshots/hero-dark.png" />
+  <meta property="og:image" content="images/social-preview.png" />
   <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#16181d" media="(prefers-color-scheme: dark)" />
-  <link rel="icon" href="images/app-icon.png" />
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="images/app-icon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="images/app-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -170,14 +172,7 @@
 <body>
   <header class="wrap top">
     <a class="brand" href="./" aria-label="Gemini Tray home">
-      <svg width="22" height="22" viewBox="0 0 16 16" aria-hidden="true">
-        <defs>
-          <linearGradient id="spark" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#4f8cff" /><stop offset="0.55" stop-color="#9b72ff" /><stop offset="1" stop-color="#ff7aa8" />
-          </linearGradient>
-        </defs>
-        <path d="M8 1.5c.6 3.4 3.1 5.9 6.5 6.5-3.4.6-5.9 3.1-6.5 6.5-.6-3.4-3.1-5.9-6.5-6.5 3.4-.6 5.9-3.1 6.5-6.5Z" fill="url(#spark)" />
-      </svg>
+      <img src="images/app-icon.png" width="32" height="32" alt="" />
       Gemini Tray
     </a>
     <nav aria-label="Page">

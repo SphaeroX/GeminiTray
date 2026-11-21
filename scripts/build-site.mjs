@@ -13,7 +13,9 @@ await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
 await cp(resolve(root, "site"), out, { recursive: true });
 await cp(resolve(root, "images/screenshots"), resolve(out, "images/screenshots"), { recursive: true });
-await cp(resolve(root, "src-tauri/app-icon.png"), resolve(out, "images/app-icon.png"));
+await cp(resolve(root, "images/brand/logo-512.png"), resolve(out, "images/app-icon.png"));
+await cp(resolve(root, "images/brand/logo.svg"), resolve(out, "images/favicon.svg"));
+await cp(resolve(root, "images/brand/social-preview.png"), resolve(out, "images/social-preview.png"));
 
 const index = resolve(out, "index.html");
 const html = await readFile(index, "utf8");
